@@ -55,10 +55,34 @@ export class GooglePlacesError extends Error {
   }
 }
 
+// Google's console does not let this project lower its daily quota (it stays at 50,000), so the
+// server keeps its own count of requests per UTC day. In memory: per server instance on Vercel.
+const daily = { day: "", used: 0 };
+
+function today(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function dailyUsed(): number {
+  if (daily.day !== today()) {
+    daily.day = today();
+    daily.used = 0;
+  }
+  return daily.used;
+}
+
+// For tests.
+export function resetGoogleDaily() {
+  daily.day = "";
+  daily.used = 0;
+}
+
 export interface GoogleOptions {
   timeoutMs?: number;
   // Hard cap on HTTP requests (pages) per exploration.
   maxRequests?: number;
+  // Hard cap on HTTP requests per UTC day, across all explorations in this server instance.
+  dailyLimit?: number;
   signal?: AbortSignal;
   // For tests.
   fetch?: typeof fetch;
@@ -76,7 +100,9 @@ export class GooglePlaces {
   }
 
   get remaining() {
-    return Math.max(0, (this.opts.maxRequests ?? 24) - this.requests);
+    const run = (this.opts.maxRequests ?? 24) - this.requests;
+    const day = this.opts.dailyLimit === undefined ? Infinity : this.opts.dailyLimit - dailyUsed();
+    return Math.max(0, Math.min(run, day));
   }
 
   // Number of distinct places Google Maps returns for the query inside the box.
@@ -93,9 +119,13 @@ export class GooglePlaces {
   }
 
   private async page(q: PlacesQuery, box: Box, pageToken?: string): Promise<{ places?: { id?: string }[]; nextPageToken?: string }> {
-    if (this.remaining <= 0) throw new GooglePlacesError(`Google Maps request limit of ${this.opts.maxRequests ?? 24} per run used up`);
+    if (this.opts.dailyLimit !== undefined && dailyUsed() >= this.opts.dailyLimit) {
+      throw new GooglePlacesError(`Google Maps daily limit of ${this.opts.dailyLimit} requests reached`);
+    }
+    if (this.requests >= (this.opts.maxRequests ?? 24)) throw new GooglePlacesError(`Google Maps request limit of ${this.opts.maxRequests ?? 24} per run used up`);
     if (this.opts.signal?.aborted) throw new GooglePlacesError("Google Maps: run was cancelled");
     this.requests++;
+    daily.used++;
     // Every page must repeat the first request exactly, plus the token.
     const body = {
       textQuery: q.textQuery,

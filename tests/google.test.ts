@@ -5,7 +5,7 @@ import { test } from "node:test";
 import { wardAudience } from "../src/lib/agent/census";
 import { Evidence, googleVerdict } from "../src/lib/agent/evidence";
 import { ageOverlap, buildCard } from "../src/lib/agent/score";
-import { boxAround, GOOGLE_MAX, GooglePlaces, GooglePlacesError, PLACES_URL } from "../src/lib/google/places";
+import { boxAround, GOOGLE_MAX, GooglePlaces, GooglePlacesError, PLACES_URL, resetGoogleDaily } from "../src/lib/google/places";
 import { BudgetedQloo, createQloo } from "../src/lib/qloo";
 
 process.env.MOCK_DELAY_MS = "0";
@@ -77,6 +77,18 @@ test("stops at the per-run request cap", async () => {
   const g = new GooglePlaces(KEY, { fetch: f.fn, maxRequests: 2 });
   await assert.rejects(g.count(Q, BOX), /request limit of 2/);
   assert.equal(g.requests, 2);
+});
+
+test("stops at the daily cap shared by every run in the process", async () => {
+  resetGoogleDaily();
+  const f = fakeFetch(() => json({ places: ids(0, 3) }));
+  const a = new GooglePlaces(KEY, { fetch: f.fn, dailyLimit: 2 });
+  const b = new GooglePlaces(KEY, { fetch: f.fn, dailyLimit: 2 });
+  await a.count(Q, BOX);
+  await b.count(Q, BOX);
+  assert.equal(b.remaining, 0);
+  await assert.rejects(b.count(Q, BOX), /daily limit of 2/);
+  resetGoogleDaily();
 });
 
 test("verdicts: confirms, weak, contradicts, inconclusive", () => {

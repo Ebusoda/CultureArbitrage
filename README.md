@@ -81,6 +81,7 @@ The "Example from a recorded run" section on the page comes from `src/data/sampl
 | `QLOO_CATEGORY_TAGS` | real Qloo tag ids per category, e.g. `malatang=urn:tag:...,bubble_tea=urn:tag:...` | unset (mock ids) |
 | `GOOGLE_MAPS_API_KEY` | optional, enables the Google Maps cross-check (Places API (New)); only used with `QLOO_MODE=live` | unset |
 | `GOOGLE_CALL_BUDGET` | max Google Maps requests (result pages) per exploration | `24` |
+| `GOOGLE_DAILY_LIMIT` | max Google Maps requests per UTC day, per server instance | `300` |
 | `EXPLORE_MAX_CONCURRENT` | explorations allowed to run at once | `3` |
 | `EXPLORE_RUNS_PER_IP_PER_HOUR` | per-visitor limit, production only | `20` |
 

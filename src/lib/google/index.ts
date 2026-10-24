@@ -14,6 +14,7 @@ export function createGooglePlaces(signal?: AbortSignal): GooglePlaces | null {
   if (!googleEnabled()) return null;
   return new GooglePlaces(process.env.GOOGLE_MAPS_API_KEY!.trim(), {
     maxRequests: config.googleCallBudget(),
+    dailyLimit: config.googleDailyLimit(),
     timeoutMs: config.qlooTimeoutMs(),
     signal,
   });
