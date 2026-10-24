@@ -23,6 +23,8 @@ export const config = {
   qlooRetries: () => envInt("QLOO_RETRIES", 2, 0, 4),
   // How long identical Qloo requests are answered from memory. 0 turns the cache off.
   qlooCacheTtlMs: () => envInt("QLOO_CACHE_TTL_MS", 6 * 3600_000, 0, 7 * 24 * 3600_000),
+  // Max Google Maps requests (result pages) per exploration, for the cross-check.
+  googleCallBudget: () => envInt("GOOGLE_CALL_BUDGET", 24, 0, 200),
   // Protects the public demo's Qloo and Claude credit.
   maxConcurrentRuns: () => envInt("EXPLORE_MAX_CONCURRENT", 3, 1, 50),
   runsPerIpPerHour: () => envInt("EXPLORE_RUNS_PER_IP_PER_HOUR", 20, 1, 10_000),

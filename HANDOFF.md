@@ -15,3 +15,6 @@
 - （10/24 更新）口味相似度改为：街区实体自带几百个 Qloo 标签，只取描述人群和玩法的几类（characteristic、activity、shopping、culinary_experience 等），算两区共有标签比例（Jaccard，实测 0.20–0.39），一半共有记为满分。不多花调用。`/v2/analysis/compare` 对 Midtown East 这类小街区没有数据，不能用。
 - 首尔只取有英文名的区（韩文名的洞级小区没有店铺数据）。首尔各区店铺数据偏少；"Manhattan, New York City" 这种大区查店只返回 2 家，比小街区还少。
 - 人群：malatang→火锅、韩式炸鸡→韩国料理、bubble tea→茶馆、natural wine→葡萄酒吧，作为替代人群，卡上会注明。
+
+- （10/24 下午）接入两项：①东京 23 区年龄（东京都统计部「住民基本台帳による東京都の世帯と人口」令和8年1月 第7表，src/data/tokyo-ward-ages.json），东京的"本地人群"改用它，人群匹配改为比较年龄结构的形状（相关系数，按偏离程度加权）；②谷歌地图核对（src/lib/google/places.ts），只取店铺 id（Text Search Essentials IDs Only，官方标为不限次免费），在两区中心 3 km 方格里各数一次，谷歌不认同缺口就否掉。谷歌不影响任何分数和置信度，数字只在卡片上单独的 "Google Maps" 框里显示（条款要求）。需要 .env.local 的 GOOGLE_MAPS_API_KEY，用 npm run google:check 测（只发 1–3 次请求）。录制 sample-run 时不能带谷歌 key（脚本会拦）。
+- 实测问题与处理：持久度在真实数据下测不到，不再算作扣分疑点（显示为"无法测量"）；QLOO_CALL_BUDGET 调到 40；Qloo 各品类粉丝年龄普遍偏 55+，所以年轻的区（新宿、丰岛）和贝果这类品类匹配分低，这是数据本身的倾向。

@@ -58,8 +58,11 @@ function tool(name: string, phase: Phase, description: string, props: Record<str
   };
 }
 
+const GOOGLE_RULE = `
+- check_google_maps (when offered) asks Google Maps, a second and independent index, whether it sees the same gap. It does not use the Qloo budget, and it runs automatically on submission anyway. If Google Maps lists as many places around the home neighbourhood as around the twin, the gap is ruled out. Do not repeat Google Maps numbers in your messages; the card shows them in their own box.`;
+
 // The category enum keeps the model inside the focus the user picked.
-function buildTools(categories: string[]): ToolDef[] {
+function buildTools(categories: string[], google: boolean): ToolDef[] {
   const category = { type: "string", enum: categories, description: "Category tag id" };
   return [
     tool("list_neighbourhoods", "profile", "List the most active neighbourhoods of a city according to Qloo.", { city: str("City name") }),
@@ -87,6 +90,16 @@ function buildTools(categories: string[]): ToolDef[] {
       category,
       city: str("A city where this category already has places, usually the twin's city"),
     }),
+    ...(google
+      ? [
+          tool(
+            "check_google_maps",
+            "doubt",
+            "Cross-check a gap on Google Maps: places of the category it lists in a 3 km square around the home neighbourhood and around the twin. Free, not counted against the Qloo budget. Run compare_supply for the pair first.",
+            { category, neighbourhood: str("Neighbourhood in the home city"), twin_neighbourhood: str("Twin neighbourhood"), twin_city: str("City of the twin") },
+          ),
+        ]
+      : []),
     {
       name: "submit_opportunity",
       phase: "score",
@@ -130,7 +143,7 @@ export async function runClaudeAgent(req: ExploreRequest, ev: Evidence, ctx: Run
     ? { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" as const }
     : {};
   const categories = categoriesFor(req.focus);
-  const tools = buildTools(categories);
+  const tools = buildTools(categories, ev.googleEnabled);
   // What the API sees: the definitions without our UI-only "phase" field.
   const apiTools: Anthropic.Beta.BetaTool[] = tools.map(({ name, description, strict, input_schema }) => ({ name, description, strict, input_schema }));
   const others = CITIES.filter((c) => c !== req.city);
@@ -160,7 +173,7 @@ export async function runClaudeAgent(req: ExploreRequest, ev: Evidence, ctx: Run
         {
           model,
           max_tokens: MAX_OUTPUT,
-          system: SYSTEM,
+          system: ev.googleEnabled ? SYSTEM + GOOGLE_RULE : SYSTEM,
           tools: apiTools,
           messages,
           thinking: { type: "adaptive", display: "summarized" },
@@ -237,13 +250,20 @@ async function execute(
       const twin = ev.hood(s("twin_neighbourhood"), twinCity);
       const home = await ev.supply(hood, req.city);
       const other = await ev.supply(twin, twinCity);
+      // A capped home page is a sample: before calling something a gap, count it on its own.
+      const homeOf = async (c: string) => {
+        const h = home.counts[c] ?? 0;
+        return home.capped && isGap(other.counts[c] ?? 0, h) ? (await ev.homeCount(hood, req.city, c)).count : h;
+      };
+      const homeCounts = new Map<string, number>();
+      for (const c of categories) homeCounts.set(c, await homeOf(c));
       return {
         neighbourhood: hood,
         twin_neighbourhood: twin,
         twin_city: twinCity,
         counts_are_a_sample: home.capped || other.capped,
         per_category: categories.map((c) => {
-          const h = home.counts[c] ?? 0;
+          const h = homeCounts.get(c) ?? 0;
           const t = other.counts[c] ?? 0;
           return { category: c, label: categoryLabel(c), home: h, twin: t, is_gap: isGap(t, h) };
         }),
@@ -262,8 +282,25 @@ async function execute(
       const t = await ev.trend(inScope(s("category")), s("city"));
       return t ? { change: Math.round(t.change * 100) / 100, first: t.first, last: t.last, points: t.points } : { trend: "no data" };
     }
+    case "check_google_maps": {
+      const g = await ev.googleGap(s("neighbourhood"), req.city, s("twin_neighbourhood"), s("twin_city"), inScope(s("category")));
+      return {
+        source: "Google Maps",
+        square_km: (g.halfKm * 2) ** 2,
+        home_places: g.home.count,
+        home_at_least: g.home.saturated,
+        twin_places: g.twin.count,
+        twin_at_least: g.twin.saturated,
+        verdict: g.verdict,
+      };
+    }
     case "submit_opportunity": {
       if (cards.length >= MAX_CARDS) throw new Error(`Already submitted ${MAX_CARDS}. Stop now.`);
+      // The Google Maps cross-check is not optional: run it here if the agent didn't (free, memoised).
+      // A failure leaves the card marked as not cross-checked.
+      if (ev.googleEnabled) {
+        await ev.googleGap(s("neighbourhood"), req.city, s("twin_neighbourhood"), s("twin_city"), inScope(s("category"))).catch(() => null);
+      }
       const card = buildCard(ev, {
         category: inScope(s("category")),
         hood: s("neighbourhood"),
@@ -280,6 +317,10 @@ async function execute(
         );
       }
       if (cards.some((c) => c.id === card.id)) throw new Error("Already submitted this opportunity.");
+      if (card.google?.verdict === "contradicts") {
+        ctx.onRejected?.(card, "Ruled out by a cross-check against a second index (see the card)");
+        throw new Error(`Ruled out: Google Maps lists ${card.google.home} places around ${card.homeLocality} and ${card.google.twin} around ${card.twinLocality}, so the gap may be in Qloo's index only. Try another pair or category.`);
+      }
       if (card.confidence < MIN_CONFIDENCE) {
         const measured = card.scores.filter((x) => x.value !== null).length;
         const before = rejected.get(card.id);
@@ -318,6 +359,8 @@ function describe(name: string, i: Input): string {
       return `Comparing ${cat} fans with people in ${s("neighbourhood")}`;
     case "trend":
       return `Checking whether ${cat} is rising or fading in ${s("city")}`;
+    case "check_google_maps":
+      return `Cross-checking ${cat} on Google Maps: ${s("neighbourhood")} vs ${s("twin_neighbourhood")}`;
     case "submit_opportunity":
       return `Submitting: ${cat} in ${s("neighbourhood")}`;
     default:

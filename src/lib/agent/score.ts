@@ -1,5 +1,5 @@
 import { categoryLabel } from "./categories";
-import type { CitySupply, Demographics, Evidence, Supply, Trend } from "./evidence";
+import type { CitySupply, Demographics, Evidence, GoogleGap, Supply, Trend } from "./evidence";
 import type { OpportunityCard, ScoreItem, TrailStep } from "./types";
 
 export interface CardInput {
@@ -49,13 +49,17 @@ export function buildCard(ev: Evidence, input: CardInput): OpportunityCard {
     catAudience: `audience:${category}`,
     hoodAudience: `hoodaudience:${hood}, ${city}`,
     trend: `trend:${category}:${twinCity}`,
+    google: `google:${category}:${hood}, ${city}->${twin}, ${twinCity}`,
   };
   const homeSupply = ev.peek<Supply>(k.homeSupply);
   const twinSupply = ev.peek<Supply>(k.twinSupply);
   if (!homeSupply || !twinSupply) {
     throw new Error(`No supply comparison for ${hood} (${city}) vs ${twin} (${twinCity}). Call compare_supply with those exact names first.`);
   }
-  const homeCount = homeSupply.counts[category] ?? 0;
+  // A capped shared page undercounts; a single-category count, when fetched, is exact.
+  const exactHome = ev.peek<{ count: number; capped: boolean }>(`supply1:${category}:${hood}, ${city}`);
+  const homeCount = exactHome?.count ?? homeSupply.counts[category] ?? 0;
+  const homeCapped = exactHome ? exactHome.capped : homeSupply.capped;
   const twinCount = twinSupply.counts[category] ?? 0;
   const twinInfo = ev.twins.get(`${hood}|${twin}|${twinCity}`) ?? null;
   const similarity = twinInfo?.similarity ?? null;
@@ -66,12 +70,19 @@ export function buildCard(ev: Evidence, input: CardInput): OpportunityCard {
   const trendKey = ev.peek<Trend | null>(k.trend) !== undefined ? k.trend : `trend:${category}:${city}`;
   const trend = ev.peek<Trend | null>(trendKey) ?? null;
   const tastes = twinInfo?.shared ?? ev.peek<{ name: string; affinity: number | null }[]>(k.taste) ?? [];
+  // Google Maps is a second index used only to rule a gap out (the caller does that when it
+  // contradicts the gap). It changes no score and no confidence, and its numbers stay in their
+  // own labelled box on the card, apart from the Qloo evidence, as Google's terms require.
+  const google = ev.peek<GoogleGap>(k.google) ?? null;
+  // Live /v2/trending rejects places, so no run can measure a place category's trend.
+  const trendUnmeasurable = ev.qloo.mode === "live" && trend === null;
+  const googleSkipped = ev.googleEnabled && !google ? ev.failureOf(k.google) ?? "the agent did not run it" : null;
 
   // Doubts raised in code, tagged with the check that raised them (for the score trail).
   const auto: { at: Check; text: string }[] = [];
   if (trend && trend.change < -0.2) auto.push({ at: "trend", text: `Interest is falling (${pct(trend.change)} over the period): a real gap may still fade, like tapioca.` });
   if (twinCount < 8) auto.push({ at: "compare", text: `Thin evidence: only ${twinCount} places in ${twin}.` });
-  if (twinSupply.capped || homeSupply.capped) auto.push({ at: "compare", text: "Place counts come from a capped sample of Qloo results, not a full census." });
+  if (twinSupply.capped || homeCapped) auto.push({ at: "compare", text: "Place counts come from a capped sample of Qloo results, not a full census." });
   if (ev.qloo.mode === "mock") auto.push({ at: "compare", text: "Built on sample data, not real Qloo results." });
   if (city_ && city_.count > 3 * Math.max(homeCount, 1) + 5) {
     auto.push({ at: "city", text: `${city_.count}${city_.capped ? "+" : ""} exist elsewhere in ${city}, so the gap may be local only.` });
@@ -101,14 +112,15 @@ export function buildCard(ev: Evidence, input: CardInput): OpportunityCard {
       ? { key: "fit", label: "Product fit", value: clamp(input.productFit.score), source: "LLM", note: input.productFit.reason }
       : pending("fit", "Product fit", "LLM judgment, needs Claude"),
     trend === null
-      ? pending("durability", "Durability", "Trend not fetched")
+      ? pending("durability", "Durability", trendUnmeasurable ? "Not measurable: Qloo's trend data covers artists, brands, films and TV, not places" : "Trend not fetched")
       : { key: "durability", label: "Durability", value: clamp(0.5 + trend.change), source: "Qloo", note: `${pct(trend.change)} over ${trend.points} points` },
   ];
 
   // Skipping a Qloo check must not raise confidence: each unchecked one counts as an open doubt.
+  // A check no agent could run (durability on live data) is shown as not measurable instead.
   let skipped = 0;
   for (const s of scores) {
-    if (s.value === null && s.key !== "fit") {
+    if (s.value === null && s.key !== "fit" && !(s.key === "durability" && trendUnmeasurable)) {
       doubts.push(`Not checked: ${s.label.toLowerCase()}.`);
       skipped++;
     }
@@ -165,13 +177,19 @@ export function buildCard(ev: Evidence, input: CardInput): OpportunityCard {
     homeCount,
     twinCount,
     cityCount: city_?.count ?? null,
-    capped: { home: homeSupply.capped, twin: twinSupply.capped, city: city_?.capped ?? false },
+    capped: { home: homeCapped, twin: twinSupply.capped, city: city_?.capped ?? false },
     why: input.why,
     scores,
     confidence: round2(confidence),
     confidenceMath: { mean: round2(mean), measured: measured.length, doubts: doubts.length, penalty: round2(penalty) },
     doubts,
     trail,
+    ...(google ? { google: { home: google.home.count, twin: google.twin.count, homeSaturated: google.home.saturated, twinSaturated: google.twin.saturated, halfKm: google.halfKm, verdict: google.verdict } } : {}),
+    ...(googleSkipped ? { googleSkipped } : {}),
+    ...(twinInfo?.sharedCount !== undefined && twinInfo.unionCount !== undefined ? { twinTagCounts: { shared: twinInfo.sharedCount, either: twinInfo.unionCount } } : {}),
+    ...(twinInfo?.sharedShare !== undefined ? { twinSharedShare: twinInfo.sharedShare } : {}),
+    ...(hoodAudience?.basis ? { audienceBasis: hoodAudience.basis } : {}),
+    ...(catAudience?.proxy ? { audienceProxy: catAudience.proxy } : {}),
     refs: {
       taste: ev.calls(k.taste),
       twin: ev.calls(k.twin),
@@ -220,15 +238,22 @@ function pct(n: number) {
 function share(n: number) {
   return `${Math.round(n * 100)}%`;
 }
+const FULL_LEAN = 0.1;
+
 // 1 = identical age profiles, 0 = no overlap.
-function ageOverlap(a: Demographics, b: Demographics) {
+export function ageOverlap(a: Demographics, b: Demographics) {
   const keys = [...new Set([...Object.keys(a.age), ...Object.keys(b.age)])];
   // Live profiles give each age band a lean from -1 to 1, not a share, and the two sides come
   // from different sources (Qloo fans vs ward residents) whose leans differ in scale. So compare
   // their shape: do the same age bands lean the same way? Correlation -1..1 mapped to 0..1.
+  // A side that barely leans (a ward close to the 23-ward average) has a shape that is mostly
+  // noise, so the correlation is weighted by how strongly the flatter side leans: a lean of 0.1
+  // or more in some band counts in full, a flat profile lands at 0.5 (neither match nor mismatch).
   if ([...Object.values(a.age), ...Object.values(b.age)].some((n) => n < 0)) {
     const r = correlation(keys.map((k) => a.age[k] ?? 0), keys.map((k) => b.age[k] ?? 0));
-    return r === null ? 0.5 : clamp((r + 1) / 2);
+    const amp = (d: Demographics) => Math.max(0, ...Object.values(d.age).map(Math.abs));
+    const weight = Math.min(1, Math.min(amp(a), amp(b)) / FULL_LEAN);
+    return r === null ? 0.5 : clamp(0.5 + (r * weight) / 2);
   }
   let shared = 0;
   for (const k of keys) shared += Math.min(a.age[k] ?? 0, b.age[k] ?? 0);

@@ -47,6 +47,19 @@ export interface OpportunityCard {
   // confidence. Missing in recordings made before it existed.
   trail?: TrailStep[];
   refs: Record<EvidenceRef, number[]>;
+  // Google Maps cross-check, when it ran: places listed in a square around each centre.
+  // Shown labelled "Google Maps", apart from the Qloo evidence.
+  google?: { home: number; twin: number; homeSaturated: boolean; twinSaturated: boolean; halfKm: number; verdict: "confirms" | "weak" | "contradicts" | "inconclusive" };
+  // Live: share of Qloo taste tags the two neighbourhoods have in common (0..1, unscaled),
+  // and the counts behind it: tags in common, and tags found in either.
+  twinSharedShare?: number;
+  twinTagCounts?: { shared: number; either: number };
+  // Google Maps was configured but the cross-check did not run for this card: why.
+  googleSkipped?: string;
+  // Who the home side of the audience check describes, when it is not Qloo (ward statistics).
+  audienceBasis?: string;
+  // The broader tag whose fans stood in for the category's (e.g. "hot pot").
+  audienceProxy?: string;
 }
 
 export interface TrailStep {

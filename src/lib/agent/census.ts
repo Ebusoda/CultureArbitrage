@@ -52,9 +52,10 @@ const PART_OF: Record<string, string> = {
 const key = (s: string) =>
   s
     .normalize("NFKD")
-    .replace(/[̀-ͯ]/g, "")
+    .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
-    .replace(/[\s_-]*(ku|city|ward)$/, "")
+    // Only a separated suffix: "Shinjuku" keeps its "ku", "Shinjuku-ku" loses one.
+    .replace(/[\s_-]+(ku|city|ward)$/, "")
     .replace(/[\s\-_]+/g, " ")
     .trim();
 
@@ -72,7 +73,7 @@ export function findWard(hood: string): { ward: Ward; partOf: boolean } | null {
   const k = key(hood);
   const direct = wards.find((w) => key(w.en) === k || w.ja === hood.trim());
   if (direct) return { ward: direct, partOf: false };
-  const parent = PART_OF[k];
+  const parent = PART_OF[k] ?? PART_OF[k.replace(/ /g, "")];
   const w = parent ? wards.find((x) => x.en === parent) : undefined;
   return w ? { ward: w, partOf: true } : null;
 }
@@ -85,12 +86,12 @@ export function wardAudience(hood: string, city: string): Demographics | null {
   if (!hit) return null;
   const s = shares(hit.ward.counts);
   const age = Object.fromEntries(
-    Object.entries(QLOO_BAND).map(([b, q]) => [q, s[b] + base[b] ? round2((s[b] - base[b]) / (s[b] + base[b])) : 0]),
+    Object.entries(QLOO_BAND).map(([b, q]) => [q, s[b] + base[b] ? round3((s[b] - base[b]) / (s[b] + base[b])) : 0]),
   );
   const where = hit.partOf ? `${hit.ward.en} ward, which contains ${hood}` : `${hit.ward.en} ward`;
-  return { age, basis: `residents of ${where} (${table.source.publisher}, ${table.source.asOf})` };
+  return { age, basis: `residents of ${where} (Tokyo resident register, ${table.source.asOf})` };
 }
 
-function round2(n: number) {
-  return Math.round(n * 100) / 100;
+function round3(n: number) {
+  return Math.round(n * 1000) / 1000;
 }

@@ -22,7 +22,7 @@ const QUESTIONS = [
   { label: "Taste twins", q: "Where else do people love the same things?", tag: "insights · urn:entity:locality" },
   { label: "Compare", q: "What do the twins have that we don't?", tag: "insights · urn:entity:place" },
   { label: "Doubt", q: "Is the gap real, wanted and lasting?", tag: "urn:demographics · /v2/trending" },
-  { label: "Score", q: "Six scores and a confidence, computed only from the Qloo answers. Product fit is Claude's judgment, labelled.", tag: "" },
+  { label: "Score", q: "Six scores and a confidence, computed from the Qloo answers (plus Tokyo ward statistics, labelled). Product fit is Claude's judgment, labelled.", tag: "" },
 ];
 
 interface Props {

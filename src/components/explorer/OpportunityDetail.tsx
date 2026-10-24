@@ -120,6 +120,36 @@ function Row({ n, children, refs, onChip }: { n: number | null; children: React.
 
 const B = ({ children }: { children: React.ReactNode }) => <span className="font-semibold tabular-nums">{children}</span>;
 
+const VERDICT: Record<NonNullable<OpportunityCard["google"]>["verdict"], string> = {
+  confirms: "sees the gap too",
+  weak: "sees a smaller gap",
+  contradicts: "does not see this gap",
+  inconclusive: "can’t settle it either way (too few places, or past its 60-result limit)",
+};
+
+// Google Maps data must be shown apart from other sources and labelled "Google Maps".
+function GoogleMapsCheck({ card }: { card: OpportunityCard }) {
+  const g = card.google;
+  const n = (v: number, sat: boolean) => (sat ? `${v}+` : String(v));
+  return (
+    <div className="rounded-lg border border-line bg-surface px-3 py-2 text-[13px]">
+      {g ? (
+        <p>
+          Places listed for “{card.category.toLowerCase()}” in a {g.halfKm * 2} km square around each centre: <B>{n(g.home, g.homeSaturated)}</B> around {card.homeLocality}, <B>{n(g.twin, g.twinSaturated)}</B> around {card.twinLocality}. Google Maps {VERDICT[g.verdict]}.
+        </p>
+      ) : (
+        <p className="text-muted">Cross-check not run: {card.googleSkipped}.</p>
+      )}
+      <p className="mt-1 text-[12px] text-muted">
+        Cross-check against a second index. It changes no score or confidence; a gap it does not see is ruled out. Source:{" "}
+        <span translate="no" className="font-medium text-ink">
+          Google Maps
+        </span>
+      </p>
+    </div>
+  );
+}
+
 function EvidenceChain({ card, onChip }: { card: OpportunityCard; onChip?: (n: number) => void }) {
   const r = card.refs;
   const t = card.sharedTastes.slice(0, 3);
@@ -130,8 +160,8 @@ function EvidenceChain({ card, onChip }: { card: OpportunityCard; onChip?: (n: n
     <section>
       <h3 className="text-[12px] font-semibold uppercase tracking-[0.06em] text-muted">Evidence chain</h3>
       <ol className="mt-2 divide-y divide-line">
-        <Row n={1} refs={r.taste} onChip={onChip}>
-          People in {card.homeLocality} are into{" "}
+        <Row n={1} refs={card.twinSharedShare !== undefined ? r.twin : r.taste} onChip={onChip}>
+          {card.twinSharedShare !== undefined ? <>{card.homeLocality} and {card.twinLocality} share Qloo tastes such as </> : <>People in {card.homeLocality} are into </>}
           {t.length
             ? t.map((x, i) => (
                 <span key={x.name}>
@@ -149,14 +179,29 @@ function EvidenceChain({ card, onChip }: { card: OpportunityCard; onChip?: (n: n
           .
         </Row>
         <Row n={2} refs={r.twin} onChip={onChip}>
-          Qloo ranks {card.twinLocality} {card.twinRank !== null && <B>#{card.twinRank} </B>}in {card.twinCity} for people with those tastes
-          {card.twinSimilarity !== null && (
+          {card.twinSharedShare !== undefined ? (
             <>
-              {" "}
-              (affinity <B>{card.twinSimilarity.toFixed(2)}</B>)
+              {card.twinLocality} {card.twinRank !== null && <>(<B>#{card.twinRank}</B> in {card.twinCity}) </>}and {card.homeLocality} share <B>{pct(card.twinSharedShare)}%</B> of the Qloo taste tags found in either
+              {card.twinTagCounts && (
+                <>
+                  {" "}
+                  ({card.twinTagCounts.shared} of {card.twinTagCounts.either})
+                </>
+              )}
+              .
+            </>
+          ) : (
+            <>
+              Qloo ranks {card.twinLocality} {card.twinRank !== null && <B>#{card.twinRank} </B>}in {card.twinCity} for people with those tastes
+              {card.twinSimilarity !== null && (
+                <>
+                  {" "}
+                  (affinity <B>{card.twinSimilarity.toFixed(2)}</B>)
+                </>
+              )}
+              .
             </>
           )}
-          .
         </Row>
         <Row n={3} refs={r.twinSupply} onChip={onChip}>
           Qloo lists <B>{count(card.twinCount, card.capped.twin)}</B> places tagged “{card.category.toLowerCase()}” in {card.twinLocality}.
@@ -176,17 +221,22 @@ function EvidenceChain({ card, onChip }: { card: OpportunityCard; onChip?: (n: n
             <span className="text-muted">Not checked: the agent did not look at the rest of {card.homeCity}.</span>
           )}
         </Row>
+        {(card.google || card.googleSkipped) && (
+          <li className="py-3 pl-9">
+            <GoogleMapsCheck card={card} />
+          </li>
+        )}
         <Row n={6} refs={r.audience} onChip={onChip}>
           {audience?.value != null ? (
             <>
-              The category’s fans and people in {card.homeLocality} share <B>{pct(audience.value)}%</B> of their age profile.
+              Age profiles match <B>{pct(audience.value)}%</B>: the category’s fans{card.audienceProxy ? ` (${card.audienceProxy} fans standing in)` : ""} on Qloo vs {card.audienceBasis ?? `people in ${card.homeLocality}`}.
             </>
           ) : (
             <span className="text-muted">Audience overlap: not fetched.</span>
           )}
         </Row>
         <Row n={7} refs={r.trend} onChip={onChip}>
-          {durability?.value != null ? <>Interest over the period: {durability.note}.</> : <span className="text-muted">Trend: not fetched.</span>}
+          {durability?.value != null ? <>Interest over the period: {durability.note}.</> : <span className="text-muted">Trend: {durability?.note ?? "not fetched"}.</span>}
         </Row>
         <Row n={8}>
           <LlmBadge />{" "}
@@ -194,7 +244,7 @@ function EvidenceChain({ card, onChip }: { card: OpportunityCard; onChip?: (n: n
         </Row>
       </ol>
       <p className="mt-3 text-[12px] text-muted">
-        Every number above comes from the Qloo response named on its right.{onChip ? " Click a Q-number to see the exact request in the agent log." : ""}
+        Every number above comes from the Qloo response named on its right{card.google || card.audienceBasis ? ", except where another source is named" : ""}.{onChip ? " Click a Q-number to see the exact request in the agent log." : ""}
       </p>
     </section>
   );

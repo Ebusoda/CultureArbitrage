@@ -1,7 +1,8 @@
 import { BudgetExceededError, type BudgetedQloo } from "../qloo";
-import { canonicalCity, qlooLocation } from "../cities";
+import { CITY_LANGUAGE, canonicalCity, qlooLocation } from "../cities";
+import { boxAround, GOOGLE_PAGES, GooglePlacesError, type GoogleCount, type GooglePlaces } from "../google";
 import type { QlooEntity } from "../qloo";
-import { audienceProxy, categoryLabel } from "./categories";
+import { audienceProxy, categoryLabel, googleQuery } from "./categories";
 import { wardAudience } from "./census";
 import type { SupplyEvent, TwinEvent } from "./types";
 
@@ -31,6 +32,9 @@ export interface Twin {
   sharedShare?: number;
   // Live: some of the tastes they share.
   shared?: { name: string; affinity: number | null }[];
+  // Live: taste tags in common, and in either.
+  sharedCount?: number;
+  unionCount?: number;
 }
 
 // Live locality entities carry a few hundred Qloo tags each. These kinds describe who goes
@@ -45,6 +49,32 @@ const FULL_MATCH = 0.5;
 
 function tasteTags(e: QlooEntity): Map<string, string> {
   return new Map((e.tags ?? []).filter((t) => t.type && TASTE_TAG_TYPE.test(t.type)).map((t) => [t.id, t.name]));
+}
+
+// Google Maps cross-check of one gap: places Google Maps lists for the category in a square
+// around each neighbourhood's centre, and what that says about the gap Qloo shows.
+export interface GoogleGap {
+  home: GoogleCount;
+  twin: GoogleCount;
+  // Half the side of each square, in km.
+  halfKm: number;
+  // confirms: Google Maps sees the gap too (twin at least 4 and 3 times home).
+  // weak: Google Maps sees more around the twin, but less than 3 times as many.
+  // contradicts: Google Maps lists as many or more around the home neighbourhood.
+  // inconclusive: too few on both sides to say, or both past Google's 60-result ceiling.
+  verdict: "confirms" | "weak" | "contradicts" | "inconclusive";
+}
+
+// Ward-sized neighbourhoods; a 3 km square covers the busy core of most of them.
+const GOOGLE_HALF_KM = 1.5;
+
+export function googleVerdict(home: GoogleCount, twin: GoogleCount): GoogleGap["verdict"] {
+  if ((home.count < 4 && twin.count < 4) || (home.saturated && twin.saturated)) return "inconclusive";
+  if (home.count >= twin.count) return "contradicts";
+  if (twin.count >= 4 && twin.count >= 3 * Math.max(home.count, 1)) return "confirms";
+  // Past Google's 60-result ceiling the twin's real count, and so the ratio, is unknown.
+  if (twin.saturated) return "inconclusive";
+  return "weak";
 }
 
 export interface Supply {
@@ -64,13 +94,23 @@ interface Hooks {
   onSupply?: (e: SupplyEvent) => void;
   // After every new answer, so a run can re-score the gaps it has found.
   onLookup?: () => void;
+  // Google Maps cross-check; absent without a key or on mock data.
+  google?: GooglePlaces | null;
 }
 
 // Live Qloo pages hold at most 50 results; the mock data has neighbourhoods with more.
 const SUPPLY_TAKE = { live: 50, mock: 100 };
 const CITY_TAKE = 50;
 
-const norm = (s: string) => s.normalize("NFKC").toLowerCase().replace(/[\s\-_]+/g, " ").trim();
+// Also drops diacritics, so "Taito-ku" finds the "Taitō-ku" Qloo returned (Hangul is recomposed).
+const norm = (s: string) =>
+  s
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .normalize("NFKC")
+    .toLowerCase()
+    .replace(/[\s\-_]+/g, " ")
+    .trim();
 
 // Live locality results mix in the country, state, county and the city itself
 // ("Japan", "Tokyo", "Kings County"); only parts of the city count as neighbourhoods.
@@ -106,6 +146,10 @@ export class Evidence {
   private ids = new Map<string, string>();
   // Same key -> its taste tags (live), id -> name.
   private tags = new Map<string, Map<string, string>>();
+  // Same key -> its centre, as Qloo gives it.
+  private centres = new Map<string, { lat: number; lng: number }>();
+  // A rejected Google key fails every request alike: after the first, stop asking.
+  private googleDown: Error | null = null;
   // "<home>|<twin>|<twin city>" -> best twin found
   readonly twins = new Map<string, Twin>();
 
@@ -142,6 +186,12 @@ export class Evidence {
     return this.qloo.mode === "live" ? qlooLocation(city) : city;
   }
 
+  // Why a lookup failed, if it did.
+  failureOf(key: string): string | null {
+    const e = this.failures.get(key);
+    return e === undefined ? null : e instanceof Error ? e.message : String(e);
+  }
+
   peek<T>(key: string): T | undefined {
     return this.cache.get(key) as T | undefined;
   }
@@ -173,6 +223,9 @@ export class Evidence {
     if (e?.entity_id) this.ids.set(k, e.entity_id);
     const t = e ? tasteTags(e) : null;
     if (t?.size) this.tags.set(k, t);
+    const lat = e?.location?.lat ?? e?.properties?.geocode?.latitude;
+    const lng = e?.location?.lon ?? e?.properties?.geocode?.longitude;
+    if (typeof lat === "number" && typeof lng === "number") this.centres.set(k, { lat, lng });
   }
 
   knownHoods(city: string): string[] {
@@ -222,6 +275,12 @@ export class Evidence {
       const id = this.qloo.mode === "live" ? this.ids.get(k) : undefined;
       const homeTags = this.tags.get(k);
       if (id && homeTags) return this.liveTwins(id, homeTags, other, take);
+      // Live Qloo scores every locality the same for a tag signal, so that search would return
+      // arbitrary "twins". Ask for a neighbourhood Qloo listed instead.
+      if (this.qloo.mode === "live") {
+        const known = this.knownHoods(city);
+        throw new Error(`${hood} is not a neighbourhood Qloo listed for ${city}${known.length ? `. Use one of: ${known.join(", ")}` : ": call list_neighbourhoods first"}.`);
+      }
       const tastes = await this.tasteProfile(hood, city);
       if (!tastes.length) return [] as Twin[];
       const r = await this.qloo.insights({
@@ -233,7 +292,10 @@ export class Evidence {
       return (r.results.entities ?? [])
         .filter((e) => isNeighbourhood(e, other))
         .slice(0, take)
-        .map((e, i) => ({ name: e.name, city: other, similarity: e.query?.affinity ?? 0, rank: i + 1 }));
+        .map((e, i) => {
+          this.remember(e.name, other, e);
+          return { name: e.name, city: other, similarity: e.query?.affinity ?? 0, rank: i + 1 };
+        });
     });
     if (fresh) {
       const profile = this.peek<{ name: string; affinity: number | null }[]>(`taste:${hood}, ${city}`) ?? [];
@@ -284,6 +346,8 @@ export class Evidence {
         city: other,
         similarity: Math.min(1, jaccard / FULL_MATCH),
         sharedShare: jaccard,
+        sharedCount: shared.length,
+        unionCount: homeTags.size + theirs.size - shared.length,
         shared: shared.slice(0, 6).map((id) => ({ name: homeTags.get(id)!, affinity: null })),
       });
     }
@@ -320,6 +384,22 @@ export class Evidence {
       });
     }
     return s;
+  }
+
+  // A capped live supply page is a sample shared by every category (filter.tags is a union),
+  // so a low home count may only mean the category was crowded out. Before a gap is called on
+  // it, count that one category on its own. Memoised; used by compare_supply, the pipeline and
+  // buildCard (which prefers this key).
+  async homeCount(rawHood: string, rawCity: string, category: string): Promise<{ count: number; capped: boolean }> {
+    const city = this.city(rawCity);
+    const hood = this.hood(rawHood, city);
+    const s = await this.supply(hood, city);
+    if (this.qloo.mode !== "live" || !s.capped) return { count: s.counts[category] ?? 0, capped: s.capped };
+    return this.memo(`supply1:${category}:${hood}, ${city}`, async () => {
+      const r = await this.qloo.insights({ "filter.type": "urn:entity:place", "filter.location.query": `${hood}, ${this.loc(city)}`, "filter.tags": category, take: SUPPLY_TAKE.live });
+      const n = (r.results.entities ?? []).length;
+      return { count: n, capped: n >= SUPPLY_TAKE.live };
+    });
   }
 
   citySupply(rawCity: string, category: string) {
@@ -364,6 +444,49 @@ export class Evidence {
       }
       const r = await this.qloo.insights({ "filter.type": "urn:demographics", "signal.location.query": `${hood}, ${city}` });
       return asDemographics(r.results.demographics);
+    });
+  }
+
+  get googleEnabled(): boolean {
+    return !!this.hooks.google;
+  }
+
+  // Places Google Maps lists for a category in a square around a neighbourhood's centre.
+  googleCount(rawHood: string, rawCity: string, category: string) {
+    const city = this.city(rawCity);
+    const hood = this.hood(rawHood, city);
+    return this.memo(`gcount:${category}:${hood}, ${city}`, async (): Promise<GoogleCount> => {
+      const google = this.hooks.google;
+      if (!google) throw new Error("Google Maps cross-check is not configured (no GOOGLE_MAPS_API_KEY).");
+      if (this.googleDown) throw this.googleDown;
+      const centre = this.centres.get(`${norm(hood)}|${norm(city)}`);
+      if (!centre) throw new Error(`No map position known for ${hood}, ${city}: list or find it through Qloo first.`);
+      const lang = CITY_LANGUAGE[city] ?? { lang: "en" as const, region: "" };
+      const q = googleQuery(category, lang.lang);
+      if (!q) throw new Error(`No Google Maps query for ${category}.`);
+      try {
+        return await google.count({ ...q, languageCode: lang.lang, regionCode: lang.region || undefined }, boxAround(centre.lat, centre.lng, GOOGLE_HALF_KM));
+      } catch (e) {
+        if (e instanceof GooglePlacesError && e.fatal) this.googleDown = e;
+        throw e;
+      }
+    });
+  }
+
+  // Does Google Maps see the same gap between a home neighbourhood and its twin?
+  googleGap(rawHood: string, rawCity: string, rawTwin: string, rawTwinCity: string, category: string) {
+    const city = this.city(rawCity);
+    const hood = this.hood(rawHood, city);
+    const twinCity = this.city(rawTwinCity);
+    const twin = this.hood(rawTwin, twinCity);
+    return this.memo(`google:${category}:${hood}, ${city}->${twin}, ${twinCity}`, async (): Promise<GoogleGap> => {
+      // Both sides or neither: a half-finished check would read as a verdict it is not.
+      const google = this.hooks.google;
+      const sides = [`${hood}, ${city}`, `${twin}, ${twinCity}`].filter((a) => !this.cache.has(`gcount:${category}:${a}`)).length;
+      if (google && google.remaining < sides * GOOGLE_PAGES) throw new GooglePlacesError("Google Maps request budget for this run is used up");
+      const home = await this.googleCount(hood, city, category);
+      const there = await this.googleCount(twin, twinCity, category);
+      return { home, twin: there, halfKm: GOOGLE_HALF_KM, verdict: googleVerdict(home, there) };
     });
   }
 

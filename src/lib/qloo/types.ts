@@ -21,6 +21,8 @@ export interface QlooEntity {
     explainability?: unknown;
   };
   tags?: QlooTag[];
+  // Live: the entity's point (for a locality, its centre).
+  location?: { lat?: number; lon?: number };
   properties?: {
     address?: string;
     geocode?: { latitude?: number; longitude?: number; name?: string };

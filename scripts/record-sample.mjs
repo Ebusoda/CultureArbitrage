@@ -21,6 +21,11 @@ const error = events.find((e) => e.type === "error");
 if (error) throw new Error(`The run failed: ${error.message}`);
 if (!done) throw new Error("The run was cut off before it finished.");
 
+// Google's terms don't allow storing Places results, and this file ships with the page.
+if (events.some((e) => e.card?.google || e.card?.googleSkipped) || JSON.stringify(events).includes("Google Maps")) {
+  throw new Error("This run used the Google Maps cross-check, whose results may not be stored. Remove GOOGLE_MAPS_API_KEY from .env.local, restart npm run dev, and record again.");
+}
+
 const out = new URL("../src/data/sample-run.json", import.meta.url);
 await writeFile(out, JSON.stringify({ recordedAt: new Date().toISOString(), events }, null, 1) + "\n", "utf8");
 console.log(`Saved ${events.length} events, ${done.cards} opportunities, ${done.callsUsed}/${done.budget} Qloo calls.`);

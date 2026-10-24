@@ -7,9 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "verify": "tsx --test --test-reporter=spec tests/qloo-client.test.ts tests/request.test.ts tests/explore.test.ts",
+    "verify": "tsx --test --test-reporter=spec tests/qloo-client.test.ts tests/request.test.ts tests/explore.test.ts tests/google.test.ts",
     "typecheck": "tsc --noEmit",
-    "qloo:check": "tsx scripts/qloo-check.mts"
+    "qloo:check": "tsx scripts/qloo-check.mts",
+    "google:check": "tsx scripts/google-check.mts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.1.0",

@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { config } from "../config";
+import { createGooglePlaces } from "../google";
 import { BudgetedQloo, createQloo, isFatalQlooError, qlooMode } from "../qloo";
 import { categoriesFor, categoryLabel } from "./categories";
 import { DEFAULT_MODEL, runClaudeAgent } from "./claude-agent";
@@ -76,6 +77,7 @@ export async function explore(req: ExploreRequest, emit: (e: AgentEvent) => void
     onTwin: emit,
     onSupply: emit,
     onLookup: rescore,
+    google: createGooglePlaces(opts.signal),
   });
   const useClaude = claudeEnabled();
   const model = process.env.ANTHROPIC_MODEL || DEFAULT_MODEL;

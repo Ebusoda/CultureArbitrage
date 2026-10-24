@@ -10,6 +10,13 @@ export function qlooLocation(city: string): string {
   return QLOO_LOCATION[city] ?? city;
 }
 
+// Language and region for Google Maps searches in each city.
+export const CITY_LANGUAGE: Record<string, { lang: "ja" | "en" | "ko"; region: string }> = {
+  Tokyo: { lang: "ja", region: "JP" },
+  "New York": { lang: "en", region: "US" },
+  Seoul: { lang: "ko", region: "KR" },
+};
+
 const CITY_ALIASES: Record<string, string> = {
   nyc: "New York",
   "new york city": "New York",

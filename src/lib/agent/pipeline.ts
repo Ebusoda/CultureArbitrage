@@ -53,8 +53,10 @@ export async function runPipeline(req: ExploreRequest, ev: Evidence, ctx: RunCon
       const home = await ev.supply(pair.hood, req.city);
       const twin = await ev.supply(pair.twin, pair.twinCity);
       for (const cat of categories) {
-        const h = home.counts[cat] ?? 0;
         const t = twin.counts[cat] ?? 0;
+        let h = home.counts[cat] ?? 0;
+        // A capped home page is a sample: before calling something a gap, count it on its own.
+        if (home.capped && isGap(t, h)) h = (await ev.homeCount(pair.hood, req.city, cat)).count;
         if (isGap(t, h)) gaps.push({ pair, cat, home: h, twin: t });
       }
     } catch (e) {
@@ -90,6 +92,10 @@ export async function runPipeline(req: ExploreRequest, ev: Evidence, ctx: RunCon
     await optional("Category audience", () => ev.categoryAudience(g.cat));
     await optional("Neighbourhood audience", () => ev.hoodAudience(g.pair.hood, req.city));
     await optional("Trend", () => ev.trend(g.cat, g.pair.twinCity));
+    if (ev.googleEnabled) {
+      step("doubt", `Cross-checking ${label.toLowerCase()} on Google Maps: ${g.pair.hood} vs ${g.pair.twin}`);
+      await optional("Google Maps", () => ev.googleGap(g.pair.hood, req.city, g.pair.twin, g.pair.twinCity, g.cat));
+    }
 
     step("score", `Scoring ${label} in ${g.pair.hood}`);
     const tastes = ev.peek<{ name: string }[]>(`taste:${g.pair.hood}, ${req.city}`) ?? [];
@@ -98,6 +104,10 @@ export async function runPipeline(req: ExploreRequest, ev: Evidence, ctx: RunCon
       `That audience supports ${g.twin} ${label.toLowerCase()} places in ${g.pair.twin}, but ${g.pair.hood} has only ${g.home}.`;
     try {
       const card = buildCard(ev, { category: g.cat, hood: g.pair.hood, city: req.city, twin: g.pair.twin, twinCity: g.pair.twinCity, why, doubts: [], productFit: null });
+      if (card.google?.verdict === "contradicts") {
+        ctx.onRejected?.(card, "Ruled out by a cross-check against a second index (see the card)");
+        continue;
+      }
       if (card.confidence < MIN_CONFIDENCE) {
         ctx.onRejected?.(card, `Below the ${Math.round(MIN_CONFIDENCE * 100)}% bar`);
         continue;
