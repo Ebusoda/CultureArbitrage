@@ -12,7 +12,7 @@ Pick a city and, optionally, a focus (dining, nightlife or retail). A Claude age
 
 1. Profiles the taste of each neighbourhood (Qloo `/v2/insights`: `urn:tag` with a location signal, and the taste tags Qloo attaches to each locality, such as "trendy", "vintage stores", "cafe hopping", "young professionals")
 2. Finds its "taste twin" neighbourhood in other cities: Qloo ranks the other city's localities with the home neighbourhood as the signal, and the agent scores each by the share of Qloo taste tags the two have in common, listing the tastes they share
-3. Compares how many places Qloo lists for each category in the twin and at home (Qloo places). A gap needs at least 4 in the twin and 3 times the home count
+3. Compares how many places Qloo lists for each category in the twin and at home (Qloo places), within the same 2.5 km radius of each neighbourhood's centre (about the size of a Tokyo ward), so both sides cover the same area. A gap needs at least 4 in the twin and 3 times the home count
 4. Doubts its own findings: does the rest of the city already cover it? does the category's audience match the people there (Qloo demographics of the category's fans, against official resident statistics for Tokyo wards)? is interest fading (Qloo `/v2/trending`)? is the evidence thin, or cut off by Qloo's page size? With a Google Maps key, it also asks a second, independent index whether it sees the same gap, and rules the gap out if it doesn't
 5. Submits the gaps that survive, each with a six-part score and the evidence behind it. If nothing convincing turns up, it says so: that is a valid answer
 
@@ -39,7 +39,7 @@ Confidence = average of the measured scores × (1 − 0.05 × open doubts, at mo
 
 ### What the agent can't know
 
-- A place missing from Qloo may be missing from the index, not from the street. Counts are places Qloo lists, not a census. The city-wide check, the thin-data flag and the Google Maps cross-check catch some of these cases, not all. Google Maps counts are approximate too: a 3 km square around each neighbourhood's centre, a keyword search, at most 60 results.
+- A place missing from Qloo may be missing from the index, not from the street. Counts are places Qloo lists, not a census. The city-wide check, the thin-data flag and the Google Maps cross-check catch some of these cases, not all. Google Maps counts are approximate too: a 4.4 km square around each neighbourhood's centre (the same area as Qloo's circle), a keyword search, at most 60 results.
 - Results are a snapshot of today's taste data, not a historical backtest.
 - Boba and malatang are survivors. Tapioca shows a real gap can fade, which is why Durability is scored.
 - Similarity is between audiences, not streets. Rent, regulation and footfall are out of scope.

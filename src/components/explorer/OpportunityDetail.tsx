@@ -350,7 +350,7 @@ function ScoreList({ card, onChip }: { card: OpportunityCard; onChip?: (n: numbe
                 <p className="flex-1 text-[12px] text-muted">
                   {s.note}
                   {s.note && !/[.!?]$/.test(s.note) ? "." : ""} {fixed?.sentence}
-                  {s.source === "LLM" && " Not Qloo data. Included in confidence."}
+                  {s.source === "LLM" && " Included in confidence."}
                   {pending && " Not counted in confidence."}
                 </p>
                 {fixed && fixed.refs.length > 0 && <QChips calls={refs} onChip={onChip} />}
@@ -396,8 +396,8 @@ function SelfCheck({ card, onChip }: { card: OpportunityCard; onChip?: (n: numbe
   const durability = score(card, "durability");
   const facts: [string, string][] = [
     [`Already common elsewhere in ${card.homeCity}?`, card.cityCount !== null ? `${count(card.cityCount, card.capped.city)} across ${card.homeCity}` : "Not checked"],
-    ["Do the fans match the people here?", audience?.value != null ? `${pct(audience.value)}% age overlap` : "Not checked"],
-    ["Is it fading?", durability?.value != null ? `${durability.note}${isFading(card) ? ": fading" : ""}` : "Not checked"],
+    ["Do the fans match the people here?", audience?.value != null ? `${pct(audience.value)}% age match` : "Not checked"],
+    ["Is it fading?", durability?.value != null ? `${durability.note}${isFading(card) ? ": fading" : ""}` : durability?.note.startsWith("Not measurable") ? "Not measurable on Qloo" : "Not checked"],
     [
       "Enough evidence?",
       card.twinCount >= 8 ? `${card.twinCount} places in ${card.twinLocality}: enough` : `Only ${card.twinCount} places in ${card.twinLocality}: thin`,

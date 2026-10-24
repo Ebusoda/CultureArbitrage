@@ -1,7 +1,7 @@
 import { BudgetExceededError, type BudgetedQloo } from "../qloo";
 import { CITY_LANGUAGE, canonicalCity, qlooLocation } from "../cities";
 import { boxAround, GOOGLE_PAGES, GooglePlacesError, type GoogleCount, type GooglePlaces } from "../google";
-import type { QlooEntity } from "../qloo";
+import type { QlooEntity, QlooParams } from "../qloo";
 import { audienceProxy, categoryLabel, googleQuery } from "./categories";
 import { wardAudience } from "./census";
 import type { SupplyEvent, TwinEvent } from "./types";
@@ -65,8 +65,9 @@ export interface GoogleGap {
   verdict: "confirms" | "weak" | "contradicts" | "inconclusive";
 }
 
-// Ward-sized neighbourhoods; a 3 km square covers the busy core of most of them.
-const GOOGLE_HALF_KM = 1.5;
+// Google's square covers the same area as the circle Qloo places are counted in (about 19.6 km²,
+// the size of a Tokyo ward such as Shinjuku): side = 2.5 km x sqrt(pi), about 4.4 km.
+const GOOGLE_HALF_KM = 2.2;
 
 export function googleVerdict(home: GoogleCount, twin: GoogleCount): GoogleGap["verdict"] {
   if ((home.count < 4 && twin.count < 4) || (home.saturated && twin.saturated)) return "inconclusive";
@@ -101,6 +102,8 @@ interface Hooks {
 // Live Qloo pages hold at most 50 results; the mock data has neighbourhoods with more.
 const SUPPLY_TAKE = { live: 50, mock: 100 };
 const CITY_TAKE = 50;
+// Radius of the circle places are counted in (live), the same for every neighbourhood.
+export const SUPPLY_RADIUS_M = 2500;
 
 // Also drops diacritics, so "Taito-ku" finds the "Taitō-ku" Qloo returned (Hangul is recomposed).
 const norm = (s: string) =>
@@ -179,6 +182,16 @@ export class Evidence {
       // After the provenance is recorded, so re-scoring can cite these calls.
       if (ok) this.hooks.onLookup?.();
     }
+  }
+
+  // Where to count places in a neighbourhood. Live: a circle of the same size around the centre
+  // Qloo gives for every neighbourhood, so counts compare equal areas. Qloo's own geocoding of a
+  // name is uneven: "Brooklyn, New York City" finds 5 places, "Brooklyn, New York" 50, and
+  // "Williamsburg, New York" lands somewhere else. The name is the fallback when no centre is known.
+  private area(hood: string, city: string): QlooParams {
+    const c = this.qloo.mode === "live" ? this.centres.get(`${norm(hood)}|${norm(city)}`) : undefined;
+    if (c) return { "filter.location": `POINT(${c.lng} ${c.lat})`, "filter.location.radius": SUPPLY_RADIUS_M };
+    return { "filter.location.query": `${hood}, ${this.loc(city)}` };
   }
 
   // Qloo location query for a city; mock data knows cities by their plain names.
@@ -367,7 +380,7 @@ export class Evidence {
       // Live: only places in the categories being compared. Unfiltered, the page fills with
       // landmarks (Tokyo Disneyland, Haneda) and no category shows up at all.
       const cats = this.qloo.mode === "live" && this.hooks.categories?.length ? { "filter.tags": this.hooks.categories.join(",") } : {};
-      const r = await this.qloo.insights({ "filter.type": "urn:entity:place", "filter.location.query": `${hood}, ${this.loc(city)}`, ...cats, take: SUPPLY_TAKE[this.qloo.mode] });
+      const r = await this.qloo.insights({ "filter.type": "urn:entity:place", ...this.area(hood, city), ...cats, take: SUPPLY_TAKE[this.qloo.mode] });
       const places = r.results.entities ?? [];
       const counts: Record<string, number> = {};
       for (const p of places) for (const t of p.tags ?? []) counts[t.id] = (counts[t.id] ?? 0) + 1;
@@ -396,7 +409,7 @@ export class Evidence {
     const s = await this.supply(hood, city);
     if (this.qloo.mode !== "live" || !s.capped) return { count: s.counts[category] ?? 0, capped: s.capped };
     return this.memo(`supply1:${category}:${hood}, ${city}`, async () => {
-      const r = await this.qloo.insights({ "filter.type": "urn:entity:place", "filter.location.query": `${hood}, ${this.loc(city)}`, "filter.tags": category, take: SUPPLY_TAKE.live });
+      const r = await this.qloo.insights({ "filter.type": "urn:entity:place", ...this.area(hood, city), "filter.tags": category, take: SUPPLY_TAKE.live });
       const n = (r.results.entities ?? []).length;
       return { count: n, capped: n >= SUPPLY_TAKE.live };
     });

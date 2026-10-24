@@ -8,24 +8,24 @@ const STEPS = [
   {
     title: "Find taste twins",
     body: "Which neighbourhoods in other cities are loved by people with the same tastes?",
-    api: "urn:entity:locality signal.interests.tags filter.location.query",
+    api: "urn:entity:locality signal.interests.entities (the home neighbourhood), then the taste tags each locality shares with it",
   },
-  { title: "Compare supply", body: "Count places per category in each neighbourhood and its twin.", api: "urn:entity:place filter.location.query" },
+  { title: "Compare supply", body: "Count places per category within 2.5 km of each neighbourhood’s centre, the same area on both sides.", api: "urn:entity:place filter.tags filter.location filter.location.radius" },
   {
     title: "Doubt every gap",
-    body: "Does the rest of the city already have it? Do the category's fans match the people here? Is interest fading?",
-    api: "urn:demographics, urn:entity:place filter.tags, /v2/trending signal.interests.entities",
+    body: "Does the rest of the city already have it? Do the category’s fans match the people who live here? Is interest fading? With a key, does Google Maps see the same gap?",
+    api: "urn:demographics, urn:entity:place filter.tags, /v2/trending; Tokyo ward statistics; Google Maps (cross-check only)",
   },
   { title: "Score", body: "Six scores and a confidence, computed in code from the answers above.", api: "no extra calls" },
 ];
 
 const SCORES = [
   ["Proven elsewhere", "Qloo", "min(1, places in twin ÷ 15)"],
-  ["Bridge audience", "Qloo", "twin's affinity for the home neighbourhood's top 4 tastes (a proxy)"],
-  ["Core audience fit", "Qloo", "age-profile overlap between the category's fans and the neighbourhood's people"],
+  ["Bridge audience", "Qloo", "share of Qloo taste tags the two neighbourhoods have in common ÷ 0.5, max 1"],
+  ["Core audience fit", "Qloo", "do the category’s fans (Qloo) and the residents (Tokyo ward statistics) lean to the same age bands? correlation, mapped to 0–1"],
   ["Local undersupply", "Qloo", "(twin − here) ÷ twin, × 0.6 if more than 20 exist city-wide"],
   ["Product fit", "LLM judgment", "Claude, 0–1; not counted when pending"],
-  ["Durability", "Qloo", "0.5 + 12-month change in /v2/trending, clamped 0–1"],
+  ["Durability", "Qloo", "0.5 + 12-month change in /v2/trending, clamped 0–1; not measurable for places on live data, so not counted"],
 ];
 
 type Recorded = { recordedAt: string | null; events: (AgentEvent & { t?: number })[] };

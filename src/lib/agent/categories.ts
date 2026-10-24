@@ -41,18 +41,11 @@ function envTags(): Record<string, string> {
   return out;
 }
 
-let warned = false;
-
 // The tag id each category is looked up by in the current Qloo mode. In live mode a
-// category with no real id yet keeps its mock id, which simply finds no places.
+// category with no real id keeps its mock id, and categoriesFor() leaves it out.
 function tagOf(c: Category): string {
   if (qlooMode() === "mock") return c.mockTag;
-  const id = envTags()[c.key] ?? c.liveTag;
-  if (!id && !warned) {
-    warned = true;
-    console.warn(`[categories] no real Qloo tag id for ${c.key} (and maybe others); set liveTag in categories.ts or QLOO_CATEGORY_TAGS`);
-  }
-  return id ?? c.mockTag;
+  return envTags()[c.key] ?? c.liveTag ?? c.mockTag;
 }
 
 export function categoriesFor(focus: Focus): string[] {

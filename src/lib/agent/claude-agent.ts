@@ -58,11 +58,21 @@ function tool(name: string, phase: Phase, description: string, props: Record<str
   };
 }
 
+const LIVE_RULE = `
+- Durability (trend) cannot be measured on live data: Qloo's trend data covers artists, brands, films and TV, not places. It is shown as not measurable and costs nothing; do not list it as a doubt.`;
+
 const GOOGLE_RULE = `
-- check_google_maps (when offered) asks Google Maps, a second and independent index, whether it sees the same gap. It does not use the Qloo budget, and it runs automatically on submission anyway. If Google Maps lists as many places around the home neighbourhood as around the twin, the gap is ruled out. Do not repeat Google Maps numbers in your messages; the card shows them in their own box.`;
+- check_google_maps (when offered) asks Google Maps, a second and independent index, whether it sees the same gap. It does not use the Qloo budget, and it runs automatically on submission anyway. If Google Maps lists as many places around the home neighbourhood as around the twin, the gap is ruled out. You only get its verdict; the card shows its numbers in their own box.`;
+
+const GOOGLE_VERDICT = {
+  confirms: "Google Maps sees the gap too.",
+  weak: "Google Maps sees more of these places around the twin, but not 3 times as many.",
+  contradicts: "Google Maps lists at least as many around the home neighbourhood: the gap is ruled out.",
+  inconclusive: "Google Maps can't settle it: too few places on both sides, or past its 60-result limit.",
+} as const;
 
 // The category enum keeps the model inside the focus the user picked.
-function buildTools(categories: string[], google: boolean): ToolDef[] {
+function buildTools(categories: string[], google: boolean, trend: boolean): ToolDef[] {
   const category = { type: "string", enum: categories, description: "Category tag id" };
   return [
     tool("list_neighbourhoods", "profile", "List the most active neighbourhoods of a city according to Qloo.", { city: str("City name") }),
@@ -86,16 +96,20 @@ function buildTools(categories: string[], google: boolean): ToolDef[] {
       category,
       neighbourhood: str("Neighbourhood in the home city"),
     }),
-    tool("trend", "doubt", "Whether interest in a category is rising or falling over the last year.", {
-      category,
-      city: str("A city where this category already has places, usually the twin's city"),
-    }),
+    ...(trend
+      ? [
+          tool("trend", "doubt", "Whether interest in a category is rising or falling over the last year.", {
+            category,
+            city: str("A city where this category already has places, usually the twin's city"),
+          }),
+        ]
+      : []),
     ...(google
       ? [
           tool(
             "check_google_maps",
             "doubt",
-            "Cross-check a gap on Google Maps: places of the category it lists in a 3 km square around the home neighbourhood and around the twin. Free, not counted against the Qloo budget. Run compare_supply for the pair first.",
+            "Cross-check a gap on Google Maps: places of the category it lists in a 4.4 km square around the home neighbourhood and around the twin. Free, not counted against the Qloo budget. Run compare_supply for the pair first.",
             { category, neighbourhood: str("Neighbourhood in the home city"), twin_neighbourhood: str("Twin neighbourhood"), twin_city: str("City of the twin") },
           ),
         ]
@@ -143,7 +157,9 @@ export async function runClaudeAgent(req: ExploreRequest, ev: Evidence, ctx: Run
     ? { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" as const }
     : {};
   const categories = categoriesFor(req.focus);
-  const tools = buildTools(categories, ev.googleEnabled);
+  // Live Qloo has no trend data for places, so the tool would only ever say "no data".
+  const live = ev.qloo.mode === "live";
+  const tools = buildTools(categories, ev.googleEnabled, !live);
   // What the API sees: the definitions without our UI-only "phase" field.
   const apiTools: Anthropic.Beta.BetaTool[] = tools.map(({ name, description, strict, input_schema }) => ({ name, description, strict, input_schema }));
   const others = CITIES.filter((c) => c !== req.city);
@@ -173,7 +189,7 @@ export async function runClaudeAgent(req: ExploreRequest, ev: Evidence, ctx: Run
         {
           model,
           max_tokens: MAX_OUTPUT,
-          system: ev.googleEnabled ? SYSTEM + GOOGLE_RULE : SYSTEM,
+          system: SYSTEM + (live ? LIVE_RULE : "") + (ev.googleEnabled ? GOOGLE_RULE : ""),
           tools: apiTools,
           messages,
           thinking: { type: "adaptive", display: "summarized" },
@@ -242,8 +258,20 @@ async function execute(
       return { neighbourhoods: await ev.listNeighbourhoods(s("city"), 5) };
     case "taste_profile":
       return { tastes: await ev.tasteProfile(s("neighbourhood"), s("city")) };
-    case "find_taste_twins":
-      return { twins: await ev.findTwins(s("neighbourhood"), req.city, s("other_city")) };
+    case "find_taste_twins": {
+      const twins = await ev.findTwins(s("neighbourhood"), req.city, s("other_city"));
+      // Named so the model can't mistake tag counts for people.
+      return {
+        twins: twins.map((t) => ({
+          name: t.name,
+          city: t.city,
+          rank: t.rank,
+          similarity: Math.round(t.similarity * 100) / 100,
+          ...(t.sharedCount !== undefined ? { qloo_taste_tags_in_common: t.sharedCount, qloo_taste_tags_in_either: t.unionCount } : {}),
+          ...(t.shared ? { some_shared_tastes: t.shared.map((x) => x.name) } : {}),
+        })),
+      };
+    }
     case "compare_supply": {
       const hood = ev.hood(s("neighbourhood"), req.city);
       const twinCity = ev.city(s("twin_city"));
@@ -284,15 +312,9 @@ async function execute(
     }
     case "check_google_maps": {
       const g = await ev.googleGap(s("neighbourhood"), req.city, s("twin_neighbourhood"), s("twin_city"), inScope(s("category")));
-      return {
-        source: "Google Maps",
-        square_km: (g.halfKm * 2) ** 2,
-        home_places: g.home.count,
-        home_at_least: g.home.saturated,
-        twin_places: g.twin.count,
-        twin_at_least: g.twin.saturated,
-        verdict: g.verdict,
-      };
+      // Only the verdict: Google's numbers belong in the card's labelled Google Maps box, and a
+      // model that never sees them cannot repeat them in the agent log.
+      return { source: "Google Maps", verdict: g.verdict, meaning: GOOGLE_VERDICT[g.verdict] };
     }
     case "submit_opportunity": {
       if (cards.length >= MAX_CARDS) throw new Error(`Already submitted ${MAX_CARDS}. Stop now.`);
@@ -319,7 +341,7 @@ async function execute(
       if (cards.some((c) => c.id === card.id)) throw new Error("Already submitted this opportunity.");
       if (card.google?.verdict === "contradicts") {
         ctx.onRejected?.(card, "Ruled out by a cross-check against a second index (see the card)");
-        throw new Error(`Ruled out: Google Maps lists ${card.google.home} places around ${card.homeLocality} and ${card.google.twin} around ${card.twinLocality}, so the gap may be in Qloo's index only. Try another pair or category.`);
+        throw new Error(`Ruled out: Google Maps lists at least as many of these places around ${card.homeLocality} as around ${card.twinLocality}, so the gap may be in Qloo's index only. Try another pair or category.`);
       }
       if (card.confidence < MIN_CONFIDENCE) {
         const measured = card.scores.filter((x) => x.value !== null).length;
