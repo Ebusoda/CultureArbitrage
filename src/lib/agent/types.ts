@@ -107,7 +107,11 @@ export type AgentEvent =
   // A submission the agent's own checks ruled out; never shown as an opportunity.
   | { type: "rejected"; card: OpportunityCard; reason: string }
   | { type: "done"; callsUsed: number; budget: number; cards: number }
-  | { type: "error"; message: string };
+  | { type: "error"; message: string }
+  // A run recorded earlier, played back instead of a live one (src/lib/replay.ts): when it was
+  // recorded and why it is not live. Anything shown before it is dropped; the recording follows,
+  // from its own "start" (with the modes it really ran in) to its "done".
+  | { type: "replay"; recordedAt: string; reason: string };
 
 export type Phase = "think" | "profile" | "twins" | "compare" | "doubt" | "score";
 

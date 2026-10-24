@@ -44,6 +44,12 @@ export interface Meta {
   fallbackReason?: string;
 }
 
+// A recorded run played back instead of a live one, and why.
+export interface Replay {
+  recordedAt: string;
+  reason: string;
+}
+
 export interface RunState {
   status: Status;
   city: string;
@@ -62,9 +68,11 @@ export interface RunState {
   summary: { callsUsed: number; budget: number; cards: number } | null;
   focusCall: number | null;
   logOpen: boolean;
+  // Set while a recording is on screen instead of a live run.
+  replay: Replay | null;
 }
 
-type Action =
+export type Action =
   | { type: "reset"; city: string; focus: Focus }
   | { type: "setQuery"; city?: string; focus?: Focus }
   | { type: "event"; event: AgentEvent }
@@ -93,6 +101,7 @@ export function initialState(city: string, modes: Meta): RunState {
     summary: null,
     focusCall: null,
     logOpen: false,
+    replay: null,
   };
 }
 
@@ -110,8 +119,12 @@ function best(cards: OpportunityCard[]) {
 
 function onEvent(s: RunState, e: AgentEvent): RunState {
   switch (e.type) {
+    case "replay":
+      // Whatever the live run showed so far is dropped: the recording starts from its own beginning.
+      return { ...initialState(s.city, s.meta), meta: { ...s.meta, fallbackReason: undefined }, status: "connecting", focus: s.focus, logOpen: s.logOpen, replay: { recordedAt: e.recordedAt, reason: e.reason } };
     case "start":
-      return { ...s, status: "running", meta: { qlooMode: e.qlooMode, llmMode: e.llmMode, budget: e.budget, model: e.model } };
+      // A replay's start carries the modes and focus it was really recorded with.
+      return { ...s, status: "running", focus: e.focus, meta: { qlooMode: e.qlooMode, llmMode: e.llmMode, budget: e.budget, model: e.model } };
     case "mode":
       return { ...s, meta: { ...s.meta, llmMode: e.llmMode, fallbackReason: e.reason } };
     case "step":
@@ -164,7 +177,7 @@ function onEvent(s: RunState, e: AgentEvent): RunState {
   }
 }
 
-function reducer(s: RunState, a: Action): RunState {
+export function reducer(s: RunState, a: Action): RunState {
   switch (a.type) {
     case "reset":
       return { ...initialState(a.city, s.meta), meta: { ...s.meta, fallbackReason: undefined }, status: "connecting", focus: a.focus, logOpen: s.logOpen };

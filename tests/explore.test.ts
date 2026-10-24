@@ -127,7 +127,10 @@ test("Claude agent loop (scripted, no API key): tool calls become a card with ev
           why: "Test.",
           product_fit_score: 0.7,
           product_fit_reason: "Test.",
-          doubts: [],
+          doubts: [
+            { about: "audience_age", text: "Residents skew older than the fans." },
+            { about: "other", text: "Rents are high here." },
+          ],
         },
       },
     ],
@@ -136,6 +139,8 @@ test("Claude agent loop (scripted, no API key): tool calls become a card with ev
   assert.equal(got.length, 1);
   assert.equal(got[0].id, g.id);
   assert.ok(got[0].scores.some((s) => s.source === "LLM"), "product fit is labelled as LLM judgment");
+  assert.ok(got[0].doubts.includes("Rents are high here."), "a new doubt counts");
+  assert.ok(!got[0].doubts.some((d) => /skew older/.test(d)), "a doubt about a measured score is not counted twice");
   const nums = new Set(logs.map((l) => l.n));
   for (const ns of Object.values(got[0].refs)) for (const n of ns) assert.ok(nums.has(n));
 });
@@ -221,4 +226,28 @@ test("the agent's own checks: gaps are re-scored as checks come in, weak ones ar
     const nums = new Set(events.flatMap((e) => (e.type === "call" ? [e.call.n] : [])));
     for (const t of trail) for (const n of t.calls) assert.ok(nums.has(n), `${c.id} trail step cites Q${n}, which exists`);
   }
+});
+
+test("Claude agent: 'nothing found' after one comparison is sent back once to compare at least 3", async () => {
+  const qloo = new BudgetedQloo(createQloo(), 40, () => {});
+  const ev = new Evidence(qloo, { categories: categoriesFor("all") });
+  const steps: string[] = [];
+  const ctx: RunContext = { step: (_p, t) => steps.push(t), onCard: () => {}, deadline: Date.now() + 120_000, signal: new AbortController().signal };
+  const hoods = (await ev.listNeighbourhoods("Tokyo", 5)).map((h) => (typeof h === "string" ? h : (h as { name: string }).name));
+  const twin = (await ev.findTwins(hoods[0], "Tokyo", "New York City"))[0];
+  const sent: unknown[] = [];
+  const client = scriptedClaude([
+    [{ name: "compare_supply", input: { neighbourhood: hoods[0], twin_neighbourhood: twin.name, twin_city: twin.city } }],
+    [],
+    [],
+  ]);
+  const stream = (client as { beta: { messages: { stream: (b: { messages: unknown[] }) => unknown } } }).beta.messages.stream;
+  (client as { beta: { messages: { stream: unknown } } }).beta.messages.stream = (b: { messages: unknown[] }) => {
+    sent.push(b.messages.at(-1));
+    return stream(b);
+  };
+  await runClaudeAgent({ city: "Tokyo", focus: "all" }, ev, ctx, { model: "test", client });
+  assert.equal(sent.length, 3, "one extra turn after the push, then it may stop");
+  assert.match(JSON.stringify(sent[2]), /at least 3/);
+  assert.ok(steps.some((t) => /1 of 3 neighbourhoods compared/.test(t)));
 });

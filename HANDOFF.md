@@ -18,3 +18,11 @@
 
 - （10/24 下午）接入两项：①东京 23 区年龄（东京都统计部「住民基本台帳による東京都の世帯と人口」令和8年1月 第7表，src/data/tokyo-ward-ages.json），东京的"本地人群"改用它，人群匹配改为比较年龄结构的形状（相关系数，按偏离程度加权）；②谷歌地图核对（src/lib/google/places.ts），只取店铺 id（Text Search Essentials IDs Only，官方标为不限次免费），在两区中心 3 km 方格里各数一次，谷歌不认同缺口就否掉。谷歌不影响任何分数和置信度，数字只在卡片上单独的 "Google Maps" 框里显示（条款要求）。需要 .env.local 的 GOOGLE_MAPS_API_KEY，用 npm run google:check 测（只发 1–3 次请求）。录制 sample-run 时不能带谷歌 key（脚本会拦）。
 - 实测问题与处理：持久度在真实数据下测不到，不再算作扣分疑点（显示为"无法测量"）；QLOO_CALL_BUDGET 调到 40；Qloo 各品类粉丝年龄普遍偏 55+，所以年轻的区（新宿、丰岛）和贝果这类品类匹配分低，这是数据本身的倾向。
+- （10/24）用户决定 **10/27 公开上线**（仓库转公开 + Vercel 部署，key 由用户自己填进 Vercel 后台）。
+- 店铺数改为以各区中心 2.5 km 圆计数（Qloo 按名字找区不稳定："Brooklyn, New York City" 5 家 vs "Brooklyn, New York" 50 家）；谷歌方格同面积（边长约 4.4 km）。页面示例 sample-run.json 已换成真实东京数据（不含谷歌）。
+- （10/24 晚，电脑重启后续做）
+  - 品类：听音乐酒吧→**爵士俱乐部**（`urn:tag:genre:place:jazz_club`，Qloo 东京/纽约/首尔 23/32/9 家；Qloo 没有其粉丝年龄数据，卡上显示"未知人群"，仍算一个疑点）；K-beauty→**漫画专门店**（`urn:tag:category:place:comic_book_store`，37/17/3 家，人群用 comic cafe 粉丝替代）。古着店（东京只 1 家）、二手店（混进 BOOKOFF）、书店/鸡尾酒吧（各城都 50 封顶）不合适。
+  - 重复扣分：Claude 即使被提示也会把年龄、全城已有等已算过分的事实再写成疑点。现在 submit_opportunity 的每条疑点要标主题（audience_age、city_supply、evidence_size、trend、taste_similarity、undersupply、other），只有 other 计入扣分。截断只在本地一侧时扣分（score.ts）。
+  - Claude 在比较少于 3 个本地区就说"没有机会"时，程序会推回一次让它继续（时间和预算够时）。
+  - 备用结果已录（不带谷歌）：东京 2 张（贝果）、首尔 3 张（唱片店、珍珠奶茶、漫画店）、纽约 0 张。纽约连跑 4 次都是 0 张：三个区（Harlem、Brooklyn、Queens）范围大，各品类在纽约全城都很多，缺口被如实压到 55% 以下，没有放水。
+  - 带谷歌实测一次：东京 4 张（全部谷歌认同）、首尔 3 张、纽约 0 张。

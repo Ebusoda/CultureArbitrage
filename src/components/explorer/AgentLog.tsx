@@ -7,6 +7,7 @@ import { Arrow } from "./Arrow";
 import { currentPhase } from "./derive";
 import { callLine, errorText, PHASE_DOT, Q_CHIP, pct, requestLine } from "./format";
 import { usePrefersReducedMotion } from "./hooks";
+import { ReplayBanner } from "./ReplayBanner";
 import type { RunState, Step } from "./useExploreRun";
 
 const STEPPER: { phase: Phase; label: string }[] = [
@@ -79,6 +80,7 @@ export function AgentLog({ state, className = "", onFocusDone }: Props) {
     >
       <div className="sticky top-0 z-10 border-b border-line bg-surface px-4 pb-3 pt-4">
         <h2 className="font-serif text-[17px] leading-tight">Agent log</h2>
+        {state.replay && <ReplayBanner replay={state.replay} className="mt-2" />}
         <ol className="mt-2 flex flex-wrap gap-1">
           {STEPPER.map(({ phase: p, label }) => {
             const current = p === phase && status !== "done" && status !== "idle";
@@ -231,7 +233,7 @@ export function NowTicker({ state, onToggle }: { state: RunState; onToggle: () =
   return (
     <div className="mt-3 md:hidden">
       <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted">
-        {state.status === "running" || state.status === "connecting" ? "Live" : "Log"}
+        {state.replay ? "Recorded run, not live" : state.status === "running" || state.status === "connecting" ? "Live" : "Log"}
       </p>
       <ul className="mt-1 space-y-0.5">
         {last.map((s, i) => (

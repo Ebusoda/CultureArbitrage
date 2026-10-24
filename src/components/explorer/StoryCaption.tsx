@@ -4,6 +4,7 @@ import type { OpportunityCard } from "@/lib/agent/types";
 import { MoveTitle } from "./AgentLog";
 import { currentStep } from "./derive";
 import { BAND_TEXT, band, clip, errorText, firstSentence, focusLabel, isFading, km, PHASE_LABEL, pct } from "./format";
+import { ReplayBanner } from "./ReplayBanner";
 import type { RunState } from "./useExploreRun";
 
 interface Props {
@@ -112,6 +113,7 @@ export function StoryCaption({ state, selected, ruledOut, rank, total, onRetry }
 
   return (
     <div>
+      {state.replay && <ReplayBanner replay={state.replay} className="mb-3" />}
       <p className={eyebrow}>{top}</p>
       <p className={`${headline} mt-1`} aria-live="polite">
         {main}

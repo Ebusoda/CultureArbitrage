@@ -14,6 +14,10 @@ const MAX_CARDS = 4;
 const MAX_OUTPUT = 64000;
 // With less time than this left, the model is told to submit what it has.
 const WRAP_UP_MS = 45_000;
+// "Nothing found" is only accepted after this many home neighbourhoods were compared,
+// unless time or the Qloo budget runs low (a comparison costs up to a few calls).
+const MIN_COMPARED = 3;
+const COMPARE_CALLS = 4;
 
 // A turn ended on max_tokens: its tool calls may be incomplete, so nothing from it is run.
 export class TurnCutOffError extends Error {}
@@ -32,13 +36,26 @@ Rules:
 - Use neighbourhood and city names exactly as the tools returned them.
 - Product fit (photogenic, customisable, health image, solo-friendly, cheap to open) is your own judgment. Give it as a score and one sentence; it is shown labelled as an LLM judgment.
 - Qloo calls are limited. Each tool result shows how many remain. Do not repeat a lookup.
-- Submit at most ${MAX_CARDS} opportunities, then stop. If nothing convincing turns up, say so and stop; that is a valid result.
+- Submit at most ${MAX_CARDS} opportunities, then stop. If nothing convincing turns up, say so and stop; that is a valid result, but only after you have compared at least 3 home neighbourhoods against twins in both other cities, or the budget or time runs low.
 - Confidence is computed in code: the average of the measured scores, lowered for every open doubt. A check you skip (city supply, audience, trend) counts as an open doubt, so run those checks before submitting.
 - Submissions below ${Math.round(MIN_CONFIDENCE * 100)}% confidence are rejected and not shown. When that happens, do not argue with it: look at another neighbourhood pair or category instead. Fewer strong opportunities beat several weak ones.
-- In "doubts", list only doubts your checks left open. Thin evidence, capped samples, sample data, falling trends, a category already common across the home city and skipped checks are added automatically; do not repeat them.
+- In "doubts", list only doubts your checks left open, each tagged with what it is about. Thin evidence, capped samples, sample data, falling trends, a category already common across the home city and skipped checks are added automatically, and the age match of fans and residents, the local undersupply, the twin's place count and the taste similarity are already scores. Doubts about those are tagged with their topic and not counted again; only "other" doubts lower confidence.
 - Every tool takes a "reason": one short sentence telling the viewer why you are making this call. It is shown live in the UI.`;
 
 type ToolDef = Anthropic.Beta.BetaTool & { phase: Phase };
+
+// Doubt topics a score or an automatic doubt already covers. Claude kept restating them
+// ("residents skew older", "already common across the city") despite the prompt, so each
+// doubt is tagged and only "other" ones count: the same fact must not lower confidence twice.
+const MEASURED_TOPICS = ["audience_age", "city_supply", "evidence_size", "trend", "taste_similarity", "undersupply"] as const;
+
+function ownDoubts(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((d) => typeof d === "string" || (d && typeof d === "object" && (d as { about?: unknown }).about === "other"))
+    .map((d) => (typeof d === "string" ? d : String((d as { text?: unknown }).text ?? "")))
+    .filter((d) => d.trim());
+}
 
 const str = (description: string) => ({ type: "string", description });
 const reason = str("One short sentence for the viewer: why this call.");
@@ -130,7 +147,19 @@ function buildTools(categories: string[], google: boolean, trend: boolean): Tool
           why: str("2-3 plain sentences: the gap and the evidence chain, using tool numbers only."),
           product_fit_score: { type: "number", description: "Your judgment, 0 to 1." },
           product_fit_reason: str("One sentence."),
-          doubts: { type: "array", items: { type: "string" }, description: "Remaining doubts, one sentence each." },
+          doubts: {
+            type: "array",
+            description: "Remaining doubts, one sentence each, each tagged with what it is about.",
+            items: {
+              type: "object",
+              properties: {
+                about: { type: "string", enum: [...MEASURED_TOPICS, "other"], description: "What the doubt is about. Anything but \"other\" is already measured by a score or added automatically, so it is not counted again." },
+                text: str("The doubt, one sentence."),
+              },
+              required: ["about", "text"],
+              additionalProperties: false,
+            },
+          },
         },
         required: ["category", "neighbourhood", "twin_neighbourhood", "twin_city", "why", "product_fit_score", "product_fit_reason", "doubts"],
         additionalProperties: false,
@@ -167,6 +196,9 @@ export async function runClaudeAgent(req: ExploreRequest, ev: Evidence, ctx: Run
   // Card id -> number of measured scores when it was rejected for low confidence.
   const rejected = new Map<string, number>();
   let warned = false;
+  // Home neighbourhoods whose supply was compared with a twin.
+  const compared = new Set<string>();
+  let pushedOn = false;
 
   const messages: Anthropic.Beta.BetaMessageParam[] = [
     {
@@ -212,7 +244,17 @@ export async function runClaudeAgent(req: ExploreRequest, ev: Evidence, ctx: Run
       if (block.type === "text" && block.text.trim()) step("think", "Claude", block.text.trim().slice(0, 400));
     }
     const calls = res.content.filter((b): b is Anthropic.Beta.BetaToolUseBlock => b.type === "tool_use");
-    if (!calls.length) break;
+    if (!calls.length) {
+      const room = deadline - Date.now() > WRAP_UP_MS && ev.qloo.remaining >= COMPARE_CALLS;
+      if (cards.length || compared.size >= MIN_COMPARED || pushedOn || !room) break;
+      pushedOn = true;
+      step("think", `Only ${compared.size} of ${MIN_COMPARED} neighbourhoods compared, asking Claude to keep looking`);
+      messages.push({
+        role: "user",
+        content: `You compared ${compared.size} home ${compared.size === 1 ? "neighbourhood" : "neighbourhoods"}. Before concluding there is no opportunity, compare at least ${MIN_COMPARED} (different ones, against twins in both other cities where you can), then submit or stop.`,
+      });
+      continue;
+    }
 
     const results: Anthropic.Beta.BetaContentBlockParam[] = [];
     for (const call of calls) {
@@ -221,6 +263,7 @@ export async function runClaudeAgent(req: ExploreRequest, ev: Evidence, ctx: Run
       step(def?.phase ?? "think", describe(call.name, input), String(input.reason ?? ""));
       try {
         const out = await execute(call.name, input, req, ev, cards, ctx, rejected);
+        if (call.name === "compare_supply") compared.add((out as { neighbourhood: string }).neighbourhood);
         results.push({ type: "tool_result", tool_use_id: call.id, content: JSON.stringify({ ...out, qloo_calls_left: ev.qloo.remaining }) });
       } catch (err) {
         if (ctx.signal.aborted || (isFatalQlooError(err) && !(err instanceof BudgetExceededError))) throw err;
@@ -330,7 +373,7 @@ async function execute(
         twin: s("twin_neighbourhood"),
         twinCity: s("twin_city"),
         why: s("why"),
-        doubts: Array.isArray(i.doubts) ? i.doubts.map(String) : [],
+        doubts: ownDoubts(i.doubts),
         productFit: { score: Number(i.product_fit_score) || 0, reason: s("product_fit_reason") },
       });
       if (!isGap(card.twinCount, card.homeCount)) {

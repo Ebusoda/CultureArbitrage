@@ -65,6 +65,9 @@ export function buildCard(ev: Evidence, input: CardInput): OpportunityCard {
   const similarity = twinInfo?.similarity ?? null;
   const city_ = ev.peek<CitySupply>(k.citySupply) ?? null;
   const catAudience = ev.peek<Demographics | null>(k.catAudience) ?? null;
+  // Fetched, but Qloo has no age data for this category's fans (or a stand-in's): still an open
+  // doubt, since the audience is unknown, but not one the agent could have closed.
+  const noFanData = ev.peek<Demographics | null>(k.catAudience) === null;
   const hoodAudience = ev.peek<Demographics | null>(k.hoodAudience) ?? null;
   // Trend is checked where the category already exists: the twin's city first.
   const trendKey = ev.peek<Trend | null>(k.trend) !== undefined ? k.trend : `trend:${category}:${city}`;
@@ -82,7 +85,9 @@ export function buildCard(ev: Evidence, input: CardInput): OpportunityCard {
   const auto: { at: Check; text: string }[] = [];
   if (trend && trend.change < -0.2) auto.push({ at: "trend", text: `Interest is falling (${pct(trend.change)} over the period): a real gap may still fade, like tapioca.` });
   if (twinCount < 8) auto.push({ at: "compare", text: `Thin evidence: only ${twinCount} places in ${twin}.` });
-  if (twinSupply.capped || homeCapped) auto.push({ at: "compare", text: "Place counts come from a capped sample of Qloo results, not a full census." });
+  // Only a capped home count can fake a gap (the true home number may be higher). A capped twin
+  // count can only understate the gap, so it is no doubt against it.
+  if (homeCapped) auto.push({ at: "compare", text: `The count for ${hood} comes from a capped sample of Qloo results, so it may be higher.` });
   if (ev.qloo.mode === "mock") auto.push({ at: "compare", text: "Built on sample data, not real Qloo results." });
   if (city_ && city_.count > 3 * Math.max(homeCount, 1) + 5) {
     auto.push({ at: "city", text: `${city_.count}${city_.capped ? "+" : ""} exist elsewhere in ${city}, so the gap may be local only.` });
@@ -99,7 +104,7 @@ export function buildCard(ev: Evidence, input: CardInput): OpportunityCard {
       ? pending("bridge", "Bridge audience", "Twin search not run for this pair")
       : { key: "bridge", label: "Bridge audience", value: clamp(similarity), source: "Qloo", note: twinInfo?.sharedShare !== undefined ? `${share(twinInfo.sharedShare)} of Qloo taste tags shared by ${hood} and ${twin} (half shared counts as a full match)` : `Taste similarity of ${hood} and ${twin}` },
     overlap === null
-      ? pending("audience", "Core audience fit", "Demographics not fetched")
+      ? pending("audience", "Core audience fit", noFanData ? "Qloo has no age data for this category's fans" : "Demographics not fetched")
       : { key: "audience", label: "Core audience fit", value: overlap, source: "Qloo", note: `Age profile of the category's fans${catAudience?.proxy ? ` (${catAudience.proxy} fans standing in)` : ""} vs ${hoodAudience?.basis ?? `people in ${hood}`}` },
     {
       key: "gap",
@@ -121,7 +126,7 @@ export function buildCard(ev: Evidence, input: CardInput): OpportunityCard {
   let skipped = 0;
   for (const s of scores) {
     if (s.value === null && s.key !== "fit" && !(s.key === "durability" && trendUnmeasurable)) {
-      doubts.push(`Not checked: ${s.label.toLowerCase()}.`);
+      doubts.push(s.key === "audience" && noFanData ? "Unknown audience: Qloo has no age data for this category's fans." : `Not checked: ${s.label.toLowerCase()}.`);
       skipped++;
     }
   }

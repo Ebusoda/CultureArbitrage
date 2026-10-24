@@ -4,7 +4,7 @@ Find what your city is missing that its taste twin already loves, with the Qloo 
 
 Boba was proven in Taipei, and malatang in Seoul, years before either one took over Tokyo. Chains pay consultants to look for gaps like these. Someone opening one shop can't, so they find out last. Culture Arbitrage is an agent that pairs each neighbourhood with its taste twin in another city using Qloo, compares what each one already supports, and argues against its own ideas before it shows you anything.
 
-> Status: running on **live Qloo data** (Tokyo, New York, Seoul). Listening bars and K-beauty stores have no matching Qloo tag yet, so live runs skip them.
+> Status: running on **live Qloo data** (Tokyo, New York, Seoul). Eight categories across dining, nightlife and retail, each with a real Qloo tag.
 
 ## What it does
 
@@ -64,6 +64,24 @@ Open http://localhost:3000.
 
 The "Example from a recorded run" section on the page comes from `src/data/sample-run.json`. To re-record it, keep `npm run dev` running and run `node scripts/record-sample.mjs` in a second terminal. Record it with `GOOGLE_MAPS_API_KEY` unset: Google's terms don't allow storing Places results.
 
+### Recorded runs (fallback)
+
+So the public demo never shows an empty page, `POST /api/explore` streams a run recorded earlier for the city instead of a live one when:
+
+- the live run can't start: too many explorations are running (`EXPLORE_MAX_CONCURRENT`) or the visitor has used up the hour (`EXPLORE_RUNS_PER_IP_PER_HOUR`). The answer is a 200 that keeps the `Retry-After` header;
+- the live run fails (an exception or an `error` event) before it submitted any opportunity. Cards already shown stay, with the error after them, and a run that finishes with no opportunities is a real answer, never replaced;
+- `EXPLORE_FORCE_REPLAY=1` is set (testing, or an emergency switch).
+
+The stream starts with a `replay` event (`recordedAt`, `reason`); the page drops whatever the live run showed and keeps a "Recorded run from …, not live: …" banner over the map and in the agent log for as long as the recording is on screen. The recording's own `start` event says which modes it really ran in. It plays in its original order, with its pauses scaled to about `EXPLORE_REPLAY_SECONDS` (never slower than it ran live). A city without a recording behaves as before (429, or the error).
+
+Recordings live in `src/data/replays/<slug>.json` (`tokyo`, `new-york`, `seoul`) and are bundled with the server code (`src/lib/replay.ts`). A file with no events is a placeholder; Tokyo falls back to `src/data/sample-run.json`. To record one, keep `npm run dev` running (Google Maps key unset) and run, for example:
+
+```bash
+node scripts/record-sample.mjs "New York" all --out src/data/replays/new-york.json
+```
+
+The script refuses runs that failed, used Google Maps, or were themselves replays.
+
 ## Modes
 
 | Variable | Values | Default |
@@ -84,13 +102,15 @@ The "Example from a recorded run" section on the page comes from `src/data/sampl
 | `GOOGLE_DAILY_LIMIT` | max Google Maps requests per UTC day, per server instance | `300` |
 | `EXPLORE_MAX_CONCURRENT` | explorations allowed to run at once | `3` |
 | `EXPLORE_RUNS_PER_IP_PER_HOUR` | per-visitor limit, production only | `20` |
+| `EXPLORE_FORCE_REPLAY` | `1`: every exploration plays the city's recorded run instead of running live (testing, or an emergency switch); a city with no recording answers 503 | unset |
+| `EXPLORE_REPLAY_SECONDS` | how long a recorded run takes to play back (never slower than it ran live; `0` = at once) | `20` |
 
 API keys are read only on the server and never sent to the browser.
 
 ## Checks
 
 ```bash
-npm run verify       # offline tests: Qloo client, cache, input checks, full mock runs, scripted Claude loop
+npm run verify       # offline tests: Qloo client, cache, input checks, full mock runs, scripted Claude loop, recorded-run fallback
 npm run qloo:check   # one live Qloo request with the key in .env.local (add -- --tags to test category tag ids)
 npm run google:check # one Google Maps search with GOOGLE_MAPS_API_KEY (place ids only, free tier)
 ```
@@ -103,7 +123,7 @@ npm run google:check # one Google Maps search with GOOGLE_MAPS_API_KEY (place id
 - **Budget** (`src/lib/qloo/index.ts`): every exploration has a hard cap on Qloo calls (`QLOO_CALL_BUDGET`). Retries count against it.
 - **Cache** (`src/lib/qloo/cache.ts`): live responses are kept in memory for `QLOO_CACHE_TTL_MS`, shared across explorations in the same server instance, and concurrent identical requests share one HTTP call. Failures are never cached. Calls answered from cache are marked `cached` in the agent log. Within a run, `src/lib/agent/evidence.ts` also memoises every lookup, so the agent never pays twice for the same question.
 - **Input checks** (`src/lib/agent/request.ts`): `POST /api/explore` takes `{"city": "Tokyo", "focus": "all" | "dining" | "nightlife" | "retail"}`. Unknown cities or focuses, non-JSON bodies and bodies over 2 KB get a 4xx with a plain message. `GET /api/explore` returns the cities, focuses and modes (never keys).
-- **Abuse limits** (`src/lib/limits.ts`): a cap on concurrent explorations and a per-visitor hourly limit protect the shared Qloo quota and Claude credit on the public demo. Both are in-memory, so on Vercel they are per instance.
+- **Abuse limits** (`src/lib/limits.ts`): a cap on concurrent explorations and a per-visitor hourly limit protect the shared Qloo quota and Claude credit on the public demo. Both are in-memory, so on Vercel they are per instance. A visitor turned away gets the city's recorded run instead, when there is one (see "Recorded runs").
 - **Google Maps cross-check** (`src/lib/google/places.ts`): server-only, Places API (New) Text Search. It asks only for place ids (field mask `places.id,nextPageToken`), which Google bills as "Text Search Essentials (IDs Only)", free without a monthly limit, inside a hard `locationRestriction` rectangle. At most 3 pages (60 results) per search and `GOOGLE_CALL_BUDGET` requests per run. Nothing from Google is stored beyond the run. The key is redacted from every message, and a rejected key stops further Google requests for the run.
 - **Tokyo ward statistics** (`src/data/tokyo-ward-ages.json`, `src/lib/agent/census.ts`): residents aged 20 and over in each of the 23 wards by age band, as of 1 January 2026, turned into a lean per band against the 23 wards as a whole.
 - **Cities and categories**: the explorable cities are in `src/lib/cities.ts`; categories and their Qloo tag ids are in `src/lib/agent/categories.ts`. Switching to real data means setting `QLOO_MODE=live`, `QLOO_API_KEY`, and the real tag ids (in that file or `QLOO_CATEGORY_TAGS`).

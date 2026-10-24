@@ -8,7 +8,8 @@ let running = 0;
 const recent = new Map<string, number[]>();
 const HOUR = 3600_000;
 
-export type Admission = { ok: true; release: () => void } | { ok: false; status: 429; error: string; retryAfterSec: number };
+// reason: "busy" when the concurrency cap is hit, "hourly" when this visitor used up the hour.
+export type Admission = { ok: true; release: () => void } | { ok: false; status: 429; reason: "busy" | "hourly"; error: string; retryAfterSec: number };
 
 export function clientIp(request: Request): string {
   const fwd = request.headers.get("x-forwarded-for");
@@ -19,14 +20,14 @@ export function clientIp(request: Request): string {
 // testing with `npm run dev` is never blocked.
 export function admit(ip: string, now = Date.now()): Admission {
   if (running >= config.maxConcurrentRuns()) {
-    return { ok: false, status: 429, error: "Several explorations are already running. Please try again in a minute.", retryAfterSec: 60 };
+    return { ok: false, status: 429, reason: "busy", error: "Several explorations are already running. Please try again in a minute.", retryAfterSec: 60 };
   }
   if (process.env.NODE_ENV === "production") {
     const times = (recent.get(ip) ?? []).filter((t) => now - t < HOUR);
     const limit = config.runsPerIpPerHour();
     if (times.length >= limit) {
       const retryAfterSec = Math.ceil((times[0] + HOUR - now) / 1000);
-      return { ok: false, status: 429, error: `You have started ${limit} explorations in the last hour. Please try again later.`, retryAfterSec };
+      return { ok: false, status: 429, reason: "hourly", error: `You have started ${limit} explorations in the last hour. Please try again later.`, retryAfterSec };
     }
     times.push(now);
     recent.set(ip, times);

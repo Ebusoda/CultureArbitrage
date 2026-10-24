@@ -30,4 +30,8 @@ export const config = {
   // Protects the public demo's Qloo and Claude credit.
   maxConcurrentRuns: () => envInt("EXPLORE_MAX_CONCURRENT", 3, 1, 50),
   runsPerIpPerHour: () => envInt("EXPLORE_RUNS_PER_IP_PER_HOUR", 20, 1, 10_000),
+  // EXPLORE_FORCE_REPLAY=1: every request plays the city's recorded run instead of running live.
+  forceReplay: () => ["1", "true"].includes((process.env.EXPLORE_FORCE_REPLAY ?? "").trim().toLowerCase()),
+  // How long a recorded run takes to play back (it never plays slower than it ran live).
+  replayMs: () => envInt("EXPLORE_REPLAY_SECONDS", 20, 0, 120) * 1000,
 };
