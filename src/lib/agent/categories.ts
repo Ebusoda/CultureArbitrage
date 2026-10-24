@@ -1,0 +1,72 @@
+import { qlooMode } from "../qloo";
+import type { Focus } from "./types";
+
+interface Category {
+  key: string;
+  label: string;
+  focus: Exclude<Focus, "all">;
+  // Tag id in mock-data.ts.
+  mockTag: string;
+  // Real Qloo tag id. Fill in after 01-tests.ps1 (section A) shows what they are,
+  // or set them without a code change: QLOO_CATEGORY_TAGS=malatang=urn:tag:...,bubble_tea=urn:tag:...
+  liveTag: string | null;
+  // Live Qloo has no fan demographics for some categories; this broader tag stands in, labelled as such.
+  audienceProxy?: { tag: string; label: string };
+}
+
+// Live ids checked against real Qloo results on 2026-10-23 (places found in Tokyo / New York City / Seoul).
+// Listening bar and K-beauty store have no Qloo tag that matches them (the nearest return 0 places,
+// or every cosmetics shop), so live runs leave them out instead of counting the wrong thing.
+const CATEGORIES: Category[] = [
+  { key: "malatang", label: "Malatang", focus: "dining", mockTag: "urn:tag:mock:place:malatang", liveTag: "urn:tag:cuisine:qloo:malatang", audienceProxy: { tag: "urn:tag:genre:place:restaurant:hot_pot", label: "hot pot" } },
+  { key: "bubble_tea", label: "Bubble tea", focus: "dining", mockTag: "urn:tag:mock:place:bubble_tea", liveTag: "urn:tag:genre:place:restaurant:bubble_tea_store", audienceProxy: { tag: "urn:tag:genre:place:restaurant:tea_house", label: "tea house" } },
+  { key: "korean_fried_chicken", label: "Korean fried chicken", focus: "dining", mockTag: "urn:tag:mock:place:korean_fried_chicken", liveTag: "urn:tag:cuisine:qloo:korean_fried_chicken", audienceProxy: { tag: "urn:tag:genre:place:restaurant:korean", label: "Korean restaurant" } },
+  { key: "bagel_shop", label: "Bagel shop", focus: "dining", mockTag: "urn:tag:mock:place:bagel_shop", liveTag: "urn:tag:genre:place:restaurant:bagel_shop" },
+  { key: "natural_wine_bar", label: "Natural wine bar", focus: "nightlife", mockTag: "urn:tag:mock:place:natural_wine_bar", liveTag: "urn:tag:cuisine:qloo:natural_wine", audienceProxy: { tag: "urn:tag:genre:place:restaurant:wine_bar", label: "wine bar" } },
+  { key: "listening_bar", label: "Listening bar", focus: "nightlife", mockTag: "urn:tag:mock:place:listening_bar", liveTag: null },
+  { key: "record_store", label: "Record store", focus: "retail", mockTag: "urn:tag:mock:place:record_store", liveTag: "urn:tag:genre:place:record_store" },
+  { key: "k_beauty", label: "K-beauty store", focus: "retail", mockTag: "urn:tag:mock:place:k_beauty", liveTag: null },
+];
+
+// "key=urn:tag:...,key2=urn:tag:..." from QLOO_CATEGORY_TAGS.
+function envTags(): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const pair of (process.env.QLOO_CATEGORY_TAGS ?? "").split(",")) {
+    const [k, v] = pair.split("=").map((s) => s?.trim());
+    if (k && v) out[k] = v;
+  }
+  return out;
+}
+
+let warned = false;
+
+// The tag id each category is looked up by in the current Qloo mode. In live mode a
+// category with no real id yet keeps its mock id, which simply finds no places.
+function tagOf(c: Category): string {
+  if (qlooMode() === "mock") return c.mockTag;
+  const id = envTags()[c.key] ?? c.liveTag;
+  if (!id && !warned) {
+    warned = true;
+    console.warn(`[categories] no real Qloo tag id for ${c.key} (and maybe others); set liveTag in categories.ts or QLOO_CATEGORY_TAGS`);
+  }
+  return id ?? c.mockTag;
+}
+
+export function categoriesFor(focus: Focus): string[] {
+  return CATEGORIES.filter((c) => focus === "all" || c.focus === focus)
+    .map(tagOf)
+    .filter((id) => qlooMode() === "mock" || !id.startsWith("urn:tag:mock:"));
+}
+
+// The broader tag whose fans stand in for this category's when Qloo has no demographics for it (live only).
+export function audienceProxy(id: string): { tag: string; label: string } | null {
+  if (qlooMode() === "mock") return null;
+  const env = envTags();
+  return CATEGORIES.find((c) => c.liveTag === id || env[c.key] === id)?.audienceProxy ?? null;
+}
+
+export function categoryLabel(id: string): string {
+  const env = envTags();
+  const c = CATEGORIES.find((c) => c.mockTag === id || c.liveTag === id || env[c.key] === id);
+  return c?.label ?? id;
+}

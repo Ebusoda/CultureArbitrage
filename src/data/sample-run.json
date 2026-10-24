@@ -1,0 +1,2070 @@
+{
+ "recordedAt": "2026-10-22T21:41:59.791Z",
+ "events": [
+  {
+   "type": "start",
+   "city": "Tokyo",
+   "focus": "all",
+   "qlooMode": "mock",
+   "llmMode": "none",
+   "budget": 40,
+   "t": 1
+  },
+  {
+   "type": "step",
+   "id": "s1",
+   "phase": "profile",
+   "title": "Listing neighbourhoods in Tokyo",
+   "t": 1
+  },
+  {
+   "type": "call",
+   "stepId": "s1",
+   "call": {
+    "n": 1,
+    "endpoint": "/v2/insights",
+    "params": {
+     "filter.type": "urn:entity:locality",
+     "filter.location.query": "Tokyo",
+     "take": 3
+    },
+    "mock": true,
+    "resultCount": 3,
+    "summary": "Shin-Okubo 0.70 · Shibuya 0.65 · Shimokitazawa 0.53 (capped at 3)"
+   },
+   "t": 6
+  },
+  {
+   "type": "step",
+   "id": "s2",
+   "phase": "profile",
+   "title": "Reading the taste profile of Shin-Okubo",
+   "t": 6
+  },
+  {
+   "type": "call",
+   "stepId": "s2",
+   "call": {
+    "n": 2,
+    "endpoint": "/v2/insights",
+    "params": {
+     "filter.type": "urn:tag",
+     "signal.location.query": "Shin-Okubo, Tokyo",
+     "take": 4
+    },
+    "mock": true,
+    "resultCount": 4,
+    "summary": "K-pop 0.95 · Wellness 0.60 · Streetwear 0.45 · Chinese cuisine 0.30"
+   },
+   "t": 9
+  },
+  {
+   "type": "step",
+   "id": "s3",
+   "phase": "twins",
+   "title": "Looking for taste twins of Shin-Okubo",
+   "detail": "K-pop · Wellness · Streetwear · Chinese cuisine",
+   "t": 9
+  },
+  {
+   "type": "call",
+   "stepId": "s3",
+   "call": {
+    "n": 3,
+    "endpoint": "/v2/insights",
+    "params": {
+     "filter.type": "urn:entity:locality",
+     "signal.interests.tags": "urn:tag:mock:kpop,urn:tag:mock:wellness,urn:tag:mock:streetwear,urn:tag:mock:chinese_cuisine",
+     "filter.location.query": "New York",
+     "take": 1
+    },
+    "mock": true,
+    "resultCount": 1,
+    "summary": "Koreatown 0.46 (capped at 1)"
+   },
+   "t": 11
+  },
+  {
+   "type": "twin",
+   "home": "Shin-Okubo",
+   "homeCity": "Tokyo",
+   "twin": "Koreatown",
+   "twinCity": "New York",
+   "similarity": 0.463,
+   "rank": 1,
+   "tastes": [
+    {
+     "name": "K-pop",
+     "affinity": 0.95
+    },
+    {
+     "name": "Wellness",
+     "affinity": 0.6
+    },
+    {
+     "name": "Streetwear",
+     "affinity": 0.45
+    },
+    {
+     "name": "Chinese cuisine",
+     "affinity": 0.3
+    }
+   ],
+   "calls": [
+    2,
+    3
+   ],
+   "t": 12
+  },
+  {
+   "type": "call",
+   "stepId": "s3",
+   "call": {
+    "n": 4,
+    "endpoint": "/v2/insights",
+    "params": {
+     "filter.type": "urn:entity:locality",
+     "signal.interests.tags": "urn:tag:mock:kpop,urn:tag:mock:wellness,urn:tag:mock:streetwear,urn:tag:mock:chinese_cuisine",
+     "filter.location.query": "Seoul",
+     "take": 1
+    },
+    "mock": true,
+    "resultCount": 1,
+    "summary": "Myeongdong 0.61 (capped at 1)"
+   },
+   "t": 12
+  },
+  {
+   "type": "twin",
+   "home": "Shin-Okubo",
+   "homeCity": "Tokyo",
+   "twin": "Myeongdong",
+   "twinCity": "Seoul",
+   "similarity": 0.612,
+   "rank": 1,
+   "tastes": [
+    {
+     "name": "K-pop",
+     "affinity": 0.95
+    },
+    {
+     "name": "Wellness",
+     "affinity": 0.6
+    },
+    {
+     "name": "Streetwear",
+     "affinity": 0.45
+    },
+    {
+     "name": "Chinese cuisine",
+     "affinity": 0.3
+    }
+   ],
+   "calls": [
+    2,
+    4
+   ],
+   "t": 13
+  },
+  {
+   "type": "step",
+   "id": "s4",
+   "phase": "profile",
+   "title": "Reading the taste profile of Shibuya",
+   "t": 13
+  },
+  {
+   "type": "call",
+   "stepId": "s4",
+   "call": {
+    "n": 5,
+    "endpoint": "/v2/insights",
+    "params": {
+     "filter.type": "urn:tag",
+     "signal.location.query": "Shibuya, Tokyo",
+     "take": 4
+    },
+    "mock": true,
+    "resultCount": 4,
+    "summary": "Streetwear 0.85 · K-pop 0.60 · Third-wave coffee 0.60 · Wellness 0.55"
+   },
+   "t": 15
+  },
+  {
+   "type": "step",
+   "id": "s5",
+   "phase": "twins",
+   "title": "Looking for taste twins of Shibuya",
+   "detail": "Streetwear · K-pop · Third-wave coffee · Wellness",
+   "t": 15
+  },
+  {
+   "type": "call",
+   "stepId": "s5",
+   "call": {
+    "n": 6,
+    "endpoint": "/v2/insights",
+    "params": {
+     "filter.type": "urn:entity:locality",
+     "signal.interests.tags": "urn:tag:mock:streetwear,urn:tag:mock:kpop,urn:tag:mock:third_wave_coffee,urn:tag:mock:wellness",
+     "filter.location.query": "New York",
+     "take": 1
+    },
+    "mock": true,
+    "resultCount": 1,
+    "summary": "Koreatown 0.46 (capped at 1)"
+   },
+   "t": 17
+  },
+  {
+   "type": "twin",
+   "home": "Shibuya",
+   "homeCity": "Tokyo",
+   "twin": "Koreatown",
+   "twinCity": "New York",
+   "similarity": 0.463,
+   "rank": 1,
+   "tastes": [
+    {
+     "name": "Streetwear",
+     "affinity": 0.85
+    },
+    {
+     "name": "K-pop",
+     "affinity": 0.6
+    },
+    {
+     "name": "Third-wave coffee",
+     "affinity": 0.6
+    },
+    {
+     "name": "Wellness",
+     "affinity": 0.55
+    }
+   ],
+   "calls": [
+    5,
+    6
+   ],
+   "t": 17
+  },
+  {
+   "type": "call",
+   "stepId": "s5",
+   "call": {
+    "n": 7,
+    "endpoint": "/v2/insights",
+    "params": {
+     "filter.type": "urn:entity:locality",
+     "signal.interests.tags": "urn:tag:mock:streetwear,urn:tag:mock:kpop,urn:tag:mock:third_wave_coffee,urn:tag:mock:wellness",
+     "filter.location.query": "Seoul",
+     "take": 1
+    },
+    "mock": true,
+    "resultCount": 1,
+    "summary": "Seongsu 0.54 (capped at 1)"
+   },
+   "t": 19
+  },
+  {
+   "type": "twin",
+   "home": "Shibuya",
+   "homeCity": "Tokyo",
+   "twin": "Seongsu",
+   "twinCity": "Seoul",
+   "similarity": 0.543,
+   "rank": 1,
+   "tastes": [
+    {
+     "name": "Streetwear",
+     "affinity": 0.85
+    },
+    {
+     "name": "K-pop",
+     "affinity": 0.6
+    },
+    {
+     "name": "Third-wave coffee",
+     "affinity": 0.6
+    },
+    {
+     "name": "Wellness",
+     "affinity": 0.55
+    }
+   ],
+   "calls": [
+    5,
+    7
+   ],
+   "t": 19
+  },
+  {
+   "type": "step",
+   "id": "s6",
+   "phase": "profile",
+   "title": "Reading the taste profile of Shimokitazawa",
+   "t": 19
+  },
+  {
+   "type": "call",
+   "stepId": "s6",
+   "call": {
+    "n": 8,
+    "endpoint": "/v2/insights",
+    "params": {
+     "filter.type": "urn:tag",
+     "signal.location.query": "Shimokitazawa, Tokyo",
+     "take": 4
+    },
+    "mock": true,
+    "resultCount": 4,
+    "summary": "Vintage fashion 0.92 · Indie music 0.88 · Vinyl records 0.80 · Third-wave coffee 0.75"
+   },
+   "t": 21
+  },
+  {
+   "type": "step",
+   "id": "s7",
+   "phase": "twins",
+   "title": "Looking for taste twins of Shimokitazawa",
+   "detail": "Vintage fashion · Indie music · Vinyl records · Third-wave coffee",
+   "t": 21
+  },
+  {
+   "type": "call",
+   "stepId": "s7",
+   "call": {
+    "n": 9,
+    "endpoint": "/v2/insights",
+    "params": {
+     "filter.type": "urn:entity:locality",
+     "signal.interests.tags": "urn:tag:mock:vintage,urn:tag:mock:indie_music,urn:tag:mock:vinyl,urn:tag:mock:third_wave_coffee",
+     "filter.location.query": "New York",
+     "take": 1
+    },
+    "mock": true,
+    "resultCount": 1,
+    "summary": "Williamsburg 0.85 (capped at 1)"
+   },
+   "t": 23
+  },
+  {
+   "type": "twin",
+   "home": "Shimokitazawa",
+   "homeCity": "Tokyo",
+   "twin": "Williamsburg",
+   "twinCity": "New York",
+   "similarity": 0.85,
+   "rank": 1,
+   "tastes": [
+    {
+     "name": "Vintage fashion",
+     "affinity": 0.92
+    },
+    {
+     "name": "Indie music",
+     "affinity": 0.88
+    },
+    {
+     "name": "Vinyl records",
+     "affinity": 0.8
+    },
+    {
+     "name": "Third-wave coffee",
+     "affinity": 0.75
+    }
+   ],
+   "calls": [
+    8,
+    9
+   ],
+   "t": 23
+  },
+  {
+   "type": "call",
+   "stepId": "s7",
+   "call": {
+    "n": 10,
+    "endpoint": "/v2/insights",
+    "params": {
+     "filter.type": "urn:entity:locality",
+     "signal.interests.tags": "urn:tag:mock:vintage,urn:tag:mock:indie_music,urn:tag:mock:vinyl,urn:tag:mock:third_wave_coffee",
+     "filter.location.query": "Seoul",
+     "take": 1
+    },
+    "mock": true,
+    "resultCount": 1,
+    "summary": "Hongdae 0.51 (capped at 1)"
+   },
+   "t": 24
+  },
+  {
+   "type": "twin",
+   "home": "Shimokitazawa",
+   "homeCity": "Tokyo",
+   "twin": "Hongdae",
+   "twinCity": "Seoul",
+   "similarity": 0.513,
+   "rank": 1,
+   "tastes": [
+    {
+     "name": "Vintage fashion",
+     "affinity": 0.92
+    },
+    {
+     "name": "Indie music",
+     "affinity": 0.88
+    },
+    {
+     "name": "Vinyl records",
+     "affinity": 0.8
+    },
+    {
+     "name": "Third-wave coffee",
+     "affinity": 0.75
+    }
+   ],
+   "calls": [
+    8,
+    10
+   ],
+   "t": 25
+  },
+  {
+   "type": "step",
+   "id": "s8",
+   "phase": "compare",
+   "title": "Comparing Shin-Okubo with Myeongdong, Seoul",
+   "t": 25
+  },
+  {
+   "type": "call",
+   "stepId": "s8",
+   "call": {
+    "n": 11,
+    "endpoint": "/v2/insights",
+    "params": {
+     "filter.type": "urn:entity:place",
+     "filter.location.query": "Shin-Okubo, Tokyo",
+     "take": 100
+    },
+    "mock": true,
+    "resultCount": 42,
+    "summary": "18 Korean fried chicken · 15 K-beauty store · 7 Bubble tea"
+   },
+   "t": 27
+  },
+  {
+   "type": "supply",
+   "hood": "Shin-Okubo",
+   "city": "Tokyo",
+   "counts": {
+    "Malatang": 2,
+    "Bubble tea": 7,
+    "Korean fried chicken": 18,
+    "Bagel shop": 0,
+    "Natural wine bar": 0,
+    "Listening bar": 0,
+    "Record store": 0,
+    "K-beauty store": 15
+   },
+   "calls": [
+    11
+   ],
+   "t": 27
+  },
+  {
+   "type": "call",
+   "stepId": "s8",
+   "call": {
+    "n": 12,
+    "endpoint": "/v2/insights",
+    "params": {
+     "filter.type": "urn:entity:place",
+     "filter.location.query": "Myeongdong, Seoul",
+     "take": 100
+    },
+    "mock": true,
+    "resultCount": 62,
+    "summary": "25 K-beauty store · 24 Bubble tea · 7 Korean fried chicken"
+   },
+   "t": 29
+  },
+  {
+   "type": "supply",
+   "hood": "Myeongdong",
+   "city": "Seoul",
+   "counts": {
+    "Malatang": 6,
+    "Bubble tea": 24,
+    "Korean fried chicken": 7,
+    "Bagel shop": 0,
+    "Natural wine bar": 0,
+    "Listening bar": 0,
+    "Record store": 0,
+    "K-beauty store": 25
+   },
+   "calls": [
+    12
+   ],
+   "t": 30
+  },
+  {
+   "type": "step",
+   "id": "s9",
+   "phase": "compare",
+   "title": "Comparing Shibuya with Seongsu, Seoul",
+   "t": 30
+  },
+  {
+   "type": "call",
+   "stepId": "s9",
+   "call": {
+    "n": 13,
+    "endpoint": "/v2/insights",
+    "params": {
+     "filter.type": "urn:entity:place",
+     "filter.location.query": "Shibuya, Tokyo",
+     "take": 100
+    },
+    "mock": true,
+    "resultCount": 39,
+    "summary": "12 Bubble tea · 7 Record store · 6 Listening bar"
+   },
+   "t": 32
+  },
+  {
+   "type": "supply",
+   "hood": "Shibuya",
+   "city": "Tokyo",
+   "counts": {
+    "Malatang": 3,
+    "Bubble tea": 12,
+    "Korean fried chicken": 0,
+    "Bagel shop": 0,
+    "Natural wine bar": 5,
+    "Listening bar": 6,
+    "Record store": 7,
+    "K-beauty store": 6
+   },
+   "calls": [
+    13
+   ],
+   "t": 32
+  },
+  {
+   "type": "call",
+   "stepId": "s9",
+   "call": {
+    "n": 14,
+    "endpoint": "/v2/insights",
+    "params": {
+     "filter.type": "urn:entity:place",
+     "filter.location.query": "Seongsu, Seoul",
+     "take": 100
+    },
+    "mock": true,
+    "resultCount": 28,
+    "summary": "9 Natural wine bar · 8 Bagel shop · 7 Listening bar"
+   },
+   "t": 34
+  },
+  {
+   "type": "supply",
+   "hood": "Seongsu",
+   "city": "Seoul",
+   "counts": {
+    "Malatang": 4,
+    "Bubble tea": 0,
+    "Korean fried chicken": 0,
+    "Bagel shop": 8,
+    "Natural wine bar": 9,
+    "Listening bar": 7,
+    "Record store": 0,
+    "K-beauty store": 0
+   },
+   "calls": [
+    14
+   ],
+   "t": 35
+  },
+  {
+   "type": "step",
+   "id": "s10",
+   "phase": "compare",
+   "title": "Comparing Shimokitazawa with Williamsburg, New York",
+   "t": 35
+  },
+  {
+   "type": "call",
+   "stepId": "s10",
+   "call": {
+    "n": 15,
+    "endpoint": "/v2/insights",
+    "params": {
+     "filter.type": "urn:entity:place",
+     "filter.location.query": "Shimokitazawa, Tokyo",
+     "take": 100
+    },
+    "mock": true,
+    "resultCount": 32,
+    "summary": "14 Record store · 12 Listening bar · 3 Bubble tea"
+   },
+   "t": 35
+  },
+  {
+   "type": "supply",
+   "hood": "Shimokitazawa",
+   "city": "Tokyo",
+   "counts": {
+    "Malatang": 0,
+    "Bubble tea": 3,
+    "Korean fried chicken": 0,
+    "Bagel shop": 1,
+    "Natural wine bar": 2,
+    "Listening bar": 12,
+    "Record store": 14,
+    "K-beauty store": 0
+   },
+   "calls": [
+    15
+   ],
+   "t": 36
+  },
+  {
+   "type": "call",
+   "stepId": "s10",
+   "call": {
+    "n": 16,
+    "endpoint": "/v2/insights",
+    "params": {
+     "filter.type": "urn:entity:place",
+     "filter.location.query": "Williamsburg, New York",
+     "take": 100
+    },
+    "mock": true,
+    "resultCount": 52,
+    "summary": "21 Natural wine bar · 12 Record store · 9 Bagel shop"
+   },
+   "t": 36
+  },
+  {
+   "type": "supply",
+   "hood": "Williamsburg",
+   "city": "New York",
+   "counts": {
+    "Malatang": 0,
+    "Bubble tea": 2,
+    "Korean fried chicken": 0,
+    "Bagel shop": 9,
+    "Natural wine bar": 21,
+    "Listening bar": 8,
+    "Record store": 12,
+    "K-beauty store": 0
+   },
+   "calls": [
+    16
+   ],
+   "t": 37
+  },
+  {
+   "type": "step",
+   "id": "s11",
+   "phase": "doubt",
+   "title": "Checking natural wine bar across Tokyo, its audience and its trend",
+   "t": 37
+  },
+  {
+   "type": "call",
+   "stepId": "s11",
+   "call": {
+    "n": 17,
+    "endpoint": "/v2/insights",
+    "params": {
+     "filter.type": "urn:entity:place",
+     "filter.location.query": "Tokyo",
+     "filter.tags": "urn:tag:mock:place:natural_wine_bar",
+     "take": 50
+    },
+    "mock": true,
+    "resultCount": 8,
+    "summary": "8 places"
+   },
+   "t": 37
+  },
+  {
+   "type": "call",
+   "stepId": "s11",
+   "call": {
+    "n": 18,
+    "endpoint": "/v2/insights",
+    "params": {
+     "filter.type": "urn:demographics",
+     "signal.interests.tags": "urn:tag:mock:place:natural_wine_bar"
+    },
+    "mock": true,
+    "resultCount": 1,
+    "summary": "age profile, largest band 30–34 (32%)"
+   },
+   "t": 39
+  },
+  {
+   "type": "call",
+   "stepId": "s11",
+   "call": {
+    "n": 19,
+    "endpoint": "/v2/insights",
+    "params": {
+     "filter.type": "urn:demographics",
+     "signal.location.query": "Shimokitazawa, Tokyo"
+    },
+    "mock": true,
+    "resultCount": 1,
+    "summary": "age profile, largest band 25–29 (32%)"
+   },
+   "t": 41
+  },
+  {
+   "type": "rescore",
+   "id": "Shimokitazawa|Williamsburg|New York|urn:tag:mock:place:natural_wine_bar",
+   "category": "Natural wine bar",
+   "hood": "Shimokitazawa",
+   "twin": "Williamsburg",
+   "twinCity": "New York",
+   "from": 0.87,
+   "to": 0.84,
+   "reason": "Checked who it is for: 78% age overlap",
+   "calls": [
+    18,
+    19
+   ],
+   "t": 41
+  },
+  {
+   "type": "call",
+   "stepId": "s11",
+   "call": {
+    "n": 20,
+    "endpoint": "/v2/insights",
+    "params": {
+     "filter.type": "urn:entity:place",
+     "filter.location.query": "New York",
+     "filter.tags": "urn:tag:mock:place:natural_wine_bar",
+     "take": 3
+    },
+    "mock": true,
+    "resultCount": 3,
+    "summary": "3 places (capped at 3)"
+   },
+   "t": 43
+  },
+  {
+   "type": "call",
+   "stepId": "s11",
+   "call": {
+    "n": 21,
+    "endpoint": "/v2/trending",
+    "params": {
+     "filter.type": "urn:entity:place",
+     "signal.interests.entities": "urn:entity:place:mock:williamsburg:natural_wine_bar:1,urn:entity:place:mock:williamsburg:natural_wine_bar:2,urn:entity:place:mock:williamsburg:natural_wine_bar:3",
+     "filter.start_date": "2025-10-22",
+     "filter.end_date": "2026-10-22"
+    },
+    "mock": true,
+    "resultCount": 12,
+    "summary": "12 points, 0.55 → 0.78"
+   },
+   "t": 45
+  },
+  {
+   "type": "rescore",
+   "id": "Shimokitazawa|Williamsburg|New York|urn:tag:mock:place:natural_wine_bar",
+   "category": "Natural wine bar",
+   "hood": "Shimokitazawa",
+   "twin": "Williamsburg",
+   "twinCity": "New York",
+   "from": 0.84,
+   "to": 0.85,
+   "reason": "Checked the trend: +42% over the year",
+   "calls": [
+    20,
+    21
+   ],
+   "t": 53
+  },
+  {
+   "type": "step",
+   "id": "s12",
+   "phase": "score",
+   "title": "Scoring Natural wine bar in Shimokitazawa",
+   "t": 53
+  },
+  {
+   "type": "card",
+   "card": {
+    "id": "Shimokitazawa|Williamsburg|New York|urn:tag:mock:place:natural_wine_bar",
+    "category": "Natural wine bar",
+    "categoryId": "urn:tag:mock:place:natural_wine_bar",
+    "homeLocality": "Shimokitazawa",
+    "homeCity": "Tokyo",
+    "twinLocality": "Williamsburg",
+    "twinCity": "New York",
+    "twinSimilarity": 0.85,
+    "twinRank": 1,
+    "sharedTastes": [
+     {
+      "name": "Vintage fashion",
+      "affinity": 0.92
+     },
+     {
+      "name": "Indie music",
+      "affinity": 0.88
+     },
+     {
+      "name": "Vinyl records",
+      "affinity": 0.8
+     },
+     {
+      "name": "Third-wave coffee",
+      "affinity": 0.75
+     }
+    ],
+    "homeCount": 2,
+    "twinCount": 21,
+    "cityCount": 8,
+    "capped": {
+     "home": false,
+     "twin": false,
+     "city": false
+    },
+    "why": "People in Shimokitazawa share their taste profile with Williamsburg (Vintage fashion, Indie music, Vinyl records, Third-wave coffee). That audience supports 21 natural wine bar places in Williamsburg, but Shimokitazawa has only 2.",
+    "scores": [
+     {
+      "key": "proven",
+      "label": "Proven elsewhere",
+      "value": 1,
+      "source": "Qloo",
+      "note": "21 places in Williamsburg"
+     },
+     {
+      "key": "bridge",
+      "label": "Bridge audience",
+      "value": 0.85,
+      "source": "Qloo",
+      "note": "Taste similarity of Shimokitazawa and Williamsburg"
+     },
+     {
+      "key": "audience",
+      "label": "Core audience fit",
+      "value": 0.78,
+      "source": "Qloo",
+      "note": "Age profile of the category's fans vs people in Shimokitazawa"
+     },
+     {
+      "key": "gap",
+      "label": "Local undersupply",
+      "value": 0.9047619047619048,
+      "source": "Qloo",
+      "note": "2 in Shimokitazawa vs 21 in Williamsburg, 8 across Tokyo"
+     },
+     {
+      "key": "fit",
+      "label": "Product fit",
+      "value": null,
+      "source": "pending",
+      "note": "LLM judgment, needs Claude"
+     },
+     {
+      "key": "durability",
+      "label": "Durability",
+      "value": 0.9181818181818181,
+      "source": "Qloo",
+      "note": "+42% over 12 points"
+     }
+    ],
+    "confidence": 0.85,
+    "confidenceMath": {
+     "mean": 0.89,
+     "measured": 5,
+     "doubts": 1,
+     "penalty": 0.95
+    },
+    "doubts": [
+     "Built on sample data, not real Qloo results."
+    ],
+    "trail": [
+     {
+      "label": "Gap found: 21 in Williamsburg, 2 in Shimokitazawa",
+      "confidence": 0.87,
+      "calls": [
+       15,
+       16
+      ]
+     },
+     {
+      "label": "Checked the rest of Tokyo: 8 places",
+      "confidence": 0.87,
+      "calls": [
+       17
+      ]
+     },
+     {
+      "label": "Checked who it is for: 78% age overlap",
+      "confidence": 0.84,
+      "calls": [
+       18,
+       19
+      ]
+     },
+     {
+      "label": "Checked the trend: +42% over the year",
+      "confidence": 0.85,
+      "calls": [
+       20,
+       21
+      ]
+     },
+     {
+      "label": "Final score",
+      "confidence": 0.85,
+      "calls": []
+     }
+    ],
+    "refs": {
+     "taste": [
+      8
+     ],
+     "twin": [
+      9
+     ],
+     "homeSupply": [
+      15
+     ],
+     "twinSupply": [
+      16
+     ],
+     "citySupply": [
+      17
+     ],
+     "audience": [
+      18,
+      19
+     ],
+     "trend": [
+      20,
+      21
+     ]
+    }
+   },
+   "t": 53
+  },
+  {
+   "type": "step",
+   "id": "s13",
+   "phase": "doubt",
+   "title": "Checking bubble tea across Tokyo, its audience and its trend",
+   "t": 53
+  },
+  {
+   "type": "call",
+   "stepId": "s13",
+   "call": {
+    "n": 22,
+    "endpoint": "/v2/insights",
+    "params": {
+     "filter.type": "urn:entity:place",
+     "filter.location.query": "Tokyo",
+     "filter.tags": "urn:tag:mock:place:bubble_tea",
+     "take": 50
+    },
+    "mock": true,
+    "resultCount": 31,
+    "summary": "31 places"
+   },
+   "t": 55
+  },
+  {
+   "type": "rescore",
+   "id": "Shin-Okubo|Myeongdong|Seoul|urn:tag:mock:place:bubble_tea",
+   "category": "Bubble tea",
+   "hood": "Shin-Okubo",
+   "twin": "Myeongdong",
+   "twinCity": "Seoul",
+   "from": 0.73,
+   "to": 0.61,
+   "reason": "Checked the rest of Tokyo: 31 places",
+   "calls": [
+    22
+   ],
+   "t": 55
+  },
+  {
+   "type": "call",
+   "stepId": "s13",
+   "call": {
+    "n": 23,
+    "endpoint": "/v2/insights",
+    "params": {
+     "filter.type": "urn:demographics",
+     "signal.interests.tags": "urn:tag:mock:place:bubble_tea"
+    },
+    "mock": true,
+    "resultCount": 1,
+    "summary": "age profile, largest band ≤24 (55%)"
+   },
+   "t": 57
+  },
+  {
+   "type": "call",
+   "stepId": "s13",
+   "call": {
+    "n": 24,
+    "endpoint": "/v2/insights",
+    "params": {
+     "filter.type": "urn:demographics",
+     "signal.location.query": "Shin-Okubo, Tokyo"
+    },
+    "mock": true,
+    "resultCount": 1,
+    "summary": "age profile, largest band ≤24 (45%)"
+   },
+   "t": 58
+  },
+  {
+   "type": "rescore",
+   "id": "Shin-Okubo|Myeongdong|Seoul|urn:tag:mock:place:bubble_tea",
+   "category": "Bubble tea",
+   "hood": "Shin-Okubo",
+   "twin": "Myeongdong",
+   "twinCity": "Seoul",
+   "from": 0.61,
+   "to": 0.66,
+   "reason": "Checked who it is for: 90% age overlap",
+   "calls": [
+    23,
+    24
+   ],
+   "t": 59
+  },
+  {
+   "type": "call",
+   "stepId": "s13",
+   "call": {
+    "n": 25,
+    "endpoint": "/v2/insights",
+    "params": {
+     "filter.type": "urn:entity:place",
+     "filter.location.query": "Seoul",
+     "filter.tags": "urn:tag:mock:place:bubble_tea",
+     "take": 3
+    },
+    "mock": true,
+    "resultCount": 3,
+    "summary": "3 places (capped at 3)"
+   },
+   "t": 60
+  },
+  {
+   "type": "call",
+   "stepId": "s13",
+   "call": {
+    "n": 26,
+    "endpoint": "/v2/trending",
+    "params": {
+     "filter.type": "urn:entity:place",
+     "signal.interests.entities": "urn:entity:place:mock:hongdae:bubble_tea:1,urn:entity:place:mock:hongdae:bubble_tea:2,urn:entity:place:mock:hongdae:bubble_tea:3",
+     "filter.start_date": "2025-10-22",
+     "filter.end_date": "2026-10-22"
+    },
+    "mock": true,
+    "resultCount": 12,
+    "summary": "12 points, 0.90 → 0.45"
+   },
+   "t": 62
+  },
+  {
+   "type": "rescore",
+   "id": "Shin-Okubo|Myeongdong|Seoul|urn:tag:mock:place:bubble_tea",
+   "category": "Bubble tea",
+   "hood": "Shin-Okubo",
+   "twin": "Myeongdong",
+   "twinCity": "Seoul",
+   "from": 0.66,
+   "to": 0.5,
+   "reason": "Checked the trend: -50% over the year",
+   "calls": [
+    25,
+    26
+   ],
+   "t": 62
+  },
+  {
+   "type": "step",
+   "id": "s14",
+   "phase": "score",
+   "title": "Scoring Bubble tea in Shin-Okubo",
+   "t": 62
+  },
+  {
+   "type": "rejected",
+   "card": {
+    "id": "Shin-Okubo|Myeongdong|Seoul|urn:tag:mock:place:bubble_tea",
+    "category": "Bubble tea",
+    "categoryId": "urn:tag:mock:place:bubble_tea",
+    "homeLocality": "Shin-Okubo",
+    "homeCity": "Tokyo",
+    "twinLocality": "Myeongdong",
+    "twinCity": "Seoul",
+    "twinSimilarity": 0.612,
+    "twinRank": 1,
+    "sharedTastes": [
+     {
+      "name": "K-pop",
+      "affinity": 0.95
+     },
+     {
+      "name": "Wellness",
+      "affinity": 0.6
+     },
+     {
+      "name": "Streetwear",
+      "affinity": 0.45
+     },
+     {
+      "name": "Chinese cuisine",
+      "affinity": 0.3
+     }
+    ],
+    "homeCount": 7,
+    "twinCount": 24,
+    "cityCount": 31,
+    "capped": {
+     "home": false,
+     "twin": false,
+     "city": false
+    },
+    "why": "People in Shin-Okubo share their taste profile with Myeongdong (K-pop, Wellness, Streetwear, Chinese cuisine). That audience supports 24 bubble tea places in Myeongdong, but Shin-Okubo has only 7.",
+    "scores": [
+     {
+      "key": "proven",
+      "label": "Proven elsewhere",
+      "value": 1,
+      "source": "Qloo",
+      "note": "24 places in Myeongdong"
+     },
+     {
+      "key": "bridge",
+      "label": "Bridge audience",
+      "value": 0.612,
+      "source": "Qloo",
+      "note": "Taste similarity of Shin-Okubo and Myeongdong"
+     },
+     {
+      "key": "audience",
+      "label": "Core audience fit",
+      "value": 0.8999999999999999,
+      "source": "Qloo",
+      "note": "Age profile of the category's fans vs people in Shin-Okubo"
+     },
+     {
+      "key": "gap",
+      "label": "Local undersupply",
+      "value": 0.425,
+      "source": "Qloo",
+      "note": "7 in Shin-Okubo vs 24 in Myeongdong, 31 across Tokyo"
+     },
+     {
+      "key": "fit",
+      "label": "Product fit",
+      "value": null,
+      "source": "pending",
+      "note": "LLM judgment, needs Claude"
+     },
+     {
+      "key": "durability",
+      "label": "Durability",
+      "value": 0,
+      "source": "Qloo",
+      "note": "-50% over 12 points"
+     }
+    ],
+    "confidence": 0.5,
+    "confidenceMath": {
+     "mean": 0.59,
+     "measured": 5,
+     "doubts": 3,
+     "penalty": 0.85
+    },
+    "doubts": [
+     "Interest is falling (-50% over the period): a real gap may still fade, like tapioca.",
+     "Built on sample data, not real Qloo results.",
+     "31 exist elsewhere in Tokyo, so the gap may be local only."
+    ],
+    "trail": [
+     {
+      "label": "Gap found: 24 in Myeongdong, 7 in Shin-Okubo",
+      "confidence": 0.73,
+      "calls": [
+       11,
+       12
+      ]
+     },
+     {
+      "label": "Checked the rest of Tokyo: 31 places",
+      "confidence": 0.61,
+      "calls": [
+       22
+      ]
+     },
+     {
+      "label": "Checked who it is for: 90% age overlap",
+      "confidence": 0.66,
+      "calls": [
+       23,
+       24
+      ]
+     },
+     {
+      "label": "Checked the trend: -50% over the year",
+      "confidence": 0.5,
+      "calls": [
+       25,
+       26
+      ]
+     },
+     {
+      "label": "Final score",
+      "confidence": 0.5,
+      "calls": []
+     }
+    ],
+    "refs": {
+     "taste": [
+      2
+     ],
+     "twin": [
+      4
+     ],
+     "homeSupply": [
+      11
+     ],
+     "twinSupply": [
+      12
+     ],
+     "citySupply": [
+      22
+     ],
+     "audience": [
+      23,
+      24
+     ],
+     "trend": [
+      25,
+      26
+     ]
+    }
+   },
+   "reason": "Below the 55% bar",
+   "t": 62
+  },
+  {
+   "type": "step",
+   "id": "s15",
+   "phase": "doubt",
+   "title": "Checking bagel shop across Tokyo, its audience and its trend",
+   "t": 62
+  },
+  {
+   "type": "call",
+   "stepId": "s15",
+   "call": {
+    "n": 27,
+    "endpoint": "/v2/insights",
+    "params": {
+     "filter.type": "urn:entity:place",
+     "filter.location.query": "Tokyo",
+     "filter.tags": "urn:tag:mock:place:bagel_shop",
+     "take": 50
+    },
+    "mock": true,
+    "resultCount": 1,
+    "summary": "1 places"
+   },
+   "t": 68
+  },
+  {
+   "type": "call",
+   "stepId": "s15",
+   "call": {
+    "n": 28,
+    "endpoint": "/v2/insights",
+    "params": {
+     "filter.type": "urn:demographics",
+     "signal.interests.tags": "urn:tag:mock:place:bagel_shop"
+    },
+    "mock": true,
+    "resultCount": 1,
+    "summary": "age profile, largest band 25–29 (30%)"
+   },
+   "t": 70
+  },
+  {
+   "type": "rescore",
+   "id": "Shimokitazawa|Williamsburg|New York|urn:tag:mock:place:bagel_shop",
+   "category": "Bagel shop",
+   "hood": "Shimokitazawa",
+   "twin": "Williamsburg",
+   "twinCity": "New York",
+   "from": 0.74,
+   "to": 0.76,
+   "reason": "Checked who it is for: 85% age overlap",
+   "calls": [
+    28,
+    19
+   ],
+   "t": 70
+  },
+  {
+   "type": "call",
+   "stepId": "s15",
+   "call": {
+    "n": 29,
+    "endpoint": "/v2/insights",
+    "params": {
+     "filter.type": "urn:entity:place",
+     "filter.location.query": "New York",
+     "filter.tags": "urn:tag:mock:place:bagel_shop",
+     "take": 3
+    },
+    "mock": true,
+    "resultCount": 3,
+    "summary": "3 places (capped at 3)"
+   },
+   "t": 72
+  },
+  {
+   "type": "call",
+   "stepId": "s15",
+   "call": {
+    "n": 30,
+    "endpoint": "/v2/trending",
+    "params": {
+     "filter.type": "urn:entity:place",
+     "signal.interests.entities": "urn:entity:place:mock:williamsburg:bagel_shop:1,urn:entity:place:mock:williamsburg:bagel_shop:2,urn:entity:place:mock:williamsburg:bagel_shop:3",
+     "filter.start_date": "2025-10-22",
+     "filter.end_date": "2026-10-22"
+    },
+    "mock": true,
+    "resultCount": 12,
+    "summary": "12 points, 0.50 → 0.66"
+   },
+   "t": 73
+  },
+  {
+   "type": "step",
+   "id": "s16",
+   "phase": "score",
+   "title": "Scoring Bagel shop in Shimokitazawa",
+   "t": 73
+  },
+  {
+   "type": "card",
+   "card": {
+    "id": "Shimokitazawa|Williamsburg|New York|urn:tag:mock:place:bagel_shop",
+    "category": "Bagel shop",
+    "categoryId": "urn:tag:mock:place:bagel_shop",
+    "homeLocality": "Shimokitazawa",
+    "homeCity": "Tokyo",
+    "twinLocality": "Williamsburg",
+    "twinCity": "New York",
+    "twinSimilarity": 0.85,
+    "twinRank": 1,
+    "sharedTastes": [
+     {
+      "name": "Vintage fashion",
+      "affinity": 0.92
+     },
+     {
+      "name": "Indie music",
+      "affinity": 0.88
+     },
+     {
+      "name": "Vinyl records",
+      "affinity": 0.8
+     },
+     {
+      "name": "Third-wave coffee",
+      "affinity": 0.75
+     }
+    ],
+    "homeCount": 1,
+    "twinCount": 9,
+    "cityCount": 1,
+    "capped": {
+     "home": false,
+     "twin": false,
+     "city": false
+    },
+    "why": "People in Shimokitazawa share their taste profile with Williamsburg (Vintage fashion, Indie music, Vinyl records, Third-wave coffee). That audience supports 9 bagel shop places in Williamsburg, but Shimokitazawa has only 1.",
+    "scores": [
+     {
+      "key": "proven",
+      "label": "Proven elsewhere",
+      "value": 0.6,
+      "source": "Qloo",
+      "note": "9 places in Williamsburg"
+     },
+     {
+      "key": "bridge",
+      "label": "Bridge audience",
+      "value": 0.85,
+      "source": "Qloo",
+      "note": "Taste similarity of Shimokitazawa and Williamsburg"
+     },
+     {
+      "key": "audience",
+      "label": "Core audience fit",
+      "value": 0.8499999999999999,
+      "source": "Qloo",
+      "note": "Age profile of the category's fans vs people in Shimokitazawa"
+     },
+     {
+      "key": "gap",
+      "label": "Local undersupply",
+      "value": 0.8888888888888888,
+      "source": "Qloo",
+      "note": "1 in Shimokitazawa vs 9 in Williamsburg, 1 across Tokyo"
+     },
+     {
+      "key": "fit",
+      "label": "Product fit",
+      "value": null,
+      "source": "pending",
+      "note": "LLM judgment, needs Claude"
+     },
+     {
+      "key": "durability",
+      "label": "Durability",
+      "value": 0.8200000000000001,
+      "source": "Qloo",
+      "note": "+32% over 12 points"
+     }
+    ],
+    "confidence": 0.76,
+    "confidenceMath": {
+     "mean": 0.8,
+     "measured": 5,
+     "doubts": 1,
+     "penalty": 0.95
+    },
+    "doubts": [
+     "Built on sample data, not real Qloo results."
+    ],
+    "trail": [
+     {
+      "label": "Gap found: 9 in Williamsburg, 1 in Shimokitazawa",
+      "confidence": 0.74,
+      "calls": [
+       15,
+       16
+      ]
+     },
+     {
+      "label": "Checked the rest of Tokyo: 1 place",
+      "confidence": 0.74,
+      "calls": [
+       27
+      ]
+     },
+     {
+      "label": "Checked who it is for: 85% age overlap",
+      "confidence": 0.76,
+      "calls": [
+       28,
+       19
+      ]
+     },
+     {
+      "label": "Checked the trend: +32% over the year",
+      "confidence": 0.76,
+      "calls": [
+       29,
+       30
+      ]
+     },
+     {
+      "label": "Final score",
+      "confidence": 0.76,
+      "calls": []
+     }
+    ],
+    "refs": {
+     "taste": [
+      8
+     ],
+     "twin": [
+      9
+     ],
+     "homeSupply": [
+      15
+     ],
+     "twinSupply": [
+      16
+     ],
+     "citySupply": [
+      27
+     ],
+     "audience": [
+      28,
+      19
+     ],
+     "trend": [
+      29,
+      30
+     ]
+    }
+   },
+   "t": 73
+  },
+  {
+   "type": "step",
+   "id": "s17",
+   "phase": "doubt",
+   "title": "Checking bagel shop across Tokyo, its audience and its trend",
+   "t": 74
+  },
+  {
+   "type": "call",
+   "stepId": "s17",
+   "call": {
+    "n": 31,
+    "endpoint": "/v2/insights",
+    "params": {
+     "filter.type": "urn:demographics",
+     "signal.location.query": "Shibuya, Tokyo"
+    },
+    "mock": true,
+    "resultCount": 1,
+    "summary": "age profile, largest band ≤24 (35%)"
+   },
+   "t": 75
+  },
+  {
+   "type": "rescore",
+   "id": "Shibuya|Seongsu|Seoul|urn:tag:mock:place:bagel_shop",
+   "category": "Bagel shop",
+   "hood": "Shibuya",
+   "twin": "Seongsu",
+   "twinCity": "Seoul",
+   "from": 0.66,
+   "to": 0.68,
+   "reason": "Checked who it is for: 80% age overlap",
+   "calls": [
+    28,
+    31
+   ],
+   "t": 75
+  },
+  {
+   "type": "call",
+   "stepId": "s17",
+   "call": {
+    "n": 32,
+    "endpoint": "/v2/insights",
+    "params": {
+     "filter.type": "urn:entity:place",
+     "filter.location.query": "Seoul",
+     "filter.tags": "urn:tag:mock:place:bagel_shop",
+     "take": 3
+    },
+    "mock": true,
+    "resultCount": 3,
+    "summary": "3 places (capped at 3)"
+   },
+   "t": 77
+  },
+  {
+   "type": "call",
+   "stepId": "s17",
+   "call": {
+    "n": 33,
+    "endpoint": "/v2/trending",
+    "params": {
+     "filter.type": "urn:entity:place",
+     "signal.interests.entities": "urn:entity:place:mock:seongsu:bagel_shop:1,urn:entity:place:mock:seongsu:bagel_shop:2,urn:entity:place:mock:seongsu:bagel_shop:3",
+     "filter.start_date": "2025-10-22",
+     "filter.end_date": "2026-10-22"
+    },
+    "mock": true,
+    "resultCount": 12,
+    "summary": "12 points, 0.50 → 0.66"
+   },
+   "t": 78
+  },
+  {
+   "type": "rescore",
+   "id": "Shibuya|Seongsu|Seoul|urn:tag:mock:place:bagel_shop",
+   "category": "Bagel shop",
+   "hood": "Shibuya",
+   "twin": "Seongsu",
+   "twinCity": "Seoul",
+   "from": 0.68,
+   "to": 0.7,
+   "reason": "Checked the trend: +32% over the year",
+   "calls": [
+    32,
+    33
+   ],
+   "t": 78
+  },
+  {
+   "type": "step",
+   "id": "s18",
+   "phase": "score",
+   "title": "Scoring Bagel shop in Shibuya",
+   "t": 78
+  },
+  {
+   "type": "card",
+   "card": {
+    "id": "Shibuya|Seongsu|Seoul|urn:tag:mock:place:bagel_shop",
+    "category": "Bagel shop",
+    "categoryId": "urn:tag:mock:place:bagel_shop",
+    "homeLocality": "Shibuya",
+    "homeCity": "Tokyo",
+    "twinLocality": "Seongsu",
+    "twinCity": "Seoul",
+    "twinSimilarity": 0.543,
+    "twinRank": 1,
+    "sharedTastes": [
+     {
+      "name": "Streetwear",
+      "affinity": 0.85
+     },
+     {
+      "name": "K-pop",
+      "affinity": 0.6
+     },
+     {
+      "name": "Third-wave coffee",
+      "affinity": 0.6
+     },
+     {
+      "name": "Wellness",
+      "affinity": 0.55
+     }
+    ],
+    "homeCount": 0,
+    "twinCount": 8,
+    "cityCount": 1,
+    "capped": {
+     "home": false,
+     "twin": false,
+     "city": false
+    },
+    "why": "People in Shibuya share their taste profile with Seongsu (Streetwear, K-pop, Third-wave coffee, Wellness). That audience supports 8 bagel shop places in Seongsu, but Shibuya has only 0.",
+    "scores": [
+     {
+      "key": "proven",
+      "label": "Proven elsewhere",
+      "value": 0.5333333333333333,
+      "source": "Qloo",
+      "note": "8 places in Seongsu"
+     },
+     {
+      "key": "bridge",
+      "label": "Bridge audience",
+      "value": 0.543,
+      "source": "Qloo",
+      "note": "Taste similarity of Shibuya and Seongsu"
+     },
+     {
+      "key": "audience",
+      "label": "Core audience fit",
+      "value": 0.8,
+      "source": "Qloo",
+      "note": "Age profile of the category's fans vs people in Shibuya"
+     },
+     {
+      "key": "gap",
+      "label": "Local undersupply",
+      "value": 1,
+      "source": "Qloo",
+      "note": "0 in Shibuya vs 8 in Seongsu, 1 across Tokyo"
+     },
+     {
+      "key": "fit",
+      "label": "Product fit",
+      "value": null,
+      "source": "pending",
+      "note": "LLM judgment, needs Claude"
+     },
+     {
+      "key": "durability",
+      "label": "Durability",
+      "value": 0.8200000000000001,
+      "source": "Qloo",
+      "note": "+32% over 12 points"
+     }
+    ],
+    "confidence": 0.7,
+    "confidenceMath": {
+     "mean": 0.74,
+     "measured": 5,
+     "doubts": 1,
+     "penalty": 0.95
+    },
+    "doubts": [
+     "Built on sample data, not real Qloo results."
+    ],
+    "trail": [
+     {
+      "label": "Gap found: 8 in Seongsu, 0 in Shibuya",
+      "confidence": 0.66,
+      "calls": [
+       13,
+       14
+      ]
+     },
+     {
+      "label": "Checked the rest of Tokyo: 1 place",
+      "confidence": 0.66,
+      "calls": [
+       27
+      ]
+     },
+     {
+      "label": "Checked who it is for: 80% age overlap",
+      "confidence": 0.68,
+      "calls": [
+       28,
+       31
+      ]
+     },
+     {
+      "label": "Checked the trend: +32% over the year",
+      "confidence": 0.7,
+      "calls": [
+       32,
+       33
+      ]
+     },
+     {
+      "label": "Final score",
+      "confidence": 0.7,
+      "calls": []
+     }
+    ],
+    "refs": {
+     "taste": [
+      5
+     ],
+     "twin": [
+      7
+     ],
+     "homeSupply": [
+      13
+     ],
+     "twinSupply": [
+      14
+     ],
+     "citySupply": [
+      27
+     ],
+     "audience": [
+      28,
+      31
+     ],
+     "trend": [
+      32,
+      33
+     ]
+    }
+   },
+   "t": 78
+  },
+  {
+   "type": "step",
+   "id": "s19",
+   "phase": "doubt",
+   "title": "Checking malatang across Tokyo, its audience and its trend",
+   "t": 78
+  },
+  {
+   "type": "call",
+   "stepId": "s19",
+   "call": {
+    "n": 34,
+    "endpoint": "/v2/insights",
+    "params": {
+     "filter.type": "urn:entity:place",
+     "filter.location.query": "Tokyo",
+     "filter.tags": "urn:tag:mock:place:malatang",
+     "take": 50
+    },
+    "mock": true,
+    "resultCount": 11,
+    "summary": "11 places"
+   },
+   "t": 80
+  },
+  {
+   "type": "call",
+   "stepId": "s19",
+   "call": {
+    "n": 35,
+    "endpoint": "/v2/insights",
+    "params": {
+     "filter.type": "urn:demographics",
+     "signal.interests.tags": "urn:tag:mock:place:malatang"
+    },
+    "mock": true,
+    "resultCount": 1,
+    "summary": "age profile, largest band ≤24 (45%)"
+   },
+   "t": 81
+  },
+  {
+   "type": "rescore",
+   "id": "Shin-Okubo|Myeongdong|Seoul|urn:tag:mock:place:malatang",
+   "category": "Malatang",
+   "hood": "Shin-Okubo",
+   "twin": "Myeongdong",
+   "twinCity": "Seoul",
+   "from": 0.5,
+   "to": 0.6,
+   "reason": "Checked who it is for: 97% age overlap",
+   "calls": [
+    35,
+    24
+   ],
+   "t": 82
+  },
+  {
+   "type": "call",
+   "stepId": "s19",
+   "call": {
+    "n": 36,
+    "endpoint": "/v2/insights",
+    "params": {
+     "filter.type": "urn:entity:place",
+     "filter.location.query": "Seoul",
+     "filter.tags": "urn:tag:mock:place:malatang",
+     "take": 3
+    },
+    "mock": true,
+    "resultCount": 3,
+    "summary": "3 places (capped at 3)"
+   },
+   "t": 83
+  },
+  {
+   "type": "call",
+   "stepId": "s19",
+   "call": {
+    "n": 37,
+    "endpoint": "/v2/trending",
+    "params": {
+     "filter.type": "urn:entity:place",
+     "signal.interests.entities": "urn:entity:place:mock:hongdae:malatang:1,urn:entity:place:mock:hongdae:malatang:2,urn:entity:place:mock:hongdae:malatang:3",
+     "filter.start_date": "2025-10-22",
+     "filter.end_date": "2026-10-22"
+    },
+    "mock": true,
+    "resultCount": 12,
+    "summary": "12 points, 0.40 → 0.85"
+   },
+   "t": 84
+  },
+  {
+   "type": "rescore",
+   "id": "Shin-Okubo|Myeongdong|Seoul|urn:tag:mock:place:malatang",
+   "category": "Malatang",
+   "hood": "Shin-Okubo",
+   "twin": "Myeongdong",
+   "twinCity": "Seoul",
+   "from": 0.6,
+   "to": 0.66,
+   "reason": "Checked the trend: +112% over the year",
+   "calls": [
+    36,
+    37
+   ],
+   "t": 85
+  },
+  {
+   "type": "step",
+   "id": "s20",
+   "phase": "score",
+   "title": "Scoring Malatang in Shin-Okubo",
+   "t": 85
+  },
+  {
+   "type": "card",
+   "card": {
+    "id": "Shin-Okubo|Myeongdong|Seoul|urn:tag:mock:place:malatang",
+    "category": "Malatang",
+    "categoryId": "urn:tag:mock:place:malatang",
+    "homeLocality": "Shin-Okubo",
+    "homeCity": "Tokyo",
+    "twinLocality": "Myeongdong",
+    "twinCity": "Seoul",
+    "twinSimilarity": 0.612,
+    "twinRank": 1,
+    "sharedTastes": [
+     {
+      "name": "K-pop",
+      "affinity": 0.95
+     },
+     {
+      "name": "Wellness",
+      "affinity": 0.6
+     },
+     {
+      "name": "Streetwear",
+      "affinity": 0.45
+     },
+     {
+      "name": "Chinese cuisine",
+      "affinity": 0.3
+     }
+    ],
+    "homeCount": 2,
+    "twinCount": 6,
+    "cityCount": 11,
+    "capped": {
+     "home": false,
+     "twin": false,
+     "city": false
+    },
+    "why": "People in Shin-Okubo share their taste profile with Myeongdong (K-pop, Wellness, Streetwear, Chinese cuisine). That audience supports 6 malatang places in Myeongdong, but Shin-Okubo has only 2.",
+    "scores": [
+     {
+      "key": "proven",
+      "label": "Proven elsewhere",
+      "value": 0.4,
+      "source": "Qloo",
+      "note": "6 places in Myeongdong"
+     },
+     {
+      "key": "bridge",
+      "label": "Bridge audience",
+      "value": 0.612,
+      "source": "Qloo",
+      "note": "Taste similarity of Shin-Okubo and Myeongdong"
+     },
+     {
+      "key": "audience",
+      "label": "Core audience fit",
+      "value": 0.97,
+      "source": "Qloo",
+      "note": "Age profile of the category's fans vs people in Shin-Okubo"
+     },
+     {
+      "key": "gap",
+      "label": "Local undersupply",
+      "value": 0.6666666666666666,
+      "source": "Qloo",
+      "note": "2 in Shin-Okubo vs 6 in Myeongdong, 11 across Tokyo"
+     },
+     {
+      "key": "fit",
+      "label": "Product fit",
+      "value": null,
+      "source": "pending",
+      "note": "LLM judgment, needs Claude"
+     },
+     {
+      "key": "durability",
+      "label": "Durability",
+      "value": 1,
+      "source": "Qloo",
+      "note": "+112% over 12 points"
+     }
+    ],
+    "confidence": 0.66,
+    "confidenceMath": {
+     "mean": 0.73,
+     "measured": 5,
+     "doubts": 2,
+     "penalty": 0.9
+    },
+    "doubts": [
+     "Thin evidence: only 6 places in Myeongdong.",
+     "Built on sample data, not real Qloo results."
+    ],
+    "trail": [
+     {
+      "label": "Gap found: 6 in Myeongdong, 2 in Shin-Okubo",
+      "confidence": 0.5,
+      "calls": [
+       11,
+       12
+      ]
+     },
+     {
+      "label": "Checked the rest of Tokyo: 11 places",
+      "confidence": 0.5,
+      "calls": [
+       34
+      ]
+     },
+     {
+      "label": "Checked who it is for: 97% age overlap",
+      "confidence": 0.6,
+      "calls": [
+       35,
+       24
+      ]
+     },
+     {
+      "label": "Checked the trend: +112% over the year",
+      "confidence": 0.66,
+      "calls": [
+       36,
+       37
+      ]
+     },
+     {
+      "label": "Final score",
+      "confidence": 0.66,
+      "calls": []
+     }
+    ],
+    "refs": {
+     "taste": [
+      2
+     ],
+     "twin": [
+      4
+     ],
+     "homeSupply": [
+      11
+     ],
+     "twinSupply": [
+      12
+     ],
+     "citySupply": [
+      34
+     ],
+     "audience": [
+      35,
+      24
+     ],
+     "trend": [
+      36,
+      37
+     ]
+    }
+   },
+   "t": 85
+  },
+  {
+   "type": "done",
+   "callsUsed": 37,
+   "budget": 40,
+   "cards": 4,
+   "t": 85
+  }
+ ]
+}

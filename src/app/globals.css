@@ -1,0 +1,247 @@
+@import "tailwindcss";
+
+/* Garden: a neighbourhood app in daylight. A sage-tinted white page, white cards,
+   a fresh leaf-green accent for the opportunity, berry for taste twins and honey
+   amber for doubt. Peach is only a small highlight, never a fill for whole areas. */
+:root {
+  --page: #f4f7f1;
+  --surface: #ffffff;
+  --ink: #1d2b22;
+  --muted: #56675c;
+  --line: #dbe4d6;
+  --land: #dde6d6;
+  --graticule: #e9efe4;
+  --accent: #34771f;
+  --on-accent: #ffffff;
+  --twin: #9c2f74;
+  --doubt: #8a5a00;
+  --llm: #5a48c6;
+  --danger: #c42b2b;
+  --pending: #84928a;
+  /* Small warm highlight: the hero tag, text selection and the flash on a linked log row. */
+  --peach: #fde4d3;
+  /* Soft green-tinted shadow for cards and pills. */
+  --shadow-tint: 29 43 34;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* The same garden at night: deep green-black ground, leaves and berries lit softly. */
+    --page: #111814;
+    --surface: #18211b;
+    --ink: #e8efe9;
+    --muted: #9caba0;
+    --line: #2a362f;
+    --land: #1d2721;
+    --graticule: #161e19;
+    --accent: #8ccf6b;
+    --on-accent: #0c1a0a;
+    --twin: #e586b9;
+    --doubt: #f0c157;
+    --llm: #ab9cff;
+    --danger: #ff7b7b;
+    --pending: #66746b;
+    --peach: #3a2a21;
+    --shadow-tint: 0 0 0;
+    color-scheme: dark;
+  }
+}
+
+@theme inline {
+  --color-page: var(--page);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-land: var(--land);
+  --color-graticule: var(--graticule);
+  --color-accent: var(--accent);
+  --color-on-accent: var(--on-accent);
+  --color-twin: var(--twin);
+  --color-doubt: var(--doubt);
+  --color-llm: var(--llm);
+  --color-danger: var(--danger);
+  --color-pending: var(--pending);
+  --color-peach: var(--peach);
+  /* One friendly sans for everything; the display face keeps the historical class name font-serif. */
+  --font-sans: var(--font-figtree);
+  --font-serif: var(--font-figtree);
+  --font-mono: var(--font-geist-mono);
+  /* Soft, low shadows tinted with the ink green, so cards sit on the page like paper on grass. */
+  --shadow-xs: 0 1px 2px rgb(var(--shadow-tint) / 0.05);
+  --shadow-sm: 0 1px 2px rgb(var(--shadow-tint) / 0.04), 0 4px 14px -6px rgb(var(--shadow-tint) / 0.12);
+  --shadow-md: 0 2px 4px rgb(var(--shadow-tint) / 0.04), 0 10px 28px -10px rgb(var(--shadow-tint) / 0.18);
+}
+
+/* Friendly geometry: rounder corners than the default scale, cards around 14-16px. */
+@theme {
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 0.875rem;
+  --radius-2xl: 1rem;
+}
+
+@layer base {
+  /* Display text: Figtree at bold weight, pulled in slightly so big lines feel snug, not shouty. */
+  .font-serif {
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+}
+
+body {
+  background: var(--page);
+  color: var(--ink);
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--peach);
+  color: var(--ink);
+}
+
+.num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.bar-llm {
+  background: repeating-linear-gradient(135deg, var(--llm) 0 4px, transparent 4px 7px);
+}
+
+.track-pending {
+  border: 1px dashed var(--pending);
+  background: transparent;
+}
+
+.label-halo {
+  paint-order: stroke;
+  stroke: var(--page);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}
+
+/* Night garden: route lines on the map carry a faint glow in their own colour. */
+@media (prefers-color-scheme: dark) {
+  [aria-label="Route map"] svg path.stroke-accent,
+  [aria-label="Route map"] svg circle.stroke-accent {
+    filter: drop-shadow(0 0 3px color-mix(in oklab, var(--accent) 55%, transparent));
+  }
+  [aria-label="Route map"] svg path.stroke-twin {
+    filter: drop-shadow(0 0 2px color-mix(in oklab, var(--twin) 60%, transparent));
+  }
+  [aria-label="Route map"] svg path.stroke-doubt {
+    filter: drop-shadow(0 0 2px color-mix(in oklab, var(--doubt) 60%, transparent));
+  }
+}
+
+.arc-draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: arc-draw 700ms cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
+}
+@keyframes arc-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.arc-reveal {
+  animation: arc-reveal 600ms ease-out 1;
+}
+@keyframes arc-reveal {
+  0% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 0.35;
+  }
+  100% {
+    opacity: 0.15;
+  }
+}
+
+.home-pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: pulse 1.8s ease-out infinite;
+}
+@keyframes pulse {
+  from {
+    transform: scale(1);
+    opacity: 0.35;
+  }
+  to {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+
+.row-in {
+  animation: row-in 160ms ease-out both;
+}
+@keyframes row-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+.flash {
+  animation: flash 1.5s ease-out;
+}
+@keyframes flash {
+  from {
+    background: var(--peach);
+  }
+}
+
+.fade-in {
+  animation: fade-in 200ms ease-out both;
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.dots::after {
+  content: "";
+  animation: dots 1.2s steps(4, end) infinite;
+}
+@keyframes dots {
+  0% {
+    content: "";
+  }
+  25% {
+    content: ".";
+  }
+  50% {
+    content: "..";
+  }
+  75% {
+    content: "...";
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .arc-draw,
+  .arc-reveal,
+  .home-pulse,
+  .row-in,
+  .flash,
+  .fade-in,
+  .dots::after {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+  .home-pulse {
+    opacity: 0;
+  }
+}

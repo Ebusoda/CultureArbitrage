@@ -1,0 +1,37 @@
+{
+  "name": "culture-arbitrage",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "verify": "tsx --test --test-reporter=spec tests/qloo-client.test.ts tests/request.test.ts tests/explore.test.ts",
+    "typecheck": "tsc --noEmit",
+    "qloo:check": "tsx scripts/qloo-check.mts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.1.0",
+    "d3-geo": "3.1.1",
+    "next": "16.4.2",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "topojson-client": "3.1.0",
+    "world-atlas": "2.0.2"
+  },
+  "devDependencies": {
+    "@tailwindcss/turbopack": "^4",
+    "@types/d3-geo": "3.1.1",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@types/topojson-client": "3.1.5",
+    "@types/topojson-specification": "1.0.5",
+    "eslint": "^9",
+    "eslint-config-next": "16.4.2",
+    "tailwindcss": "^4",
+    "tsx": "^4.23.15",
+    "typescript": "^5"
+  }
+}
