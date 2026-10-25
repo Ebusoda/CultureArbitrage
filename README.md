@@ -46,7 +46,7 @@ Confidence = average of the measured scores × (1 − 0.05 × open doubts, at mo
 
 ### What's next
 
-- Live Qloo data for Tokyo, plus US cities where Qloo's coverage is deepest.
+- More cities, starting with US cities where Qloo's coverage is deepest.
 - A hold-out sanity check: hide one category from a city's supply and see whether the agent still points to where it really clusters (a consistency check on today's snapshot, not a historical backtest).
 - The same taste-twin engine works for people too: tell it the neighbourhood you love, and it finds the one in your new city whose people love the same things. Taste match only, no listings or rent.
 
@@ -92,11 +92,11 @@ The script refuses runs that failed, used Google Maps, or were themselves replay
 | `QLOO_CALL_BUDGET` | max Qloo calls per exploration | `40` |
 | `EXPLORE_TIME_BUDGET_MS` | no new lookups after this long; the run finishes with what it has | `150000` |
 | `MOCK_DELAY_MS` | pause per mock Qloo call | `350` |
-| `QLOO_API_URL` | Qloo address, may include a path prefix | `https://api.qloo.com` |
+| `QLOO_API_URL` | Qloo address, may include a path prefix (hackathon keys: `https://hackathon.api.qloo.com`) | `https://api.qloo.com` |
 | `QLOO_TIMEOUT_MS` | per-request timeout for live Qloo calls | `10000` |
 | `QLOO_RETRIES` | extra attempts on 429 / 5xx / timeout / network errors | `2` |
 | `QLOO_CACHE_TTL_MS` | how long identical live Qloo requests are answered from memory (`0` = off) | `21600000` (6 h) |
-| `QLOO_CATEGORY_TAGS` | real Qloo tag ids per category, e.g. `malatang=urn:tag:...,bubble_tea=urn:tag:...` | unset (mock ids) |
+| `QLOO_CATEGORY_TAGS` | overrides the Qloo tag id of a category, e.g. `malatang=urn:tag:...,bubble_tea=urn:tag:...` | unset (ids in `categories.ts`) |
 | `GOOGLE_MAPS_API_KEY` | optional, enables the Google Maps cross-check (Places API (New)); only used with `QLOO_MODE=live` | unset |
 | `GOOGLE_CALL_BUDGET` | max Google Maps requests (result pages) per exploration | `24` |
 | `GOOGLE_DAILY_LIMIT` | max Google Maps requests per UTC day, per server instance | `300` |
@@ -111,6 +111,7 @@ API keys are read only on the server and never sent to the browser.
 ## Checks
 
 ```bash
+npm run typecheck    # generates Next.js route types, then runs tsc
 npm run verify       # offline tests: Qloo client, cache, input checks, full mock runs, scripted Claude loop, recorded-run fallback
 npm run qloo:check   # one live Qloo request with the key in .env.local (add -- --tags to test category tag ids)
 npm run google:check # one Google Maps search with GOOGLE_MAPS_API_KEY (place ids only, free tier)
@@ -129,7 +130,7 @@ npm run google:check # one Google Maps search with GOOGLE_MAPS_API_KEY (place id
 - **Viewer leaves** (`vercel.json`): `supportsCancellation` is on for `src/app/api/explore/route.ts`, so when a viewer closes the tab Vercel aborts `request.signal`, which stops the run's Claude stream and Qloo and Google requests, and frees its live slot at once; Vercel then ends the function. Without it, Vercel keeps the run going until its time budget ends. Check it on a preview deployment: start a live run, close the tab, and the function log should end within seconds.
 - **Google Maps cross-check** (`src/lib/google/places.ts`): server-only, Places API (New) Text Search. It asks only for place ids (field mask `places.id,nextPageToken`), which Google bills as "Text Search Essentials (IDs Only)", free without a monthly limit, inside a hard `locationRestriction` rectangle. At most 3 pages (60 results) per search and `GOOGLE_CALL_BUDGET` requests per run. Nothing from Google is stored beyond the run. The key is redacted from every message, and a rejected key stops further Google requests for the run.
 - **Tokyo ward statistics** (`src/data/tokyo-ward-ages.json`, `src/lib/agent/census.ts`): residents aged 20 and over in each of the 23 wards by age band, as of 1 January 2026, turned into a lean per band against the 23 wards as a whole.
-- **Cities and categories**: the explorable cities are in `src/lib/cities.ts`; categories and their Qloo tag ids are in `src/lib/agent/categories.ts`. Switching to real data means setting `QLOO_MODE=live`, `QLOO_API_KEY`, and the real tag ids (in that file or `QLOO_CATEGORY_TAGS`).
+- **Cities and categories**: the explorable cities are in `src/lib/cities.ts`; categories and their Qloo tag ids are in `src/lib/agent/categories.ts`. Switching to real data means setting `QLOO_MODE=live` and `QLOO_API_KEY`; every category already has its real Qloo tag id (`QLOO_CATEGORY_TAGS` can override one).
 
 ## Credits
 

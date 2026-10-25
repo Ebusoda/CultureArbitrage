@@ -1,4 +1,4 @@
-// Hand-made sample data so the whole app runs before the Qloo key arrives.
+// Hand-made sample data so the whole app runs without a Qloo key (QLOO_MODE=mock).
 // Numbers are invented. They are shaped to tell the same story we expect from
 // real data (e.g. Shimokitazawa ≈ Williamsburg), not to be accurate.
 

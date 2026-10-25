@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "verify": "tsx --test --test-reporter=spec \"tests/*.test.ts\"",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "next typegen && tsc --noEmit",
     "qloo:check": "tsx scripts/qloo-check.mts",
     "google:check": "tsx scripts/google-check.mts"
   },

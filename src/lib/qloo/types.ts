@@ -1,6 +1,5 @@
 // Shapes of the Qloo API responses we use.
-// Based on the official toolkit (@qloo/qloo-harness 0.1.26). Re-check against
-// real responses once the API key arrives (see 01-tests.ps1).
+// Based on the official toolkit (@qloo/qloo-harness 0.1.26), checked against live responses.
 
 export type QlooParams = Record<string, string | number | undefined>;
 

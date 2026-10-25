@@ -1,4 +1,4 @@
-// One small live Qloo request, to check the key and address once the key arrives.
+// One small live Qloo request, to check the key and address.
 //   npm run qloo:check            1 call: neighbourhoods of Tokyo
 //   npm run qloo:check -- --tags  plus 1 call per category tag id in categories.ts
 // Reads QLOO_API_KEY and QLOO_API_URL from .env.local. Never prints the key.
@@ -41,7 +41,7 @@ async function check(label: string, fn: () => Promise<unknown>) {
     // detail is Qloo's own error text, key already redacted.
     const detail = e instanceof QlooError && e.detail ? ` (${e.detail})` : "";
     console.log(`FAIL  ${label}  [${kind}] ${e instanceof Error ? e.message : String(e)}${detail}`);
-    if (kind === "auth") console.log("      The key was rejected. Check it was copied fully, and ask on the Qloo Discord whether hackathon keys use a different address (QLOO_API_URL).");
+    if (kind === "auth") console.log("      The key was rejected. Check it was copied fully, and hackathon keys need QLOO_API_URL=https://hackathon.api.qloo.com.");
     if (kind === "not_found") console.log("      Wrong address? Set QLOO_API_URL in .env.local to the one Qloo gave you.");
     return null;
   }
