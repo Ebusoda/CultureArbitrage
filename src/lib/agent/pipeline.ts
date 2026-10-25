@@ -1,12 +1,15 @@
 import { isFatalQlooError } from "../qloo";
 import { CITIES } from "../cities";
-import { categoriesFor, categoryLabel } from "./categories";
+import { categoriesForRequest, categoryLabel } from "./categories";
 import type { Evidence } from "./evidence";
 import type { RunContext } from "./run";
+import { twinCities } from "./target";
 import { buildCard, cardId, isGap, MIN_CONFIDENCE } from "./score";
 import type { ExploreRequest, OpportunityCard } from "./types";
 
 const HOODS_TO_PROFILE = 3;
+// Checking one business type costs less per comparison (one category), so it looks at one more.
+const HOODS_FOR_TARGET = 4;
 // Claude lists this many; a fallback run reuses that list instead of asking Qloo again.
 const CLAUDE_HOODS = 5;
 const MAX_CARDS = 4;
@@ -17,8 +20,9 @@ const message = (e: unknown) => (e instanceof Error ? e.message : String(e)).sli
 // and as the fallback when Claude is unavailable.
 export async function runPipeline(req: ExploreRequest, ev: Evidence, ctx: RunContext): Promise<OpportunityCard[]> {
   const { step, onCard, deadline } = ctx;
-  const categories = categoriesFor(req.focus);
-  const otherCities = CITIES.filter((c) => c !== req.city);
+  const categories = categoriesForRequest(req);
+  // Checking one business type: only cities that list enough of it to have a twin with a gap.
+  const otherCities = req.target ? twinCities(req) : CITIES.filter((c) => c !== req.city);
   const outOfTime = () => Date.now() > deadline;
   // Ids already shown or ruled out in this run (by Claude, before a fallback): not looked at again.
   const skip = (id: string) => ctx.skip?.(id) ?? false;
@@ -29,7 +33,8 @@ export async function runPipeline(req: ExploreRequest, ev: Evidence, ctx: RunCon
 
   step("profile", `Listing neighbourhoods in ${req.city}`);
   const listed = ev.peek<{ name: string }[]>(`hoods:${ev.city(req.city)}:${CLAUDE_HOODS}`);
-  const hoods = listed ? listed.slice(0, HOODS_TO_PROFILE) : await ev.listNeighbourhoods(req.city, HOODS_TO_PROFILE);
+  const profile = req.target ? HOODS_FOR_TARGET : HOODS_TO_PROFILE;
+  const hoods = listed ? listed.slice(0, profile) : await ev.listNeighbourhoods(req.city, profile);
   if (!hoods.length) throw new Error(`Qloo returned no neighbourhoods for ${req.city}.`);
 
   // The run said it stopped early, or a loop below was cut short by the time limit (then the

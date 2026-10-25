@@ -1,5 +1,5 @@
 import { QlooError } from "./live";
-import { splitDisplayParams, type InsightsResponse, type QlooCallOptions, type QlooClient, type QlooParams, type TrendingResponse } from "./types";
+import { splitDisplayParams, type InsightsResponse, type QlooCallOptions, type QlooClient, type QlooParams, type TagsResponse, type TrendingResponse } from "./types";
 
 interface Entry {
   at: number;
@@ -126,6 +126,12 @@ export class CachedQloo implements QlooClient {
 
   trending(params: QlooParams, opts?: QlooCallOptions): Promise<TrendingResponse> {
     return this.get("/v2/trending", params, opts, (o) => this.inner.trending(params, o));
+  }
+
+  tags(params: QlooParams, opts?: QlooCallOptions): Promise<TagsResponse> {
+    const inner = this.inner;
+    if (!inner.tags) return Promise.reject(new QlooError("not_found", "Qloo /v2/tags: tag search is not available"));
+    return this.get("/v2/tags", params, opts, (o) => inner.tags!(params, o));
   }
 
   private get<T>(endpoint: string, params: QlooParams, opts: QlooCallOptions = {}, fn: (o: QlooCallOptions) => Promise<T>): Promise<T> {

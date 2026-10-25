@@ -136,6 +136,10 @@ export interface EmptySummary {
   notSubmitted: number;
   // Rows that meet the rule only on a capped (lower-bound) home count.
   unclear: number;
+  // Rows where the home neighbourhood has at least as many as its twin.
+  supplied: number;
+  // Rows with more in the twin, but too few (or too small a gap) to count as proven.
+  small: number;
 }
 
 export function emptySummary(s: RunState): EmptySummary {
@@ -148,6 +152,8 @@ export function emptySummary(s: RunState): EmptySummary {
     ruledOut: s.rejected.length,
     notSubmitted: n("notSubmitted"),
     unclear: n("unclear"),
+    supplied: n("supplied"),
+    small: n("small"),
   };
 }
 

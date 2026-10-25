@@ -4,11 +4,11 @@ Find what your city is missing that its taste twin already loves, with the Qloo 
 
 Boba was proven in Taipei, and malatang in Seoul, years before either one took over Tokyo. Chains pay consultants to look for gaps like these. Someone opening one shop can't, so they find out last. Culture Arbitrage is an agent that pairs each neighbourhood with its taste twin in another city using Qloo, compares what each one already supports, and argues against its own ideas before it shows you anything.
 
-> Status: running on **live Qloo data** (Tokyo, New York, Seoul). Eight categories across dining, nightlife and retail, each with a real Qloo tag.
+> Status: running on **live Qloo data** (Tokyo, New York, Seoul). Scans cover eight categories across dining, nightlife and retail; "check one business" covers 176 business types Qloo lists in these cities, plus anything else Qloo's tag search can match.
 
 ## What it does
 
-Pick a city and, optionally, a focus (dining, nightlife or retail). A Claude agent, using Qloo as its tools:
+Pick a city, then either let the agent scan (optionally with a focus: dining, nightlife or retail) or **check one business**: type the kind of place you want to open, such as "yoga studio", "ramen shop" or "瑜伽", and the agent checks only that (see [Checking one business](#checking-one-business)). A Claude agent, using Qloo as its tools:
 
 1. Profiles the taste of each neighbourhood (Qloo `/v2/insights`: `urn:tag` with a location signal, and the taste tags Qloo attaches to each locality, such as "trendy", "vintage stores", "cafe hopping", "young professionals")
 2. Finds its "taste twin" neighbourhood in other cities: Qloo ranks the other city's localities with the home neighbourhood as the signal, and the agent scores each by the share of Qloo taste tags the two have in common, listing the tastes they share
@@ -19,6 +19,15 @@ Pick a city and, optionally, a focus (dining, nightlife or retail). A Claude age
 Every step, Claude's reason for it, and every Qloo call are shown live in the UI. After each Qloo lookup the gaps found so far are scored again, so you can watch a score fall (or rise) as the agent's own checks come in. Each opportunity keeps that score trail, one line per check, with the Qloo calls behind it. Each number on an opportunity carries a `Q<n>` chip that jumps to the Qloo call it came from. A world route map draws each taste twin and each opportunity as an arc from the city where the demand is proven to the city that lacks it.
 
 If Claude is unavailable (no key, no credit, a network error), the same tools run as a fixed pipeline, so the app always produces a result.
+
+### Checking one business
+
+A scan answers "what is this city missing?". Someone who already knows what they want to open asks the other question: "where in this city is my kind of business missing, if anywhere?"
+
+- **176 business types** (`src/data/categories.json`), from cafés, ramen shops and natural wine bars to yoga studios, record stores and climbing gyms. They were chosen from about 350 candidates by counting, on live Qloo, the places listed for each in Tokyo, New York City and Seoul (2026-10-25). A type is in the list when Qloo lists at least 5 places in at least two of the three cities, so a taste twin can have the 4 places a gap needs. Each keeps those counts, and the page shows them next to the type, with a warning when the home city lists so few that a "gap" there may be missing data rather than missing shops.
+- **Anything else**: text that matches no listed type is looked up with Qloo's tag search (`/v2/tags`), keeping only tags that name a kind of place (not "store" or "restaurant"). Text in another script ("猫カフェ", "요가") is first put into English by one small Claude call. The matched tag is counted once in each city, and if no other city lists enough of it for a twin to show a gap, the agent says so up front instead of spending the run. Either way, the first lines of the agent log say what the text was matched to and which Qloo calls it took.
+- The agent then runs the same method with that one category: each supply count is exact (no shared page), it looks at more neighbourhoods, and it skips twin cities where Qloo lists fewer than 4 of the type. "No neighbourhood is short of it" is a real answer: for this type, the city looks well supplied for its tastes.
+- Without a business type, a scan runs exactly as before.
 
 ### Scores
 
@@ -43,6 +52,7 @@ Confidence = average of the measured scores × (1 − 0.05 × open doubts, at mo
 - Results are a snapshot of today's taste data, not a historical backtest.
 - Boba and malatang are survivors. Tapioca shows a real gap can fade, which is why Durability is scored.
 - Similarity is between audiences, not streets. Rent, regulation and footfall are out of scope.
+- Qloo's coverage is uneven by city and kind of place. Seoul is well covered for food and drink but thin for many shops, gyms and salons (often 0 to 3 places city-wide), which the page flags when you pick such a type.
 
 ### What's next
 
@@ -124,13 +134,13 @@ npm run google:check # one Google Maps search with GOOGLE_MAPS_API_KEY (place id
 - **Qloo client** (`src/lib/qloo/live.ts`): server-only, key sent as `X-Api-Key`. Each request has a timeout. 429, 5xx, timeouts and network errors are retried with backoff (honouring `Retry-After`); other 4xx are not, because the same request would fail again and waste quota. Errors are typed (`auth`, `bad_request`, `rate_limit`, `server`, `timeout`, `network`, `bad_response`), and the key is redacted from every message. A rejected key or a wrong address stops the run at once instead of failing every lookup in turn.
 - **Budget** (`src/lib/qloo/index.ts`): every exploration has a hard cap on Qloo calls (`QLOO_CALL_BUDGET`). Retries count against it.
 - **Cache** (`src/lib/qloo/cache.ts`): live responses are kept in memory for `QLOO_CACHE_TTL_MS`, shared across explorations in the same server instance, and concurrent identical requests share one HTTP call. Failures are never cached. Calls answered from cache are marked `cached` in the agent log. Within a run, `src/lib/agent/evidence.ts` also memoises every lookup, so the agent never pays twice for the same question.
-- **Input checks** (`src/lib/agent/request.ts`): `POST /api/explore` takes `{"city": "Tokyo", "focus": "all" | "dining" | "nightlife" | "retail"}` with `Content-Type: application/json` (anything else, or none, gets a 415, so another website can't start runs with a plain cross-site POST). In production the request must also come from the site's own page (`Sec-Fetch-Site: same-origin`, or an `Origin` matching the host), otherwise 403; `npm run dev` skips that check. Unknown cities or focuses, non-JSON bodies and bodies over 2 KB get a 4xx with a plain message. `GET /api/explore` returns the cities, focuses and modes (never keys).
+- **Input checks** (`src/lib/agent/request.ts`): `POST /api/explore` takes `{"city": "Tokyo", "focus": "all" | "dining" | "nightlife" | "retail"}`, optionally with `"category"` (a key from `src/data/categories.json`, e.g. `"yoga_studio"`) or `"query"` (free text, at most 60 characters) to check one business type, with `Content-Type: application/json` (anything else, or none, gets a 415, so another website can't start runs with a plain cross-site POST). In production the request must also come from the site's own page (`Sec-Fetch-Site: same-origin`, or an `Origin` matching the host), otherwise 403; `npm run dev` skips that check. Unknown cities or focuses, non-JSON bodies and bodies over 2 KB get a 4xx with a plain message. `GET /api/explore` returns the cities, focuses and modes (never keys).
 - **Abuse limits** (`src/lib/limits.ts`): a cap on concurrent explorations and a per-visitor hourly limit protect the shared Qloo quota and Claude credit on the public demo. Both are in-memory, so on Vercel they are per instance, not global: more instances mean more runs. A visitor turned away gets the city's recorded run instead, when there is one (see "Recorded runs").
 - **Global spend cap**: the app has no shared store, so the real cap on spend lives outside it. Before the demo is public, set spend limits at the providers (an Anthropic workspace spend limit, the Qloo quota, a Google Cloud quota on the Maps key) and a Vercel Firewall rate-limit rule on `/api/explore`. `EXPLORE_LIVE_ENABLED=false` switches live runs off at once (recordings only).
 - **Viewer leaves** (`vercel.json`): `supportsCancellation` is on for `src/app/api/explore/route.ts`, so when a viewer closes the tab Vercel aborts `request.signal`, which stops the run's Claude stream and Qloo and Google requests, and frees its live slot at once; Vercel then ends the function. Without it, Vercel keeps the run going until its time budget ends. Check it on a preview deployment: start a live run, close the tab, and the function log should end within seconds.
 - **Google Maps cross-check** (`src/lib/google/places.ts`): server-only, Places API (New) Text Search. It asks only for place ids (field mask `places.id,nextPageToken`), which Google bills as "Text Search Essentials (IDs Only)", free without a monthly limit, inside a hard `locationRestriction` rectangle. At most 3 pages (60 results) per search and `GOOGLE_CALL_BUDGET` requests per run. Nothing from Google is stored beyond the run. The key is redacted from every message, and a rejected key stops further Google requests for the run.
 - **Tokyo ward statistics** (`src/data/tokyo-ward-ages.json`, `src/lib/agent/census.ts`): residents aged 20 and over in each of the 23 wards by age band, as of 1 January 2026, turned into a lean per band against the 23 wards as a whole.
-- **Cities and categories**: the explorable cities are in `src/lib/cities.ts`; categories and their Qloo tag ids are in `src/lib/agent/categories.ts`. Switching to real data means setting `QLOO_MODE=live` and `QLOO_API_KEY`; every category already has its real Qloo tag id (`QLOO_CATEGORY_TAGS` can override one).
+- **Cities and categories**: the explorable cities are in `src/lib/cities.ts`; the scan's categories and their Qloo tag ids are in `src/lib/agent/categories.ts`, and the business types for "check one business" in `src/data/categories.json` (helpers in `src/lib/agent/catalog.ts`, matching in `src/lib/agent/target.ts`). The sample data only has the scan's 8, so the others need live Qloo data. Switching to real data means setting `QLOO_MODE=live` and `QLOO_API_KEY`; every category already has its real Qloo tag id (`QLOO_CATEGORY_TAGS` can override one of the scan's 8).
 
 ## Credits
 

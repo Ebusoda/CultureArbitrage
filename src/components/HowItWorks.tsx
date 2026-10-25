@@ -1,5 +1,6 @@
 import type { AgentEvent, Modes, OpportunityCard } from "@/lib/agent/types";
 import sample from "@/data/sample-run.json";
+import { CATALOG, COVERAGE_DATE } from "@/lib/agent/catalog";
 import { AgentBadge, REPO_URL } from "./explorer/AppHeader";
 import { Arrow } from "./explorer/Arrow";
 import { focusName } from "./explorer/format";
@@ -35,7 +36,7 @@ const SCORES = [
 ];
 
 // The longer explanations, folded so the page leads with the step diagram.
-function FOLDS(mock: boolean): [string, React.ReactNode][] {
+function FOLDS(mock: boolean, replayOnly = false): [string, React.ReactNode][] {
   return [
     [
       "Why this exists",
@@ -47,6 +48,25 @@ function FOLDS(mock: boolean): [string, React.ReactNode][] {
         <p className="mt-2">Who it’s for: independent founders, franchise scouts, landlords, local economic-development teams.</p>
       </div>,
     ],
+    ...(replayOnly
+      ? []
+      : ([
+          [
+            "Checking one business",
+            <div key="one">
+              <p>
+                Already know what you want to open? Type it under the question ({mock ? "“record store”, “bubble tea”" : "“yoga studio”, “ramen shop”, “瑜伽”"}) and the agent
+                checks only that: which neighbourhoods are short of it compared with their taste twins.
+              </p>
+              <p className="mt-2">
+                {mock
+                  ? "The sample data has 8 business types. With live Qloo data the list holds " + CATALOG.length + " types."
+                  : `The list holds ${CATALOG.length} business types, kept because Qloo lists at least 5 of each in at least two of the three cities (counted ${COVERAGE_DATE}).`}{" "}
+                Anything else is matched to a place category with Qloo’s tag search first, and the log shows what it was matched to.
+              </p>
+            </div>,
+          ],
+        ] as [string, React.ReactNode][])),
     [
       "Six scores and the confidence",
       <div key="scores">
@@ -142,7 +162,7 @@ export function HowItWorks({ modes }: { modes: Modes }) {
         </ol>
 
         <div className="mt-8 grid gap-x-10 gap-y-3 lg:grid-cols-2">
-          {FOLDS(modes.qlooMode === "mock").map(([title, body]) => (
+          {FOLDS(modes.qlooMode === "mock", !!modes.forceReplay).map(([title, body]) => (
             <details key={title} className="border-t border-line pt-3">
               <summary className="cursor-pointer font-semibold hover:text-accent">{title}</summary>
               <div className="mt-2 max-w-[68ch] text-[14px] text-muted">{body}</div>

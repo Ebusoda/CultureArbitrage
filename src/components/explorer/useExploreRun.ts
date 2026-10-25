@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
-import type { AgentEvent, Focus, Modes, OpportunityCard, Phase, TwinTaste } from "@/lib/agent/types";
+import type { AgentEvent, AskedTarget, Focus, Modes, OpportunityCard, Phase, Target, TwinTaste } from "@/lib/agent/types";
 import type { QlooCallLog } from "@/lib/qloo/types";
 
 export type Status = "idle" | "connecting" | "running" | "done" | "error";
@@ -73,6 +73,20 @@ export interface Summary {
   stopped?: { reason: "budget" | "time"; unscored: number };
 }
 
+// The business type a run checked, as matched to a Qloo tag (from its "target" event).
+export interface Matched {
+  target: Target;
+  coverage?: Record<string, number>;
+  coverageDate?: string;
+  calls: number[];
+}
+
+// Same business type? null is a scan.
+export function sameTarget(a: AskedTarget | null, b: AskedTarget | null): boolean {
+  if (!a || !b) return a === b;
+  return a.key ? a.key === b.key : !b.key && (a.query ?? a.label) === (b.query ?? b.label);
+}
+
 export interface RunState {
   status: Status;
   // The city and focus the results on screen belong to. Before the first run they follow the picker.
@@ -99,11 +113,23 @@ export interface RunState {
   logOpen: boolean;
   // Set while a recording is on screen instead of a live run.
   replay: Replay | null;
+  // Checking one business type instead of scanning: the picker's choice, and what the run on
+  // screen was asked. null means a scan of the focus, as before.
+  pickTarget: AskedTarget | null;
+  askedTarget: AskedTarget | null;
+  // What the run on screen really checks, from its start event: null for a scan, and for a
+  // recording (recordings are scans), so the page can say a recording answers another question.
+  runTarget: AskedTarget | null;
+  // The business type matched to a Qloo tag, or why it could not be.
+  matched: Matched | null;
+  unmatched: { query: string; reason: string; calls: number[] } | null;
 }
 
 export type Action =
-  | { type: "reset"; city: string; focus: Focus }
-  | { type: "setQuery"; city?: string; focus?: Focus }
+  // target: the business type to check; absent or null for a scan.
+  | { type: "reset"; city: string; focus: Focus; target?: AskedTarget | null }
+  // target: undefined leaves the picker's business type as it is; null clears it.
+  | { type: "setQuery"; city?: string; focus?: Focus; target?: AskedTarget | null }
   | { type: "event"; event: AgentEvent }
   | { type: "fail"; message: string }
   // The id of a tray item; the selected one again (or null) lets the page choose again.
@@ -135,6 +161,11 @@ export function initialState(city: string, modes: Meta): RunState {
     focusCall: null,
     logOpen: false,
     replay: null,
+    pickTarget: null,
+    askedTarget: null,
+    runTarget: null,
+    matched: null,
+    unmatched: null,
   };
 }
 
@@ -167,6 +198,8 @@ function onEvent(s: RunState, e: AgentEvent): RunState {
         pickCity: s.pickCity,
         pickFocus: s.pickFocus,
         askedFocus: s.askedFocus,
+        pickTarget: s.pickTarget,
+        askedTarget: s.askedTarget,
         logOpen: s.logOpen,
         replay: { recordedAt: e.recordedAt, reason: e.reason },
       };
@@ -176,6 +209,7 @@ function onEvent(s: RunState, e: AgentEvent): RunState {
         ...s,
         status: "running",
         focus: e.focus,
+        runTarget: e.target ?? null,
         meta: { qlooMode: e.qlooMode, llmMode: e.llmMode, budget: e.budget, model: e.model, ...(s.meta.forceReplay ? { forceReplay: true } : {}) },
       };
     case "mode":
@@ -262,6 +296,13 @@ function onEvent(s: RunState, e: AgentEvent): RunState {
     }
     case "error":
       return { ...s, status: "error", error: e.message };
+    case "target":
+      return e.status === "matched"
+        ? { ...s, matched: { target: e.target, coverage: e.coverage, coverageDate: e.coverageDate, calls: e.calls }, unmatched: null }
+        : { ...s, matched: null, unmatched: { query: e.query, reason: e.reason, calls: e.calls } };
+    default:
+      // An event this page does not know (a newer server): nothing to show for it.
+      return s;
   }
 }
 
@@ -275,13 +316,16 @@ export function reducer(s: RunState, a: Action): RunState {
         focus: a.focus,
         pickFocus: a.focus,
         askedFocus: a.focus,
+        pickTarget: a.target ?? null,
+        askedTarget: a.target ?? null,
         logOpen: s.logOpen,
       };
     case "setQuery": {
       const pickCity = a.city ?? s.pickCity;
       const pickFocus = a.focus ?? s.pickFocus;
+      const pickTarget = a.target === undefined ? s.pickTarget : a.target;
       // Results on screen keep the city and focus they were found for.
-      return s.status === "idle" ? { ...s, pickCity, pickFocus, city: pickCity, focus: pickFocus } : { ...s, pickCity, pickFocus };
+      return s.status === "idle" ? { ...s, pickCity, pickFocus, pickTarget, city: pickCity, focus: pickFocus } : { ...s, pickCity, pickFocus, pickTarget };
     }
     case "event":
       return onEvent(s, a.event);
@@ -304,11 +348,12 @@ export function useExploreRun(cities: string[], modes: Modes) {
 
   useEffect(() => () => abort.current?.abort(), []);
 
-  const run = useCallback(async (city: string, focus: Focus) => {
+  // target: check one business type instead of scanning the focus (null or absent: a scan).
+  const run = useCallback(async (city: string, focus: Focus, target: AskedTarget | null = null) => {
     abort.current?.abort();
     const ac = new AbortController();
     abort.current = ac;
-    dispatch({ type: "reset", city, focus });
+    dispatch({ type: "reset", city, focus, target });
     let finished = false;
     let malformed = false;
     const handle = (line: string) => {
@@ -327,7 +372,8 @@ export function useExploreRun(cities: string[], modes: Modes) {
       const res = await fetch("/api/explore", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ city, focus }),
+        // A scan sends exactly what it always did.
+        body: JSON.stringify({ city, focus, ...(target?.key ? { category: target.key } : target?.query ? { query: target.query } : {}) }),
         signal: ac.signal,
       });
       if (!res.ok || !res.body) {
@@ -358,6 +404,7 @@ export function useExploreRun(cities: string[], modes: Modes) {
       run,
       setCity: (city: string) => dispatch({ type: "setQuery", city }),
       setFocus: (focus: Focus) => dispatch({ type: "setQuery", focus }),
+      setTarget: (target: AskedTarget | null) => dispatch({ type: "setQuery", target }),
       select: (id: string | null) => dispatch({ type: "select", id }),
       focusCall: (n: number | null) => dispatch({ type: "focusCall", n }),
       toggleLog: () => dispatch({ type: "toggleLog" }),

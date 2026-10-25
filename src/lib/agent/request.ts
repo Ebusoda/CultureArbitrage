@@ -1,4 +1,5 @@
 import { CITIES, canonicalCity } from "../cities";
+import { catalogEntry } from "./catalog";
 import type { Focus } from "./types";
 
 // Validation for POST /api/explore, kept out of route.ts because Next.js only
@@ -69,8 +70,23 @@ export function checkExploreHeaders(headers: Headers, production = process.env.N
   return { status: 403, error: "Explorations can only be started from this site." };
 }
 
+// Longest free-text business type accepted ("yoga studio", "猫カフェ").
+export const MAX_QUERY_CHARS = 60;
+
+// Free text as typed, made safe to log and send on: control characters dropped, spacing
+// collapsed. Empty when nothing is left.
+export function cleanQuery(raw: string): string {
+  return raw
+    .normalize("NFKC")
+    .replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u2028-\u202e\u2060-\u206f\ufeff]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 // Checks the request body. Returns the cleaned request, or an error response.
-export function parseExploreBody(text: string): { city: string; focus: Focus } | { status: number; error: string } {
+// category (a catalog key) or query (free text) asks to check one business type; a body
+// without them is the scan it always was, answered exactly as before.
+export function parseExploreBody(text: string): { city: string; focus: Focus; category?: string; query?: string } | { status: number; error: string } {
   if (new TextEncoder().encode(text).length > MAX_BODY_BYTES) return TOO_LARGE;
   let body: unknown;
   try {
@@ -84,5 +100,22 @@ export function parseExploreBody(text: string): { city: string; focus: Focus } |
   if (!city) return { status: 400, error: `city must be one of ${CITIES.join(", ")}.` };
   const rawFocus = b.focus === undefined || b.focus === null || b.focus === "" ? "all" : b.focus;
   if (!FOCUSES.includes(rawFocus as Focus)) return { status: 400, error: `focus must be one of ${FOCUSES.join(", ")}.` };
-  return { city, focus: rawFocus as Focus };
+  const target = parseTarget(b.category, b.query);
+  if ("error" in target) return target;
+  return { city, focus: rawFocus as Focus, ...target };
+}
+
+// The optional business type. Absent, null or "" means none.
+function parseTarget(category: unknown, query: unknown): { category?: string; query?: string } | { status: number; error: string } {
+  const none = (v: unknown) => v === undefined || v === null || v === "";
+  if (!none(category)) {
+    if (typeof category !== "string" || !catalogEntry(category)) return { status: 400, error: "category must be a business type from the list (see src/data/categories.json)." };
+    return { category };
+  }
+  if (none(query)) return {};
+  if (typeof query !== "string") return { status: 400, error: "query must be text, e.g. \"yoga studio\"." };
+  const q = cleanQuery(query);
+  if (!q) return {};
+  if ([...q].length > MAX_QUERY_CHARS) return { status: 400, error: `query must be at most ${MAX_QUERY_CHARS} characters.` };
+  return { query: q };
 }

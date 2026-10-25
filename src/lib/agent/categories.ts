@@ -1,5 +1,6 @@
 import { qlooMode } from "../qloo";
-import type { Focus } from "./types";
+import { catalogByTag, type CatalogEntry } from "./catalog";
+import type { ExploreRequest, Focus } from "./types";
 
 interface Category {
   key: string;
@@ -55,6 +56,40 @@ export function categoriesFor(focus: Focus): string[] {
     .filter((id) => qlooMode() === "mock" || !id.startsWith("urn:tag:mock:"));
 }
 
+// The categories a run looks at: the one business type it checks, or the focus's scan.
+export function categoriesForRequest(req: Pick<ExploreRequest, "focus"> & { target?: ExploreRequest["target"] }): string[] {
+  return req.target ? [req.target.tag] : categoriesFor(req.focus);
+}
+
+// The tag a catalog entry is looked up by in the current Qloo mode, or null when the sample data
+// has none for it. The scan's 8 keep their QLOO_CATEGORY_TAGS override.
+export function catalogTag(e: CatalogEntry): string | null {
+  if (qlooMode() === "mock") return e.mockTag ?? null;
+  return envTags()[e.key] ?? e.tag;
+}
+
+// Tags matched through Qloo's tag search during a run, which are in neither list above:
+// tag id -> label. Labels never change for a tag, so runs can share this; kept small.
+const found = new Map<string, string>();
+const MAX_FOUND = 500;
+
+export function registerCategory(tag: string, label: string) {
+  if (CATEGORIES.some((c) => c.mockTag === tag || c.liveTag === tag) || catalogByTag(tag)) return;
+  // Matched again: move it to the newest end, so a tag a run is using is never the first evicted.
+  found.delete(tag);
+  if (found.size >= MAX_FOUND) found.delete(found.keys().next().value!);
+  found.set(tag, label);
+}
+
+// A category outside the scan's 8: from the catalog, or matched through tag search in this process.
+function otherCategory(id: string): { label: string; google: { ja: string; en: string; ko: string; type?: string; strict?: boolean } } | null {
+  const e = catalogByTag(id);
+  if (e) return { label: e.label, google: e.google };
+  const label = found.get(id);
+  // Only an English name is known: Google Maps understands it in every city.
+  return label ? { label, google: { ja: label.toLowerCase(), en: label.toLowerCase(), ko: label.toLowerCase() } } : null;
+}
+
 // The broader tag whose fans stand in for this category's when Qloo has no demographics for it (live only).
 export function audienceProxy(id: string): { tag: string; label: string } | null {
   if (qlooMode() === "mock") return null;
@@ -66,12 +101,15 @@ export function audienceProxy(id: string): { tag: string; label: string } | null
 export function googleQuery(id: string, lang: "ja" | "en" | "ko"): { textQuery: string; includedType?: string; strict?: boolean } | null {
   const env = envTags();
   const c = CATEGORIES.find((c) => c.mockTag === id || c.liveTag === id || env[c.key] === id);
-  if (!c) return null;
+  if (!c) {
+    const other = otherCategory(id);
+    return other ? { textQuery: other.google[lang], includedType: other.google.type, strict: other.google.strict } : null;
+  }
   return { textQuery: c.google[lang], includedType: c.google.type, strict: c.google.strict };
 }
 
 export function categoryLabel(id: string): string {
   const env = envTags();
   const c = CATEGORIES.find((c) => c.mockTag === id || c.liveTag === id || env[c.key] === id);
-  return c?.label ?? id;
+  return c?.label ?? otherCategory(id)?.label ?? id;
 }

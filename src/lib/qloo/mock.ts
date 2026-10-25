@@ -7,7 +7,7 @@ import {
   TASTE_TAGS,
   type MockLocality,
 } from "./mock-data";
-import { splitDisplayParams, type InsightsResponse, type QlooCallOptions, type QlooClient, type QlooEntity, type QlooParams, type TrendingResponse } from "./types";
+import { splitDisplayParams, type InsightsResponse, type QlooCallOptions, type QlooClient, type QlooEntity, type QlooParams, type TagsResponse, type TrendingResponse } from "./types";
 
 // Answers the same /v2/insights requests the live client sends, from mock-data.ts,
 // in the same response shape. Only the parameter combinations the agent uses are
@@ -73,6 +73,21 @@ export class MockQloo implements QlooClient {
     }
 
     return { results: { entities: [] } };
+  }
+
+  // Tag search over the sample categories: every word of filter.query must be in the name or id.
+  async tags(raw: QlooParams, opts?: QlooCallOptions): Promise<TagsResponse> {
+    const params = splitDisplayParams(raw).send;
+    this.attempts++;
+    opts?.onAttempt?.();
+    await new Promise((r) => setTimeout(r, this.delayMs));
+    const words = str(params["filter.query"]).toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+    const take = Number(params.take ?? 10);
+    const tags = Object.entries(CATEGORY_TAGS)
+      .filter(([id, name]) => words.length > 0 && words.every((w) => name.toLowerCase().includes(w) || id.includes(w)))
+      .slice(0, take)
+      .map(([id, name]) => ({ id, name, type: "urn:tag:mock:place" }));
+    return { results: { tags } };
   }
 
   // Trend of the category the first signal entity belongs to (mock place ids encode it).

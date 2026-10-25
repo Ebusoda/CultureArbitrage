@@ -1,4 +1,4 @@
-import type { InsightsResponse, QlooCallOptions, QlooClient, QlooParams, TrendingResponse } from "./types";
+import type { InsightsResponse, QlooCallOptions, QlooClient, QlooParams, TagsResponse, TrendingResponse } from "./types";
 
 export const DEFAULT_QLOO_URL = "https://api.qloo.com";
 export const MAX_TAKE = 50;
@@ -80,6 +80,10 @@ export class LiveQloo implements QlooClient {
 
   async trending(params: QlooParams, opts?: QlooCallOptions): Promise<TrendingResponse> {
     return this.get("/v2/trending", params, opts) as Promise<TrendingResponse>;
+  }
+
+  async tags(params: QlooParams, opts?: QlooCallOptions): Promise<TagsResponse> {
+    return this.get("/v2/tags", params, opts) as Promise<TagsResponse>;
   }
 
   private async get(path: string, params: QlooParams, call: QlooCallOptions = {}): Promise<unknown> {

@@ -100,6 +100,8 @@ interface Hooks {
   onLookup?: () => void;
   // Google Maps cross-check; absent without a key or on mock data.
   google?: GooglePlaces | null;
+  // The run checks one category: every supply page counts only it, so a capped page needs no recount.
+  single?: boolean;
 }
 
 // Live Qloo pages hold at most 50 results; the mock data has neighbourhoods with more.
@@ -442,7 +444,7 @@ export class Evidence {
     const city = this.city(rawCity);
     const hood = this.hood(rawHood, city);
     const s = await this.supply(hood, city);
-    if (this.qloo.mode !== "live" || !s.capped) return { count: s.counts[category] ?? 0, capped: s.capped };
+    if (this.qloo.mode !== "live" || !s.capped || this.hooks.single) return { count: s.counts[category] ?? 0, capped: s.capped };
     const key = `supply1:${category}:${hood}, ${city}`;
     const fresh = !this.cache.has(key);
     const one = await this.memo(key, async () => {

@@ -89,7 +89,7 @@ export function AgentLog({ state, className = "", onFocusDone, onChip }: Props) 
     >
       <div className="sticky top-0 z-10 border-b border-line bg-surface px-4 pb-3 pt-4">
         <h2 className="font-serif text-[17px] leading-tight">Agent log</h2>
-        {state.replay && <ReplayBanner replay={state.replay} className="mt-2" announce={false} focus={state.focus} askedFocus={state.askedFocus} />}
+        {state.replay && <ReplayBanner replay={state.replay} className="mt-2" announce={false} focus={state.focus} askedFocus={state.askedFocus} askedTarget={state.askedTarget} runTarget={state.runTarget} />}
         <ol className="mt-2 flex flex-wrap gap-1">
           {STEPPER.map(({ phase: p, label }) => {
             const current = p === phase && status !== "done" && status !== "idle";

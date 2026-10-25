@@ -3,7 +3,7 @@ import { CachedQloo } from "./cache";
 import { LiveQloo, QlooError } from "./live";
 import { MockQloo } from "./mock";
 import { summarize } from "./summary";
-import { splitDisplayParams, type InsightsResponse, type QlooCallLog, type QlooClient, type QlooParams, type TrendingResponse } from "./types";
+import { splitDisplayParams, type InsightsResponse, type QlooCallLog, type QlooClient, type QlooParams, type TagsResponse, type TrendingResponse } from "./types";
 
 export * from "./types";
 export { QlooError, type QlooErrorKind } from "./live";
@@ -75,7 +75,14 @@ export class BudgetedQloo {
     return this.call("/v2/trending", params, (send, o) => this.inner.trending(send, o));
   }
 
-  private async call<T extends InsightsResponse | TrendingResponse>(
+  // Tag search: counted and logged like every other call.
+  tags(params: QlooParams): Promise<TagsResponse> {
+    const inner = this.inner;
+    if (!inner.tags) return Promise.reject(new QlooError("not_found", "Qloo /v2/tags: tag search is not available"));
+    return this.call("/v2/tags", params, (send, o) => inner.tags!(send, o));
+  }
+
+  private async call<T extends InsightsResponse | TrendingResponse | TagsResponse>(
     endpoint: string,
     raw: QlooParams,
     fn: (send: QlooParams, o: { maxAttempts: number; onAttempt: () => void }) => Promise<T>,

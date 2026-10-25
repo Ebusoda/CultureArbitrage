@@ -1,4 +1,4 @@
-import type { InsightsResponse, QlooParams, TrendingResponse } from "./types";
+import type { InsightsResponse, QlooParams, TagsResponse, TrendingResponse } from "./types";
 
 const AGE_LABEL: Record<string, string> = {
   "24_and_younger": "≤24",
@@ -18,7 +18,17 @@ function withAffinity(name: string, affinity: number | undefined): string {
 const places = (n: number) => `${n} ${n === 1 ? "place" : "places"}`;
 
 // One readable line per Qloo response, shown under the call in the agent log.
-export function summarize(endpoint: string, params: QlooParams, res: InsightsResponse | TrendingResponse): string {
+export function summarize(endpoint: string, params: QlooParams, res: InsightsResponse | TrendingResponse | TagsResponse): string {
+  // Tag search: the tags it found, by name.
+  if (endpoint === "/v2/tags") {
+    const found = ((res as TagsResponse)?.results?.tags ?? []).filter((t) => t && typeof t.name === "string");
+    if (!found.length) return "no tags found";
+    return found
+      .slice(0, 4)
+      .map((t) => t.name)
+      .join(" · ") + (found.length > 4 ? ` (+${found.length - 4} more)` : "");
+  }
+
   const r = (res?.results ?? {}) as InsightsResponse["results"] & TrendingResponse["results"];
 
   if (endpoint === "/v2/trending") {

@@ -64,6 +64,13 @@ export interface TrendingResponse {
   };
 }
 
+// /v2/tags (tag search): unlike insights' tags, each tag carries "id" and its tag type.
+export interface TagsResponse {
+  results: {
+    tags?: { id: string; name: string; type?: string; popularity?: number }[];
+  };
+}
+
 // One logged API call, shown live in the UI as evidence.
 export interface QlooCallLog {
   // 1-based call number in this run, shown as "Q7" and cited on cards.
@@ -92,6 +99,9 @@ export interface QlooClient {
   readonly cacheHits?: number;
   insights(params: QlooParams, opts?: QlooCallOptions): Promise<InsightsResponse>;
   trending(params: QlooParams, opts?: QlooCallOptions): Promise<TrendingResponse>;
+  // Tag search, used only to match a typed business type to a Qloo tag. Optional so clients
+  // made for tests before it existed still fit.
+  tags?(params: QlooParams, opts?: QlooCallOptions): Promise<TagsResponse>;
 }
 
 // Params whose key starts with "_" are display-only (e.g. "_where"): they never reach Qloo,

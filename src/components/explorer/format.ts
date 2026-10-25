@@ -1,4 +1,7 @@
+import { businessName } from "@/lib/agent/catalog";
 import { isFading as fadingDurability } from "@/lib/agent/rules";
+
+export { businessName };
 import type { Focus, OpportunityCard, Phase } from "@/lib/agent/types";
 import { kmBetween } from "@/lib/cities";
 import type { QlooCallLog } from "@/lib/qloo/types";
@@ -87,6 +90,15 @@ export function focusName(focus: Focus) {
   return focus === "all" ? "all categories" : focusLabel(focus);
 }
 
+// Longest free-text business type the search box sends (the server's MAX_QUERY_CHARS).
+export const MAX_QUERY = 60;
+
+// "a yoga studio", "an izakaya".
+export function withArticle(label: string) {
+  const name = businessName(label);
+  return `${/^[aeiou]/i.test(name) ? "an" : "a"} ${name}`;
+}
+
 const KIND: Record<string, string> = {
   "urn:entity:locality": "neighbourhoods",
   "urn:entity:place": "places",
@@ -99,6 +111,8 @@ const tagName = (id: string) => (id.split(":").pop() ?? id).replace(/_/g, " ");
 // "Q7  places in Shimokitazawa, Tokyo" style first line of a call row.
 export function callLine(call: QlooCallLog): string {
   const p = call.params;
+  // Tag search: the words it looked for.
+  if (call.endpoint === "/v2/tags") return ["tag search", p["filter.query"] !== undefined && `“${p["filter.query"]}”`, call.mock && "· mock"].filter(Boolean).join(" ");
   const kind = call.endpoint.includes("trending") ? "trend" : (KIND[String(p["filter.type"])] ?? String(p["filter.type"] ?? call.endpoint));
   // A call that searches around a point says where in call.where (or the display-only "_where").
   const named = call.where ?? (p._where !== undefined && p._where !== "" ? String(p._where) : undefined);

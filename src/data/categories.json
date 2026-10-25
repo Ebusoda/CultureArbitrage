@@ -1,0 +1,4403 @@
+{
+ "measuredAt": "2026-10-25",
+ "source": "Live Qloo /v2/insights place counts per city (filter.location.query Tokyo, New York City, Seoul; take 50), see docs in src/lib/agent/catalog.ts",
+ "entries": [
+  {
+   "key": "amusement_center",
+   "label": "Amusement center",
+   "group": "lifestyle",
+   "tag": "urn:tag:genre:place:amusement_center",
+   "coverage": {
+    "Tokyo": 35,
+    "New York": 29,
+    "Seoul": 4
+   },
+   "google": {
+    "ja": "アミューズメント施設",
+    "en": "amusement center",
+    "ko": "오락시설"
+   },
+   "aliases": [
+    "amusement centre",
+    "family entertainment center",
+    "entertainment center",
+    "游乐中心",
+    "娱乐中心",
+    "アミューズメント",
+    "놀이시설",
+    "실내 놀이시설"
+   ]
+  },
+  {
+   "key": "argentinian",
+   "label": "Argentinian restaurant",
+   "group": "dining",
+   "tag": "urn:tag:cuisine:qloo:argentinian",
+   "coverage": {
+    "Tokyo": 6,
+    "New York": 35,
+    "Seoul": 1
+   },
+   "google": {
+    "ja": "アルゼンチン料理",
+    "en": "argentinian restaurant",
+    "ko": "아르헨티나 음식"
+   },
+   "aliases": [
+    "argentine restaurant",
+    "parrilla",
+    "asado",
+    "阿根廷菜",
+    "阿根廷餐厅",
+    "アルゼンチンステーキ"
+   ]
+  },
+  {
+   "key": "art_cafe",
+   "label": "Art cafe",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:art_cafe",
+   "coverage": {
+    "Tokyo": 13,
+    "New York": 8,
+    "Seoul": 5
+   },
+   "google": {
+    "ja": "アートカフェ",
+    "en": "art cafe",
+    "ko": "아트 카페"
+   },
+   "aliases": [
+    "gallery cafe",
+    "art café",
+    "艺术咖啡馆",
+    "ギャラリーカフェ",
+    "갤러리 카페"
+   ]
+  },
+  {
+   "key": "art_gallery",
+   "label": "Art gallery",
+   "group": "lifestyle",
+   "tag": "urn:tag:genre:place:art_gallery",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 50,
+    "Seoul": 22
+   },
+   "google": {
+    "ja": "ギャラリー",
+    "en": "art gallery",
+    "ko": "갤러리"
+   },
+   "aliases": [
+    "gallery",
+    "art galleries",
+    "contemporary art",
+    "画廊",
+    "艺廊",
+    "艺术画廊",
+    "アートギャラリー",
+    "화랑",
+    "아트 갤러리"
+   ]
+  },
+  {
+   "key": "asian_grocery_store",
+   "label": "Asian grocery store",
+   "group": "retail",
+   "tag": "urn:tag:genre:place:asian_grocery_store",
+   "coverage": {
+    "Tokyo": 46,
+    "New York": 50,
+    "Seoul": 1
+   },
+   "google": {
+    "ja": "アジア食材店",
+    "en": "asian grocery",
+    "ko": "아시안 마트"
+   },
+   "aliases": [
+    "asian market",
+    "asian supermarket",
+    "亚洲超市",
+    "亚洲食品店",
+    "アジア食材",
+    "아시아 식료품점"
+   ]
+  },
+  {
+   "key": "bag_shop",
+   "label": "Bag shop",
+   "group": "retail",
+   "tag": "urn:tag:genre:place:bag_shop",
+   "coverage": {
+    "Tokyo": 31,
+    "New York": 7,
+    "Seoul": 14
+   },
+   "google": {
+    "ja": "バッグ専門店",
+    "en": "bag store",
+    "ko": "가방 가게"
+   },
+   "aliases": [
+    "handbag store",
+    "purse shop",
+    "backpack store",
+    "bags",
+    "包店",
+    "箱包店",
+    "かばん屋",
+    "가방 매장"
+   ]
+  },
+  {
+   "key": "bagel_shop",
+   "label": "Bagel shop",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:bagel_shop",
+   "mockTag": "urn:tag:mock:place:bagel_shop",
+   "coverage": {
+    "Tokyo": 15,
+    "New York": 50,
+    "Seoul": 13
+   },
+   "google": {
+    "ja": "ベーグル",
+    "en": "bagel shop",
+    "ko": "베이글",
+    "type": "bagel_shop",
+    "strict": true
+   },
+   "aliases": [
+    "bagels",
+    "bagel",
+    "贝果",
+    "贝果店",
+    "ベーグル専門店",
+    "베이글 맛집"
+   ]
+  },
+  {
+   "key": "bakery",
+   "label": "Bakery",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:bakery",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 50,
+    "Seoul": 50
+   },
+   "google": {
+    "ja": "パン屋",
+    "en": "bakery",
+    "ko": "빵집"
+   },
+   "aliases": [
+    "bakeries",
+    "bread",
+    "boulangerie",
+    "面包店",
+    "烘焙店",
+    "ベーカリー",
+    "베이커리"
+   ]
+  },
+  {
+   "key": "barbecue",
+   "label": "Barbecue restaurant",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:barbecue",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 50,
+    "Seoul": 50
+   },
+   "google": {
+    "ja": "バーベキューレストラン",
+    "en": "bbq",
+    "ko": "바베큐"
+   },
+   "aliases": [
+    "barbecue",
+    "bbq joint",
+    "smokehouse",
+    "烧烤",
+    "美式烧烤",
+    "バーベキュー",
+    "바비큐"
+   ]
+  },
+  {
+   "key": "barber_shop",
+   "label": "Barber shop",
+   "group": "lifestyle",
+   "tag": "urn:tag:genre:place:barber_shop",
+   "coverage": {
+    "Tokyo": 7,
+    "New York": 50,
+    "Seoul": 1
+   },
+   "google": {
+    "ja": "理容室",
+    "en": "barber shop",
+    "ko": "바버샵"
+   },
+   "aliases": [
+    "barber",
+    "barbershop",
+    "men's haircut",
+    "理发店",
+    "床屋",
+    "バーバー",
+    "이발소"
+   ]
+  },
+  {
+   "key": "beauty_salon",
+   "label": "Beauty salon",
+   "group": "lifestyle",
+   "tag": "urn:tag:genre:place:beauty_salon",
+   "coverage": {
+    "Tokyo": 9,
+    "New York": 50,
+    "Seoul": 9
+   },
+   "google": {
+    "ja": "エステサロン",
+    "en": "beauty salon",
+    "ko": "뷰티샵"
+   },
+   "aliases": [
+    "beauty parlor",
+    "esthetician",
+    "facial",
+    "skin care salon",
+    "美容店",
+    "皮肤管理",
+    "美容サロン",
+    "피부관리실",
+    "에스테틱"
+   ]
+  },
+  {
+   "key": "beer_garden",
+   "label": "Beer garden",
+   "group": "nightlife",
+   "tag": "urn:tag:genre:place:restaurant:beer_garden",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 50,
+    "Seoul": 4
+   },
+   "google": {
+    "ja": "ビアガーデン",
+    "en": "beer garden",
+    "ko": "비어가든"
+   },
+   "aliases": [
+    "beer gardens",
+    "biergarten",
+    "outdoor beer",
+    "啤酒花园",
+    "露天啤酒",
+    "야외 맥주"
+   ]
+  },
+  {
+   "key": "beer_hall",
+   "label": "Beer hall",
+   "group": "nightlife",
+   "tag": "urn:tag:category:place:beer_hall",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 50,
+    "Seoul": 5
+   },
+   "google": {
+    "ja": "ビアホール",
+    "en": "beer hall",
+    "ko": "비어홀"
+   },
+   "aliases": [
+    "beer halls",
+    "german beer hall",
+    "bierhalle",
+    "啤酒大厅",
+    "啤酒馆",
+    "호프집"
+   ]
+  },
+  {
+   "key": "bistro",
+   "label": "Bistro",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:bistro",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 50,
+    "Seoul": 19
+   },
+   "google": {
+    "ja": "ビストロ",
+    "en": "bistro",
+    "ko": "비스트로"
+   },
+   "aliases": [
+    "bistros",
+    "brasserie",
+    "小酒馆",
+    "法式小馆",
+    "ビストロ料理"
+   ]
+  },
+  {
+   "key": "board_game_club",
+   "label": "Board game cafe",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:board_game_club",
+   "coverage": {
+    "Tokyo": 5,
+    "New York": 7,
+    "Seoul": 3
+   },
+   "google": {
+    "ja": "ボードゲームカフェ",
+    "en": "board game cafe",
+    "ko": "보드게임 카페"
+   },
+   "aliases": [
+    "board games",
+    "tabletop games",
+    "game cafe",
+    "桌游吧",
+    "桌游",
+    "ボドゲ",
+    "보드게임방"
+   ]
+  },
+  {
+   "key": "book_store",
+   "label": "Bookstore",
+   "group": "retail",
+   "tag": "urn:tag:genre:place:book_store",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 50,
+    "Seoul": 50
+   },
+   "google": {
+    "ja": "本屋",
+    "en": "bookstore",
+    "ko": "서점"
+   },
+   "aliases": [
+    "book shop",
+    "books",
+    "书店",
+    "書店",
+    "책방"
+   ]
+  },
+  {
+   "key": "boutique",
+   "label": "Boutique",
+   "group": "retail",
+   "tag": "urn:tag:genre:place:boutique",
+   "coverage": {
+    "Tokyo": 6,
+    "New York": 45,
+    "Seoul": 3
+   },
+   "google": {
+    "ja": "セレクトショップ",
+    "en": "boutique",
+    "ko": "편집숍"
+   },
+   "aliases": [
+    "clothing boutique",
+    "fashion boutique",
+    "精品店",
+    "买手店",
+    "ブティック",
+    "부티크"
+   ]
+  },
+  {
+   "key": "bowling_alley",
+   "label": "Bowling alley",
+   "group": "lifestyle",
+   "tag": "urn:tag:genre:place:bowling_alley",
+   "coverage": {
+    "Tokyo": 15,
+    "New York": 17,
+    "Seoul": 3
+   },
+   "google": {
+    "ja": "ボウリング場",
+    "en": "bowling alley",
+    "ko": "볼링장"
+   },
+   "aliases": [
+    "bowling",
+    "tenpin bowling",
+    "bowling lanes",
+    "保龄球馆",
+    "保龄球",
+    "ボウリング",
+    "볼링"
+   ]
+  },
+  {
+   "key": "brazilian",
+   "label": "Brazilian restaurant",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:brazilian",
+   "coverage": {
+    "Tokyo": 31,
+    "New York": 37,
+    "Seoul": 8
+   },
+   "google": {
+    "ja": "ブラジル料理",
+    "en": "brazilian restaurant",
+    "ko": "브라질 음식"
+   },
+   "aliases": [
+    "churrascaria",
+    "brazilian steakhouse",
+    "巴西菜",
+    "巴西烤肉",
+    "シュラスコ",
+    "슈하스코"
+   ]
+  },
+  {
+   "key": "brewery",
+   "label": "Brewery",
+   "group": "nightlife",
+   "tag": "urn:tag:genre:place:brewery",
+   "coverage": {
+    "Tokyo": 11,
+    "New York": 31,
+    "Seoul": 4
+   },
+   "google": {
+    "ja": "ブルワリー",
+    "en": "brewery",
+    "ko": "양조장"
+   },
+   "aliases": [
+    "breweries",
+    "craft brewery",
+    "craft beer",
+    "taproom",
+    "啤酒厂",
+    "精酿",
+    "醸造所",
+    "クラフトビール",
+    "브루어리",
+    "수제맥주"
+   ]
+  },
+  {
+   "key": "brewpub",
+   "label": "Brewpub",
+   "group": "nightlife",
+   "tag": "urn:tag:genre:place:restaurant:brewpub",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 19,
+    "Seoul": 11
+   },
+   "google": {
+    "ja": "ブルーパブ",
+    "en": "brewpub",
+    "ko": "브루펍"
+   },
+   "aliases": [
+    "brewpubs",
+    "brew pub",
+    "house-brewed beer",
+    "精酿酒吧",
+    "自酿啤酒餐厅",
+    "수제맥주 펍"
+   ]
+  },
+  {
+   "key": "brunch",
+   "label": "Brunch spot",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:brunch",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 50,
+    "Seoul": 50
+   },
+   "google": {
+    "ja": "ブランチ",
+    "en": "brunch",
+    "ko": "브런치"
+   },
+   "aliases": [
+    "brunch spot",
+    "breakfast",
+    "早午餐",
+    "モーニング",
+    "브런치 카페"
+   ]
+  },
+  {
+   "key": "bubble_tea",
+   "label": "Bubble tea",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:bubble_tea_store",
+   "mockTag": "urn:tag:mock:place:bubble_tea",
+   "coverage": {
+    "Tokyo": 34,
+    "New York": 50,
+    "Seoul": 13
+   },
+   "google": {
+    "ja": "タピオカ",
+    "en": "bubble tea",
+    "ko": "버블티"
+   },
+   "aliases": [
+    "boba",
+    "boba tea",
+    "milk tea",
+    "pearl milk tea",
+    "奶茶",
+    "珍珠奶茶",
+    "タピオカミルクティー",
+    "타피오카"
+   ]
+  },
+  {
+   "key": "hamburger",
+   "label": "Burger joint",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:hamburger",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 50,
+    "Seoul": 50
+   },
+   "google": {
+    "ja": "ハンバーガー",
+    "en": "burgers",
+    "ko": "햄버거"
+   },
+   "aliases": [
+    "burger",
+    "hamburger",
+    "burger joint",
+    "汉堡",
+    "汉堡店",
+    "버거",
+    "수제버거"
+   ]
+  },
+  {
+   "key": "butcher_shop",
+   "label": "Butcher shop",
+   "group": "retail",
+   "tag": "urn:tag:category:place:butcher_shop",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 50,
+    "Seoul": 9
+   },
+   "google": {
+    "ja": "精肉店",
+    "en": "butcher",
+    "ko": "정육점"
+   },
+   "aliases": [
+    "butcher shop",
+    "meat shop",
+    "butchers",
+    "肉店",
+    "肉铺",
+    "肉屋",
+    "식육점"
+   ]
+  },
+  {
+   "key": "cajun",
+   "label": "Cajun restaurant",
+   "group": "dining",
+   "tag": "urn:tag:cuisine:qloo:cajun",
+   "coverage": {
+    "Tokyo": 13,
+    "New York": 47,
+    "Seoul": 1
+   },
+   "google": {
+    "ja": "ケイジャン料理",
+    "en": "cajun restaurant",
+    "ko": "케이준 음식"
+   },
+   "aliases": [
+    "cajun",
+    "creole",
+    "seafood boil",
+    "卡津菜",
+    "路易斯安那菜",
+    "크리올"
+   ]
+  },
+  {
+   "key": "camera_store",
+   "label": "Camera store",
+   "group": "retail",
+   "tag": "urn:tag:genre:place:camera_store",
+   "coverage": {
+    "Tokyo": 22,
+    "New York": 7,
+    "Seoul": 1
+   },
+   "google": {
+    "ja": "カメラ店",
+    "en": "camera store",
+    "ko": "카메라 매장"
+   },
+   "aliases": [
+    "camera shop",
+    "photography store",
+    "相机店",
+    "摄影器材店",
+    "カメラ屋",
+    "중고 카메라"
+   ]
+  },
+  {
+   "key": "candy_store",
+   "label": "Candy store",
+   "group": "retail",
+   "tag": "urn:tag:genre:place:candy_store",
+   "coverage": {
+    "Tokyo": 19,
+    "New York": 50,
+    "Seoul": 0
+   },
+   "google": {
+    "ja": "駄菓子屋",
+    "en": "candy store",
+    "ko": "사탕 가게"
+   },
+   "aliases": [
+    "candy shop",
+    "sweet shop",
+    "candies",
+    "糖果店",
+    "糖果铺",
+    "キャンディショップ",
+    "캔디샵"
+   ]
+  },
+  {
+   "key": "cheese_shop",
+   "label": "Cheese shop",
+   "group": "retail",
+   "tag": "urn:tag:category:place:cheese_shop",
+   "coverage": {
+    "Tokyo": 45,
+    "New York": 50,
+    "Seoul": 1
+   },
+   "google": {
+    "ja": "チーズ専門店",
+    "en": "cheese shop",
+    "ko": "치즈 가게"
+   },
+   "aliases": [
+    "cheesemonger",
+    "cheese store",
+    "奶酪店",
+    "芝士店",
+    "チーズ屋",
+    "치즈 전문점"
+   ]
+  },
+  {
+   "key": "chinese_noodle",
+   "label": "Chinese noodle shop",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:chinese_noodle",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 50,
+    "Seoul": 20
+   },
+   "google": {
+    "ja": "中国料理 麺",
+    "en": "chinese noodles",
+    "ko": "중국 국수"
+   },
+   "aliases": [
+    "chinese noodle shop",
+    "hand pulled noodles",
+    "lanzhou noodles",
+    "面馆",
+    "兰州拉面",
+    "牛肉面",
+    "刀削面",
+    "蘭州ラーメン",
+    "우육면",
+    "刀削麺",
+    "도삭면"
+   ]
+  },
+  {
+   "key": "chocolate_cafe",
+   "label": "Chocolate cafe",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:chocolate_cafe",
+   "coverage": {
+    "Tokyo": 17,
+    "New York": 14,
+    "Seoul": 0
+   },
+   "google": {
+    "ja": "チョコレートカフェ",
+    "en": "chocolate cafe",
+    "ko": "초콜릿 카페"
+   },
+   "aliases": [
+    "chocolate café",
+    "hot chocolate",
+    "cocoa cafe",
+    "巧克力咖啡馆",
+    "热巧克力",
+    "ショコラカフェ",
+    "초코 카페"
+   ]
+  },
+  {
+   "key": "chocolate_shop",
+   "label": "Chocolate shop",
+   "group": "retail",
+   "tag": "urn:tag:genre:place:chocolate_shop",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 50,
+    "Seoul": 4
+   },
+   "google": {
+    "ja": "チョコレート専門店",
+    "en": "chocolate shop",
+    "ko": "초콜릿 가게"
+   },
+   "aliases": [
+    "chocolatier",
+    "chocolates",
+    "巧克力店",
+    "ショコラトリー",
+    "쇼콜라티에"
+   ]
+  },
+  {
+   "key": "cocktail_bar",
+   "label": "Cocktail bar",
+   "group": "nightlife",
+   "tag": "urn:tag:genre:place:restaurant:cocktail_bar",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 50,
+    "Seoul": 50
+   },
+   "google": {
+    "ja": "カクテルバー",
+    "en": "cocktail bar",
+    "ko": "칵테일 바"
+   },
+   "aliases": [
+    "cocktail bars",
+    "cocktails",
+    "mixology",
+    "speakeasy",
+    "鸡尾酒吧",
+    "鸡尾酒",
+    "칵테일"
+   ]
+  },
+  {
+   "key": "coffee_store",
+   "label": "Coffee bean store",
+   "group": "retail",
+   "tag": "urn:tag:genre:place:coffee_store",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 50,
+    "Seoul": 4
+   },
+   "google": {
+    "ja": "コーヒー豆専門店",
+    "en": "coffee roaster",
+    "ko": "원두 판매점"
+   },
+   "aliases": [
+    "coffee roaster",
+    "coffee bean shop",
+    "roastery",
+    "咖啡豆店",
+    "咖啡烘焙店",
+    "珈琲豆",
+    "로스터리",
+    "coffee beans"
+   ]
+  },
+  {
+   "key": "coffee_shop",
+   "label": "Coffee shop",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:coffee_shop",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 50,
+    "Seoul": 50
+   },
+   "google": {
+    "ja": "カフェ",
+    "en": "coffee shop",
+    "ko": "카페"
+   },
+   "aliases": [
+    "cafe",
+    "coffee",
+    "café",
+    "咖啡店",
+    "咖啡馆",
+    "喫茶店",
+    "コーヒー",
+    "커피숍",
+    "咖啡",
+    "커피"
+   ]
+  },
+  {
+   "key": "comic_store",
+   "label": "Comic and manga store",
+   "group": "retail",
+   "tag": "urn:tag:category:place:comic_book_store",
+   "mockTag": "urn:tag:mock:place:comic_store",
+   "coverage": {
+    "Tokyo": 37,
+    "New York": 17,
+    "Seoul": 3
+   },
+   "google": {
+    "ja": "漫画 専門店",
+    "en": "comic book store",
+    "ko": "만화 서점"
+   },
+   "aliases": [
+    "comic shop",
+    "comics",
+    "manga store",
+    "漫画店",
+    "动漫店",
+    "コミック",
+    "まんが",
+    "만화책",
+    "漫画専門店"
+   ]
+  },
+  {
+   "key": "confectionery_store",
+   "label": "Confectionery store",
+   "group": "retail",
+   "tag": "urn:tag:category:place:confectionery_store",
+   "coverage": {
+    "Tokyo": 48,
+    "New York": 12,
+    "Seoul": 0
+   },
+   "google": {
+    "ja": "菓子店",
+    "en": "confectionery",
+    "ko": "과자 가게"
+   },
+   "aliases": [
+    "confectioner",
+    "confectionery shop",
+    "confectionary",
+    "糖果点心店",
+    "零食店",
+    "お菓子屋",
+    "お菓子",
+    "과자 할인점"
+   ]
+  },
+  {
+   "key": "cosmetics_store",
+   "label": "Cosmetics store",
+   "group": "retail",
+   "tag": "urn:tag:genre:place:cosmetics_store",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 50,
+    "Seoul": 19
+   },
+   "google": {
+    "ja": "コスメショップ",
+    "en": "cosmetics store",
+    "ko": "화장품 가게"
+   },
+   "aliases": [
+    "beauty store",
+    "makeup store",
+    "beauty supply",
+    "化妆品店",
+    "美妆店",
+    "化粧品店",
+    "뷰티 스토어"
+   ]
+  },
+  {
+   "key": "coworking_space",
+   "label": "Coworking space",
+   "group": "lifestyle",
+   "tag": "urn:tag:category:place:coworking_space",
+   "coverage": {
+    "Tokyo": 17,
+    "New York": 16,
+    "Seoul": 2
+   },
+   "google": {
+    "ja": "コワーキングスペース",
+    "en": "coworking space",
+    "ko": "코워킹 스페이스"
+   },
+   "aliases": [
+    "co-working",
+    "shared office",
+    "hot desk",
+    "联合办公",
+    "共享办公",
+    "シェアオフィス",
+    "공유오피스"
+   ]
+  },
+  {
+   "key": "craft_store",
+   "label": "Craft store",
+   "group": "retail",
+   "tag": "urn:tag:genre:place:craft_store",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 36,
+    "Seoul": 1
+   },
+   "google": {
+    "ja": "手芸店",
+    "en": "craft store",
+    "ko": "공예용품점"
+   },
+   "aliases": [
+    "arts and crafts",
+    "craft supplies",
+    "art supply store",
+    "手工艺品店",
+    "手工材料店",
+    "クラフトショップ",
+    "공예 재료"
+   ]
+  },
+  {
+   "key": "creperie",
+   "label": "Creperie",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:creperie",
+   "coverage": {
+    "Tokyo": 47,
+    "New York": 44,
+    "Seoul": 0
+   },
+   "google": {
+    "ja": "クレープ",
+    "en": "crepes",
+    "ko": "크레페"
+   },
+   "aliases": [
+    "crêperie",
+    "crepe",
+    "galette",
+    "可丽饼",
+    "法式薄饼",
+    "クレープ屋",
+    "크레이프"
+   ]
+  },
+  {
+   "key": "cuban",
+   "label": "Cuban restaurant",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:cuban",
+   "coverage": {
+    "Tokyo": 5,
+    "New York": 50,
+    "Seoul": 1
+   },
+   "google": {
+    "ja": "キューバ料理",
+    "en": "cuban restaurant",
+    "ko": "쿠바 음식"
+   },
+   "aliases": [
+    "cuban food",
+    "cuban sandwich",
+    "古巴菜",
+    "古巴餐厅",
+    "쿠바 레스토랑"
+   ]
+  },
+  {
+   "key": "dance_club",
+   "label": "Dance club",
+   "group": "nightlife",
+   "tag": "urn:tag:genre:place:dance_club",
+   "coverage": {
+    "Tokyo": 5,
+    "New York": 38,
+    "Seoul": 4
+   },
+   "google": {
+    "ja": "ダンスクラブ",
+    "en": "dance club",
+    "ko": "댄스 클럽"
+   },
+   "aliases": [
+    "dance clubs",
+    "disco",
+    "discotheque",
+    "舞厅",
+    "迪厅",
+    "ディスコ",
+    "디스코"
+   ]
+  },
+  {
+   "key": "dance_school",
+   "label": "Dance school",
+   "group": "lifestyle",
+   "tag": "urn:tag:genre:place:dance_school",
+   "coverage": {
+    "Tokyo": 10,
+    "New York": 16,
+    "Seoul": 3
+   },
+   "google": {
+    "ja": "ダンススクール",
+    "en": "dance studio",
+    "ko": "댄스학원"
+   },
+   "aliases": [
+    "dance class",
+    "dance lessons",
+    "dance academy",
+    "舞蹈学校",
+    "舞蹈教室",
+    "ダンス教室",
+    "댄스 스튜디오"
+   ]
+  },
+  {
+   "key": "dart_bar",
+   "label": "Dart bar",
+   "group": "nightlife",
+   "tag": "urn:tag:genre:place:restaurant:dart_bar",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 5,
+    "Seoul": 1
+   },
+   "google": {
+    "ja": "ダーツバー",
+    "en": "darts bar",
+    "ko": "다트바"
+   },
+   "aliases": [
+    "dart bars",
+    "darts",
+    "darts pub",
+    "飞镖酒吧",
+    "飞镖",
+    "ダーツ",
+    "다트"
+   ]
+  },
+  {
+   "key": "day_spa",
+   "label": "Day spa",
+   "group": "lifestyle",
+   "tag": "urn:tag:genre:place:day_spa",
+   "coverage": {
+    "Tokyo": 30,
+    "New York": 31,
+    "Seoul": 1
+   },
+   "google": {
+    "ja": "スパサロン",
+    "en": "day spa",
+    "ko": "데이 스파"
+   },
+   "aliases": [
+    "day spas",
+    "spa day",
+    "facial spa",
+    "日间水疗",
+    "水疗会所",
+    "デイスパ"
+   ]
+  },
+  {
+   "key": "dessert_shop",
+   "label": "Dessert shop",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:dessert_shop",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 50,
+    "Seoul": 50
+   },
+   "google": {
+    "ja": "スイーツ",
+    "en": "dessert",
+    "ko": "디저트"
+   },
+   "aliases": [
+    "desserts",
+    "dessert shop",
+    "sweets",
+    "甜品店",
+    "甜点",
+    "デザート",
+    "디저트 카페"
+   ]
+  },
+  {
+   "key": "dim_sum",
+   "label": "Dim sum restaurant",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:dim_sum",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 50,
+    "Seoul": 21
+   },
+   "google": {
+    "ja": "飲茶",
+    "en": "dim sum",
+    "ko": "딤섬"
+   },
+   "aliases": [
+    "yum cha",
+    "cantonese brunch",
+    "点心",
+    "早茶",
+    "广式茶点",
+    "点心専門店"
+   ]
+  },
+  {
+   "key": "dog_cafe",
+   "label": "Dog cafe",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:dog_cafe",
+   "coverage": {
+    "Tokyo": 36,
+    "New York": 5,
+    "Seoul": 14
+   },
+   "google": {
+    "ja": "ドッグカフェ",
+    "en": "dog cafe",
+    "ko": "애견카페"
+   },
+   "aliases": [
+    "puppy cafe",
+    "dog friendly cafe",
+    "狗咖啡馆",
+    "狗狗咖啡",
+    "犬カフェ",
+    "강아지 카페"
+   ]
+  },
+  {
+   "key": "donut_shop",
+   "label": "Donut shop",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:donut_shop",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 50,
+    "Seoul": 19
+   },
+   "google": {
+    "ja": "ドーナツ",
+    "en": "donuts",
+    "ko": "도넛"
+   },
+   "aliases": [
+    "doughnuts",
+    "donut",
+    "doughnut shop",
+    "甜甜圈",
+    "甜甜圈店",
+    "ドーナツ屋",
+    "도너츠"
+   ]
+  },
+  {
+   "key": "dumpling",
+   "label": "Dumpling restaurant",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:dumpling",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 50,
+    "Seoul": 50
+   },
+   "google": {
+    "ja": "餃子",
+    "en": "dumplings",
+    "ko": "만두"
+   },
+   "aliases": [
+    "dumpling house",
+    "xiaolongbao",
+    "饺子",
+    "饺子馆",
+    "小笼包",
+    "ギョーザ",
+    "小籠包",
+    "만두집"
+   ]
+  },
+  {
+   "key": "electronics_store",
+   "label": "Electronics store",
+   "group": "retail",
+   "tag": "urn:tag:genre:place:electronics_store",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 50,
+    "Seoul": 12
+   },
+   "google": {
+    "ja": "家電量販店",
+    "en": "electronics store",
+    "ko": "전자제품 매장"
+   },
+   "aliases": [
+    "electronics",
+    "gadget store",
+    "电子产品店",
+    "数码店",
+    "電気屋",
+    "가전제품"
+   ]
+  },
+  {
+   "key": "espresso_bar",
+   "label": "Espresso bar",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:espresso_bar",
+   "coverage": {
+    "Tokyo": 6,
+    "New York": 50,
+    "Seoul": 2
+   },
+   "google": {
+    "ja": "エスプレッソバー",
+    "en": "espresso bar",
+    "ko": "에스프레소 바"
+   },
+   "aliases": [
+    "espresso",
+    "specialty coffee",
+    "意式咖啡",
+    "浓缩咖啡",
+    "エスプレッソ"
+   ]
+  },
+  {
+   "key": "ethiopian",
+   "label": "Ethiopian restaurant",
+   "group": "dining",
+   "tag": "urn:tag:cuisine:qloo:ethiopian",
+   "coverage": {
+    "Tokyo": 7,
+    "New York": 20,
+    "Seoul": 1
+   },
+   "google": {
+    "ja": "エチオピア料理",
+    "en": "ethiopian restaurant",
+    "ko": "에티오피아 음식"
+   },
+   "aliases": [
+    "ethiopian food",
+    "injera",
+    "埃塞俄比亚菜",
+    "埃塞俄比亚餐厅",
+    "インジェラ"
+   ]
+  },
+  {
+   "key": "filipino",
+   "label": "Filipino restaurant",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:filipino",
+   "coverage": {
+    "Tokyo": 6,
+    "New York": 24,
+    "Seoul": 0
+   },
+   "google": {
+    "ja": "フィリピン料理",
+    "en": "filipino restaurant",
+    "ko": "필리핀 음식"
+   },
+   "aliases": [
+    "filipino food",
+    "pinoy food",
+    "菲律宾菜",
+    "菲律宾餐厅",
+    "필리핀 레스토랑"
+   ]
+  },
+  {
+   "key": "fine_dining",
+   "label": "Fine dining restaurant",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:fine_dining",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 50,
+    "Seoul": 32
+   },
+   "google": {
+    "ja": "高級レストラン",
+    "en": "fine dining",
+    "ko": "파인다이닝"
+   },
+   "aliases": [
+    "tasting menu",
+    "michelin",
+    "upscale restaurant",
+    "高级餐厅",
+    "米其林",
+    "ファインダイニング",
+    "グランメゾン",
+    "미슐랭",
+    "고급 레스토랑"
+   ]
+  },
+  {
+   "key": "fish_store",
+   "label": "Fish market",
+   "group": "retail",
+   "tag": "urn:tag:category:place:fish_store",
+   "coverage": {
+    "Tokyo": 41,
+    "New York": 25,
+    "Seoul": 0
+   },
+   "google": {
+    "ja": "魚屋",
+    "en": "fish market",
+    "ko": "생선가게"
+   },
+   "aliases": [
+    "fishmonger",
+    "seafood market",
+    "fish shop",
+    "鱼店",
+    "海鲜市场",
+    "鮮魚店",
+    "수산물 가게",
+    "수산시장"
+   ]
+  },
+  {
+   "key": "florist",
+   "label": "Florist",
+   "group": "retail",
+   "tag": "urn:tag:genre:place:florist",
+   "coverage": {
+    "Tokyo": 18,
+    "New York": 50,
+    "Seoul": 3
+   },
+   "google": {
+    "ja": "花屋",
+    "en": "florist",
+    "ko": "꽃집"
+   },
+   "aliases": [
+    "flower shop",
+    "flowers",
+    "花店",
+    "鲜花店",
+    "フラワーショップ",
+    "플라워샵"
+   ]
+  },
+  {
+   "key": "french",
+   "label": "French restaurant",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:french",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 50,
+    "Seoul": 43
+   },
+   "google": {
+    "ja": "フレンチ",
+    "en": "french restaurant",
+    "ko": "프렌치"
+   },
+   "aliases": [
+    "french food",
+    "french cuisine",
+    "法国菜",
+    "法餐",
+    "フランス料理",
+    "프랑스 음식"
+   ]
+  },
+  {
+   "key": "furniture_store",
+   "label": "Furniture store",
+   "group": "retail",
+   "tag": "urn:tag:genre:place:furniture_store",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 50,
+    "Seoul": 2
+   },
+   "google": {
+    "ja": "家具店",
+    "en": "furniture store",
+    "ko": "가구점"
+   },
+   "aliases": [
+    "furniture",
+    "furniture shop",
+    "家居店",
+    "家具城",
+    "インテリアショップ",
+    "가구 매장"
+   ]
+  },
+  {
+   "key": "gastropub",
+   "label": "Gastropub",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:gastropub",
+   "coverage": {
+    "Tokyo": 22,
+    "New York": 50,
+    "Seoul": 19
+   },
+   "google": {
+    "ja": "ガストロパブ",
+    "en": "gastropub",
+    "ko": "가스트로펍"
+   },
+   "aliases": [
+    "gastro pub",
+    "gastropubs",
+    "pub food",
+    "美食酒吧",
+    "英式酒馆",
+    "美食酒馆"
+   ]
+  },
+  {
+   "key": "gay_bar",
+   "label": "Gay bar",
+   "group": "nightlife",
+   "tag": "urn:tag:category:place:gay_bar",
+   "coverage": {
+    "Tokyo": 10,
+    "New York": 47,
+    "Seoul": 4
+   },
+   "google": {
+    "ja": "ゲイバー",
+    "en": "gay bar",
+    "ko": "게이바"
+   },
+   "aliases": [
+    "gay bars",
+    "lgbtq bar",
+    "queer bar",
+    "同志酒吧",
+    "彩虹酒吧",
+    "lgbt"
+   ]
+  },
+  {
+   "key": "georgian",
+   "label": "Georgian restaurant",
+   "group": "dining",
+   "tag": "urn:tag:cuisine:qloo:georgian",
+   "coverage": {
+    "Tokyo": 8,
+    "New York": 37,
+    "Seoul": 0
+   },
+   "google": {
+    "ja": "ジョージア料理",
+    "en": "georgian restaurant",
+    "ko": "조지아 음식"
+   },
+   "aliases": [
+    "khachapuri",
+    "khinkali",
+    "格鲁吉亚菜",
+    "グルジア料理",
+    "シュクメルリ"
+   ]
+  },
+  {
+   "key": "german",
+   "label": "German restaurant",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:german",
+   "coverage": {
+    "Tokyo": 25,
+    "New York": 19,
+    "Seoul": 6
+   },
+   "google": {
+    "ja": "ドイツ料理",
+    "en": "german restaurant",
+    "ko": "독일 음식"
+   },
+   "aliases": [
+    "german food",
+    "schnitzel",
+    "bratwurst",
+    "德国菜",
+    "德国餐厅",
+    "ドイツレストラン",
+    "독일 레스토랑"
+   ]
+  },
+  {
+   "key": "gift_shop",
+   "label": "Gift shop",
+   "group": "retail",
+   "tag": "urn:tag:genre:place:gift_shop",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 50,
+    "Seoul": 10
+   },
+   "google": {
+    "ja": "ギフトショップ",
+    "en": "gift shop",
+    "ko": "선물 가게"
+   },
+   "aliases": [
+    "gifts",
+    "gift store",
+    "礼品店",
+    "雑貨屋",
+    "プレゼント",
+    "기프트샵",
+    "소품샵"
+   ]
+  },
+  {
+   "key": "gimbap",
+   "label": "Gimbap shop",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:gimbap",
+   "coverage": {
+    "Tokyo": 0,
+    "New York": 5,
+    "Seoul": 28
+   },
+   "google": {
+    "ja": "キンパ",
+    "en": "kimbap",
+    "ko": "김밥"
+   },
+   "aliases": [
+    "gimbap",
+    "korean rice roll",
+    "紫菜包饭",
+    "韩式饭卷",
+    "김밥집",
+    "김밥 전문점"
+   ]
+  },
+  {
+   "key": "gluten_free",
+   "label": "Gluten-free restaurant",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:gluten_free",
+   "coverage": {
+    "Tokyo": 21,
+    "New York": 50,
+    "Seoul": 3
+   },
+   "google": {
+    "ja": "グルテンフリー",
+    "en": "gluten free restaurant",
+    "ko": "글루텐프리"
+   },
+   "aliases": [
+    "gluten-free",
+    "celiac friendly",
+    "无麸质",
+    "无麸质餐厅",
+    "グルテンフリーレストラン"
+   ]
+  },
+  {
+   "key": "golf_driving_range",
+   "label": "Golf driving range",
+   "group": "lifestyle",
+   "tag": "urn:tag:genre:place:golf_driving_range",
+   "coverage": {
+    "Tokyo": 23,
+    "New York": 10,
+    "Seoul": 7
+   },
+   "google": {
+    "ja": "ゴルフ練習場",
+    "en": "driving range",
+    "ko": "골프연습장"
+   },
+   "aliases": [
+    "golf range",
+    "golf practice range",
+    "golf driving range",
+    "高尔夫练习场",
+    "打ちっぱなし",
+    "인도어 골프"
+   ]
+  },
+  {
+   "key": "gourmet_grocery_store",
+   "label": "Gourmet grocery store",
+   "group": "retail",
+   "tag": "urn:tag:category:place:gourmet_grocery_store",
+   "coverage": {
+    "Tokyo": 18,
+    "New York": 50,
+    "Seoul": 0
+   },
+   "google": {
+    "ja": "高級スーパー",
+    "en": "gourmet market",
+    "ko": "고급 식료품점"
+   },
+   "aliases": [
+    "specialty food store",
+    "gourmet grocery",
+    "fine foods",
+    "精品超市",
+    "高端超市",
+    "高級食材店",
+    "수입 식품점"
+   ]
+  },
+  {
+   "key": "greek",
+   "label": "Greek restaurant",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:greek",
+   "coverage": {
+    "Tokyo": 7,
+    "New York": 50,
+    "Seoul": 1
+   },
+   "google": {
+    "ja": "ギリシャ料理",
+    "en": "greek restaurant",
+    "ko": "그리스 음식"
+   },
+   "aliases": [
+    "greek food",
+    "gyro",
+    "souvlaki",
+    "taverna",
+    "希腊菜",
+    "希腊餐厅"
+   ]
+  },
+  {
+   "key": "gym",
+   "label": "Gym",
+   "group": "lifestyle",
+   "tag": "urn:tag:genre:place:gym",
+   "coverage": {
+    "Tokyo": 33,
+    "New York": 50,
+    "Seoul": 11
+   },
+   "google": {
+    "ja": "ジム",
+    "en": "gym",
+    "ko": "헬스장"
+   },
+   "aliases": [
+    "fitness center",
+    "gyms",
+    "health club",
+    "workout",
+    "健身房",
+    "健身中心",
+    "フィットネスクラブ",
+    "헬스",
+    "피트니스"
+   ]
+  },
+  {
+   "key": "hair_salon",
+   "label": "Hair salon",
+   "group": "lifestyle",
+   "tag": "urn:tag:genre:place:hair_salon",
+   "coverage": {
+    "Tokyo": 18,
+    "New York": 50,
+    "Seoul": 3
+   },
+   "google": {
+    "ja": "美容室",
+    "en": "hair salon",
+    "ko": "미용실"
+   },
+   "aliases": [
+    "hairdresser",
+    "hair stylist",
+    "haircut",
+    "发廊",
+    "美发店",
+    "ヘアサロン",
+    "美容院",
+    "헤어샵"
+   ]
+  },
+  {
+   "key": "halal",
+   "label": "Halal restaurant",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:halal",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 50,
+    "Seoul": 21
+   },
+   "google": {
+    "ja": "ハラル",
+    "en": "halal food",
+    "ko": "할랄"
+   },
+   "aliases": [
+    "halal",
+    "halal restaurant",
+    "清真",
+    "清真餐厅",
+    "ハラール",
+    "할랄 음식"
+   ]
+  },
+  {
+   "key": "hawaiian",
+   "label": "Hawaiian restaurant",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:hawaiian",
+   "coverage": {
+    "Tokyo": 31,
+    "New York": 31,
+    "Seoul": 2
+   },
+   "google": {
+    "ja": "ハワイ料理",
+    "en": "hawaiian food",
+    "ko": "하와이안 음식"
+   },
+   "aliases": [
+    "poke",
+    "poke bowl",
+    "loco moco",
+    "夏威夷菜",
+    "ハワイアン",
+    "ポキ",
+    "ロコモコ",
+    "포케",
+    "하와이안"
+   ]
+  },
+  {
+   "key": "health_food",
+   "label": "Health food restaurant",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:health_food",
+   "coverage": {
+    "Tokyo": 19,
+    "New York": 50,
+    "Seoul": 8
+   },
+   "google": {
+    "ja": "ヘルシーレストラン",
+    "en": "healthy food",
+    "ko": "건강식"
+   },
+   "aliases": [
+    "healthy restaurant",
+    "health food",
+    "grain bowl",
+    "健康餐",
+    "轻食",
+    "ヘルシー料理",
+    "건강식당"
+   ]
+  },
+  {
+   "key": "hobby_store",
+   "label": "Hobby store",
+   "group": "retail",
+   "tag": "urn:tag:genre:place:hobby_store",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 24,
+    "Seoul": 1
+   },
+   "google": {
+    "ja": "ホビーショップ",
+    "en": "hobby shop",
+    "ko": "취미용품점"
+   },
+   "aliases": [
+    "hobby store",
+    "model shop",
+    "model kits",
+    "模型店",
+    "手办店",
+    "プラモデル",
+    "하비샵"
+   ]
+  },
+  {
+   "key": "home_goods_store",
+   "label": "Home goods store",
+   "group": "retail",
+   "tag": "urn:tag:genre:place:home_goods_store",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 50,
+    "Seoul": 50
+   },
+   "google": {
+    "ja": "生活雑貨店",
+    "en": "home goods store",
+    "ko": "생활용품점"
+   },
+   "aliases": [
+    "homeware",
+    "home decor",
+    "housewares",
+    "家居用品店",
+    "生活用品店",
+    "インテリア雑貨",
+    "리빙샵"
+   ]
+  },
+  {
+   "key": "hookah_bar",
+   "label": "Hookah bar",
+   "group": "nightlife",
+   "tag": "urn:tag:genre:place:hookah_bar",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 50,
+    "Seoul": 4
+   },
+   "google": {
+    "ja": "シーシャバー",
+    "en": "hookah lounge",
+    "ko": "물담배 바"
+   },
+   "aliases": [
+    "hookah",
+    "hookah bar",
+    "shisha",
+    "shisha lounge",
+    "水烟吧",
+    "水烟",
+    "シーシャ",
+    "후카"
+   ]
+  },
+  {
+   "key": "hot_pot",
+   "label": "Hot pot restaurant",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:hot_pot",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 44,
+    "Seoul": 18
+   },
+   "google": {
+    "ja": "火鍋",
+    "en": "hot pot",
+    "ko": "훠궈"
+   },
+   "aliases": [
+    "hotpot",
+    "chinese hot pot",
+    "火锅",
+    "麻辣火锅",
+    "火锅店",
+    "훠궈집"
+   ]
+  },
+  {
+   "key": "ice_cream_shop",
+   "label": "Ice cream shop",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:ice_cream_shop",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 50,
+    "Seoul": 50
+   },
+   "google": {
+    "ja": "アイスクリーム",
+    "en": "ice cream",
+    "ko": "아이스크림"
+   },
+   "aliases": [
+    "gelato",
+    "soft serve",
+    "冰淇淋",
+    "雪糕",
+    "ジェラート",
+    "젤라또"
+   ]
+  },
+  {
+   "key": "indian",
+   "label": "Indian restaurant",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:indian",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 50,
+    "Seoul": 50
+   },
+   "google": {
+    "ja": "インド料理",
+    "en": "indian restaurant",
+    "ko": "인도 음식"
+   },
+   "aliases": [
+    "indian food",
+    "curry house",
+    "tandoori",
+    "印度菜",
+    "印度餐厅",
+    "インドカレー",
+    "인도 커리"
+   ]
+  },
+  {
+   "key": "irish_pub",
+   "label": "Irish pub",
+   "group": "nightlife",
+   "tag": "urn:tag:genre:place:restaurant:irish_pub",
+   "coverage": {
+    "Tokyo": 31,
+    "New York": 50,
+    "Seoul": 5
+   },
+   "google": {
+    "ja": "アイリッシュパブ",
+    "en": "irish pub",
+    "ko": "아이리시 펍"
+   },
+   "aliases": [
+    "irish pubs",
+    "irish bar",
+    "guinness pub",
+    "爱尔兰酒吧",
+    "爱尔兰酒馆",
+    "アイリッシュバー",
+    "아이리쉬 펍"
+   ]
+  },
+  {
+   "key": "israeli",
+   "label": "Israeli restaurant",
+   "group": "dining",
+   "tag": "urn:tag:cuisine:qloo:israeli",
+   "coverage": {
+    "Tokyo": 9,
+    "New York": 46,
+    "Seoul": 1
+   },
+   "google": {
+    "ja": "イスラエル料理",
+    "en": "israeli restaurant",
+    "ko": "이스라엘 음식"
+   },
+   "aliases": [
+    "israeli food",
+    "shakshuka",
+    "sabich",
+    "以色列菜",
+    "以色列餐厅",
+    "이스라엘 레스토랑"
+   ]
+  },
+  {
+   "key": "italian",
+   "label": "Italian restaurant",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:italian",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 50,
+    "Seoul": 50
+   },
+   "google": {
+    "ja": "イタリアン",
+    "en": "italian restaurant",
+    "ko": "이탈리안"
+   },
+   "aliases": [
+    "italian food",
+    "pasta",
+    "trattoria",
+    "意大利菜",
+    "意大利餐厅",
+    "イタリア料理",
+    "파스타"
+   ]
+  },
+  {
+   "key": "izakaya",
+   "label": "Izakaya",
+   "group": "nightlife",
+   "tag": "urn:tag:genre:place:restaurant:izakaya",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 45,
+    "Seoul": 50
+   },
+   "google": {
+    "ja": "居酒屋",
+    "en": "izakaya",
+    "ko": "이자카야"
+   },
+   "aliases": [
+    "japanese pub",
+    "japanese bar",
+    "sake bar",
+    "日式居酒屋",
+    "いざかや",
+    "선술집"
+   ]
+  },
+  {
+   "key": "jamaican",
+   "label": "Jamaican restaurant",
+   "group": "dining",
+   "tag": "urn:tag:cuisine:qloo:jamaican",
+   "coverage": {
+    "Tokyo": 8,
+    "New York": 49,
+    "Seoul": 0
+   },
+   "google": {
+    "ja": "ジャマイカ料理",
+    "en": "jamaican restaurant",
+    "ko": "자메이카 음식"
+   },
+   "aliases": [
+    "jerk chicken",
+    "caribbean food",
+    "牙买加菜",
+    "加勒比菜",
+    "ジャークチキン"
+   ]
+  },
+  {
+   "key": "japanese_confectionery_shop",
+   "label": "Japanese confectionery shop",
+   "group": "retail",
+   "tag": "urn:tag:genre:place:japanese_confectionery_shop",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 7,
+    "Seoul": 1
+   },
+   "google": {
+    "ja": "和菓子屋",
+    "en": "japanese sweets",
+    "ko": "화과자 가게"
+   },
+   "aliases": [
+    "wagashi",
+    "mochi shop",
+    "japanese sweet shop",
+    "日式点心",
+    "和果子",
+    "和菓子",
+    "화과자"
+   ]
+  },
+  {
+   "key": "japanese_curry",
+   "label": "Japanese curry restaurant",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:japanese_curry",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 12,
+    "Seoul": 25
+   },
+   "google": {
+    "ja": "カレーライス",
+    "en": "japanese curry",
+    "ko": "일본 카레"
+   },
+   "aliases": [
+    "curry rice",
+    "katsu curry",
+    "日式咖喱",
+    "咖喱饭",
+    "카레"
+   ]
+  },
+  {
+   "key": "jazz_club",
+   "label": "Jazz club",
+   "group": "nightlife",
+   "tag": "urn:tag:genre:place:jazz_club",
+   "mockTag": "urn:tag:mock:place:jazz_club",
+   "coverage": {
+    "Tokyo": 23,
+    "New York": 32,
+    "Seoul": 9
+   },
+   "google": {
+    "ja": "ジャズバー",
+    "en": "jazz club",
+    "ko": "재즈바"
+   },
+   "aliases": [
+    "jazz clubs",
+    "jazz bar",
+    "live jazz",
+    "爵士酒吧",
+    "爵士乐",
+    "ジャズクラブ",
+    "재즈 클럽"
+   ]
+  },
+  {
+   "key": "jewelry_store",
+   "label": "Jewelry store",
+   "group": "retail",
+   "tag": "urn:tag:genre:place:jewelry_store",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 50,
+    "Seoul": 33
+   },
+   "google": {
+    "ja": "ジュエリーショップ",
+    "en": "jewelry store",
+    "ko": "주얼리 매장"
+   },
+   "aliases": [
+    "jeweler",
+    "jewellery",
+    "jewelry",
+    "珠宝店",
+    "首饰店",
+    "宝石店",
+    "보석상"
+   ]
+  },
+  {
+   "key": "juice_shop",
+   "label": "Juice bar",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:juice_shop",
+   "coverage": {
+    "Tokyo": 16,
+    "New York": 50,
+    "Seoul": 8
+   },
+   "google": {
+    "ja": "ジューススタンド",
+    "en": "juice bar",
+    "ko": "생과일주스"
+   },
+   "aliases": [
+    "juice shop",
+    "smoothie",
+    "cold pressed juice",
+    "果汁店",
+    "鲜榨果汁",
+    "スムージー",
+    "주스 가게",
+    "스무디"
+   ]
+  },
+  {
+   "key": "karaoke",
+   "label": "Karaoke",
+   "group": "nightlife",
+   "tag": "urn:tag:genre:place:karaoke",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 35,
+    "Seoul": 1
+   },
+   "google": {
+    "ja": "カラオケ",
+    "en": "karaoke",
+    "ko": "노래방"
+   },
+   "aliases": [
+    "karaoke bar",
+    "ktv",
+    "karaoke box",
+    "singing room",
+    "卡拉ok",
+    "卡拉ok厅",
+    "코인노래방",
+    "가라오케"
+   ]
+  },
+  {
+   "key": "kitchen_supply_store",
+   "label": "Kitchen supply store",
+   "group": "retail",
+   "tag": "urn:tag:category:place:kitchen_supply_store",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 49,
+    "Seoul": 0
+   },
+   "google": {
+    "ja": "キッチン用品店",
+    "en": "kitchen supply store",
+    "ko": "주방용품점"
+   },
+   "aliases": [
+    "kitchenware",
+    "cookware store",
+    "kitchen store",
+    "厨具店",
+    "厨房用品店",
+    "調理器具",
+    "주방용품"
+   ]
+  },
+  {
+   "key": "korean_barbecue",
+   "label": "Korean barbecue",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:korean_barbecue",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 50,
+    "Seoul": 50
+   },
+   "google": {
+    "ja": "韓国焼肉",
+    "en": "korean bbq",
+    "ko": "고기집"
+   },
+   "aliases": [
+    "kbbq",
+    "korean barbecue",
+    "samgyeopsal",
+    "韩式烤肉",
+    "韩国烤肉",
+    "サムギョプサル",
+    "삼겹살",
+    "한우"
+   ]
+  },
+  {
+   "key": "korean_fried_chicken",
+   "label": "Korean fried chicken",
+   "group": "dining",
+   "tag": "urn:tag:cuisine:qloo:korean_fried_chicken",
+   "mockTag": "urn:tag:mock:place:korean_fried_chicken",
+   "coverage": {
+    "Tokyo": 4,
+    "New York": 35,
+    "Seoul": 49
+   },
+   "google": {
+    "ja": "韓国チキン",
+    "en": "Korean fried chicken",
+    "ko": "치킨",
+    "type": "chicken_restaurant"
+   },
+   "aliases": [
+    "korean chicken",
+    "chimaek",
+    "yangnyeom chicken",
+    "韩式炸鸡",
+    "ヤンニョムチキン",
+    "치맥",
+    "후라이드 치킨",
+    "치킨집"
+   ]
+  },
+  {
+   "key": "korean_grocery_store",
+   "label": "Korean grocery store",
+   "group": "retail",
+   "tag": "urn:tag:category:place:korean_grocery_store",
+   "coverage": {
+    "Tokyo": 10,
+    "New York": 30,
+    "Seoul": 0
+   },
+   "google": {
+    "ja": "韓国食材店",
+    "en": "korean grocery",
+    "ko": "한국 식품점"
+   },
+   "aliases": [
+    "korean market",
+    "korean supermarket",
+    "h mart",
+    "韩国超市",
+    "韩国食品店",
+    "韓国スーパー",
+    "한인마트"
+   ]
+  },
+  {
+   "key": "laundromat",
+   "label": "Laundromat",
+   "group": "lifestyle",
+   "tag": "urn:tag:category:place:laundromat",
+   "coverage": {
+    "Tokyo": 5,
+    "New York": 6,
+    "Seoul": 2
+   },
+   "google": {
+    "ja": "コインランドリー",
+    "en": "laundromat",
+    "ko": "빨래방"
+   },
+   "aliases": [
+    "laundry",
+    "laundrette",
+    "coin laundry",
+    "wash and fold",
+    "自助洗衣店",
+    "洗衣店",
+    "코인빨래방",
+    "셀프빨래방"
+   ]
+  },
+  {
+   "key": "lebanese",
+   "label": "Lebanese restaurant",
+   "group": "dining",
+   "tag": "urn:tag:cuisine:qloo:lebanese",
+   "coverage": {
+    "Tokyo": 12,
+    "New York": 44,
+    "Seoul": 1
+   },
+   "google": {
+    "ja": "レバノン料理",
+    "en": "lebanese restaurant",
+    "ko": "레바논 음식"
+   },
+   "aliases": [
+    "lebanese food",
+    "mezze",
+    "shawarma",
+    "黎巴嫩菜",
+    "黎巴嫩餐厅",
+    "레바논 레스토랑"
+   ]
+  },
+  {
+   "key": "liquor_store",
+   "label": "Liquor store",
+   "group": "retail",
+   "tag": "urn:tag:genre:place:liquor_store",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 50,
+    "Seoul": 3
+   },
+   "google": {
+    "ja": "酒屋",
+    "en": "liquor store",
+    "ko": "주류 판매점"
+   },
+   "aliases": [
+    "liquor shop",
+    "bottle shop",
+    "off licence",
+    "酒类商店",
+    "烟酒店",
+    "リカーショップ",
+    "보틀샵",
+    "주류 전문점"
+   ]
+  },
+  {
+   "key": "live_music_bar",
+   "label": "Live music bar",
+   "group": "nightlife",
+   "tag": "urn:tag:genre:place:restaurant:live_music_bar",
+   "coverage": {
+    "Tokyo": 38,
+    "New York": 50,
+    "Seoul": 13
+   },
+   "google": {
+    "ja": "ライブバー",
+    "en": "live music bar",
+    "ko": "라이브 바"
+   },
+   "aliases": [
+    "live music bars",
+    "bar with live music",
+    "live band bar",
+    "现场音乐酒吧",
+    "驻唱酒吧",
+    "ミュージックバー",
+    "라이브 음악 바"
+   ]
+  },
+  {
+   "key": "live_music_venue",
+   "label": "Live music venue",
+   "group": "nightlife",
+   "tag": "urn:tag:genre:place:live_music_venue",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 50,
+    "Seoul": 15
+   },
+   "google": {
+    "ja": "ライブハウス",
+    "en": "live music venue",
+    "ko": "라이브 클럽"
+   },
+   "aliases": [
+    "concert venue",
+    "music venue",
+    "gig venue",
+    "live house",
+    "livehouse",
+    "现场音乐",
+    "演出场所",
+    "콘서트장"
+   ]
+  },
+  {
+   "key": "lounge",
+   "label": "Lounge",
+   "group": "nightlife",
+   "tag": "urn:tag:genre:place:lounge",
+   "coverage": {
+    "Tokyo": 27,
+    "New York": 50,
+    "Seoul": 8
+   },
+   "google": {
+    "ja": "ラウンジバー",
+    "en": "lounge bar",
+    "ko": "라운지 바"
+   },
+   "aliases": [
+    "lounges",
+    "cocktail lounge",
+    "bar lounge",
+    "酒廊",
+    "休闲酒吧",
+    "라운지"
+   ]
+  },
+  {
+   "key": "malatang",
+   "label": "Malatang",
+   "group": "dining",
+   "tag": "urn:tag:cuisine:qloo:malatang",
+   "mockTag": "urn:tag:mock:place:malatang",
+   "coverage": {
+    "Tokyo": 13,
+    "New York": 4,
+    "Seoul": 28
+   },
+   "google": {
+    "ja": "麻辣湯",
+    "en": "malatang",
+    "ko": "마라탕"
+   },
+   "aliases": [
+    "mala tang",
+    "spicy hot pot soup",
+    "麻辣烫",
+    "マーラータン",
+    "마라탕집"
+   ]
+  },
+  {
+   "key": "malaysian",
+   "label": "Malaysian restaurant",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:malaysian",
+   "coverage": {
+    "Tokyo": 9,
+    "New York": 19,
+    "Seoul": 3
+   },
+   "google": {
+    "ja": "マレーシア料理",
+    "en": "malaysian restaurant",
+    "ko": "말레이시아 음식"
+   },
+   "aliases": [
+    "malaysian food",
+    "nasi lemak",
+    "laksa",
+    "马来西亚菜",
+    "马来菜",
+    "말레이시아 레스토랑"
+   ]
+  },
+  {
+   "key": "comic_cafe",
+   "label": "Manga cafe",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:comic_cafe",
+   "coverage": {
+    "Tokyo": 18,
+    "New York": 1,
+    "Seoul": 13
+   },
+   "google": {
+    "ja": "漫画喫茶",
+    "en": "manga cafe",
+    "ko": "만화카페"
+   },
+   "aliases": [
+    "comic cafe",
+    "manga kissa",
+    "漫画咖啡馆",
+    "漫咖啡",
+    "マンガ喫茶",
+    "ネットカフェ",
+    "만화방"
+   ]
+  },
+  {
+   "key": "massage_therapist",
+   "label": "Massage therapist",
+   "group": "lifestyle",
+   "tag": "urn:tag:genre:place:massage_therapist",
+   "coverage": {
+    "Tokyo": 10,
+    "New York": 25,
+    "Seoul": 0
+   },
+   "google": {
+    "ja": "マッサージ",
+    "en": "massage",
+    "ko": "마사지"
+   },
+   "aliases": [
+    "massage parlor",
+    "massage therapy",
+    "body massage",
+    "按摩",
+    "推拿",
+    "整体",
+    "リラクゼーション",
+    "안마"
+   ]
+  },
+  {
+   "key": "mens_clothing_store",
+   "label": "Men's clothing store",
+   "group": "retail",
+   "tag": "urn:tag:genre:place:mens_clothing_store",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 50,
+    "Seoul": 49
+   },
+   "google": {
+    "ja": "メンズ服",
+    "en": "men's clothing store",
+    "ko": "남성 의류"
+   },
+   "aliases": [
+    "menswear",
+    "men's fashion",
+    "men's clothes",
+    "男装店",
+    "男士服装",
+    "メンズファッション",
+    "남성복",
+    "men's clothing",
+    "mens clothing"
+   ]
+  },
+  {
+   "key": "mexican",
+   "label": "Mexican restaurant",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:mexican",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 50,
+    "Seoul": 45
+   },
+   "google": {
+    "ja": "メキシコ料理",
+    "en": "mexican restaurant",
+    "ko": "멕시코 음식"
+   },
+   "aliases": [
+    "mexican food",
+    "tex-mex",
+    "burrito",
+    "墨西哥菜",
+    "墨西哥餐厅",
+    "メキシカン",
+    "멕시칸"
+   ]
+  },
+  {
+   "key": "middle_eastern",
+   "label": "Middle Eastern restaurant",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:middle_eastern",
+   "coverage": {
+    "Tokyo": 16,
+    "New York": 50,
+    "Seoul": 6
+   },
+   "google": {
+    "ja": "中東料理",
+    "en": "middle eastern restaurant",
+    "ko": "중동 음식"
+   },
+   "aliases": [
+    "middle eastern food",
+    "falafel",
+    "hummus",
+    "中东菜",
+    "中东餐厅",
+    "ファラフェル",
+    "중동 레스토랑",
+    "팔라펠"
+   ]
+  },
+  {
+   "key": "modern_izakaya",
+   "label": "Modern izakaya",
+   "group": "nightlife",
+   "tag": "urn:tag:genre:place:restaurant:modern_izakaya",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 6,
+    "Seoul": 4
+   },
+   "google": {
+    "ja": "おしゃれ居酒屋",
+    "en": "modern izakaya",
+    "ko": "모던 이자카야"
+   },
+   "aliases": [
+    "contemporary izakaya",
+    "creative izakaya",
+    "新式居酒屋",
+    "创意居酒屋",
+    "ネオ居酒屋",
+    "創作居酒屋"
+   ]
+  },
+  {
+   "key": "musical_instrument_store",
+   "label": "Musical instrument store",
+   "group": "retail",
+   "tag": "urn:tag:genre:place:musical_instrument_store",
+   "coverage": {
+    "Tokyo": 9,
+    "New York": 11,
+    "Seoul": 1
+   },
+   "google": {
+    "ja": "楽器店",
+    "en": "musical instrument store",
+    "ko": "악기점"
+   },
+   "aliases": [
+    "music store",
+    "guitar shop",
+    "instrument shop",
+    "乐器店",
+    "楽器屋",
+    "악기 매장"
+   ]
+  },
+  {
+   "key": "nail_salon",
+   "label": "Nail salon",
+   "group": "lifestyle",
+   "tag": "urn:tag:genre:place:nail_salon",
+   "coverage": {
+    "Tokyo": 5,
+    "New York": 33,
+    "Seoul": 0
+   },
+   "google": {
+    "ja": "ネイルサロン",
+    "en": "nail salon",
+    "ko": "네일샵"
+   },
+   "aliases": [
+    "nails",
+    "manicure",
+    "pedicure",
+    "美甲店",
+    "美甲",
+    "ネイル",
+    "네일아트"
+   ]
+  },
+  {
+   "key": "natural_wine_bar",
+   "label": "Natural wine bar",
+   "group": "nightlife",
+   "tag": "urn:tag:cuisine:qloo:natural_wine",
+   "mockTag": "urn:tag:mock:place:natural_wine_bar",
+   "coverage": {
+    "Tokyo": 17,
+    "New York": 10,
+    "Seoul": 0
+   },
+   "google": {
+    "ja": "自然派ワイン",
+    "en": "natural wine bar",
+    "ko": "내추럴 와인",
+    "type": "wine_bar"
+   },
+   "aliases": [
+    "natural wine",
+    "natty wine",
+    "natural wine bars",
+    "自然酒",
+    "自然酒酒吧",
+    "ナチュラルワイン",
+    "ヴァンナチュール",
+    "自然派ワイン",
+    "내추럴 와인",
+    "ナチュラルワインバー",
+    "내추럴 와인바"
+   ]
+  },
+  {
+   "key": "nepalese",
+   "label": "Nepalese restaurant",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:nepalese",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 25,
+    "Seoul": 11
+   },
+   "google": {
+    "ja": "ネパール料理",
+    "en": "nepalese restaurant",
+    "ko": "네팔 음식"
+   },
+   "aliases": [
+    "nepali food",
+    "momo",
+    "尼泊尔菜",
+    "尼泊尔餐厅",
+    "ネパールカレー",
+    "네팔 레스토랑"
+   ]
+  },
+  {
+   "key": "night_club",
+   "label": "Nightclub",
+   "group": "nightlife",
+   "tag": "urn:tag:genre:place:night_club",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 50,
+    "Seoul": 6
+   },
+   "google": {
+    "ja": "ナイトクラブ",
+    "en": "nightclub",
+    "ko": "나이트클럽"
+   },
+   "aliases": [
+    "nightclubs",
+    "night club",
+    "club",
+    "clubbing",
+    "夜店",
+    "夜总会",
+    "クラブ",
+    "클럽"
+   ]
+  },
+  {
+   "key": "okonomiyaki",
+   "label": "Okonomiyaki restaurant",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:okonomiyaki",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 1,
+    "Seoul": 7
+   },
+   "google": {
+    "ja": "お好み焼き",
+    "en": "okonomiyaki",
+    "ko": "오코노미야키"
+   },
+   "aliases": [
+    "japanese savory pancake",
+    "monjayaki",
+    "大阪烧",
+    "御好烧",
+    "もんじゃ焼き",
+    "오코노미야끼"
+   ]
+  },
+  {
+   "key": "optician",
+   "label": "Optician",
+   "group": "retail",
+   "tag": "urn:tag:genre:place:optician",
+   "coverage": {
+    "Tokyo": 15,
+    "New York": 25,
+    "Seoul": 0
+   },
+   "google": {
+    "ja": "眼鏡屋",
+    "en": "eyeglasses store",
+    "ko": "안경점"
+   },
+   "aliases": [
+    "glasses",
+    "eyewear",
+    "optical shop",
+    "眼镜店",
+    "メガネ",
+    "안경"
+   ]
+  },
+  {
+   "key": "organic",
+   "label": "Organic restaurant",
+   "group": "dining",
+   "tag": "urn:tag:cuisine:qloo:organic",
+   "coverage": {
+    "Tokyo": 45,
+    "New York": 11,
+    "Seoul": 1
+   },
+   "google": {
+    "ja": "オーガニックレストラン",
+    "en": "organic restaurant",
+    "ko": "유기농 식당"
+   },
+   "aliases": [
+    "organic food",
+    "farm to table",
+    "有机餐厅",
+    "有机食品",
+    "オーガニック",
+    "유기농"
+   ]
+  },
+  {
+   "key": "outdoor_sports_store",
+   "label": "Outdoor gear store",
+   "group": "retail",
+   "tag": "urn:tag:genre:place:outdoor_sports_store",
+   "coverage": {
+    "Tokyo": 40,
+    "New York": 16,
+    "Seoul": 2
+   },
+   "google": {
+    "ja": "アウトドアショップ",
+    "en": "outdoor gear store",
+    "ko": "아웃도어 매장"
+   },
+   "aliases": [
+    "camping store",
+    "hiking gear",
+    "outdoor store",
+    "户外用品店",
+    "登山用品店",
+    "登山用品",
+    "캠핑용품"
+   ]
+  },
+  {
+   "key": "oyster_bar",
+   "label": "Oyster bar",
+   "group": "nightlife",
+   "tag": "urn:tag:genre:place:restaurant:oyster_bar",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 50,
+    "Seoul": 4
+   },
+   "google": {
+    "ja": "オイスターバー",
+    "en": "oyster bar",
+    "ko": "오이스터 바"
+   },
+   "aliases": [
+    "oyster bars",
+    "oysters",
+    "raw bar",
+    "生蚝吧",
+    "生蚝",
+    "牡蠣",
+    "굴 전문점"
+   ]
+  },
+  {
+   "key": "pancake",
+   "label": "Pancake house",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:pancake",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 42,
+    "Seoul": 6
+   },
+   "google": {
+    "ja": "パンケーキ",
+    "en": "pancake house",
+    "ko": "팬케이크"
+   },
+   "aliases": [
+    "pancakes",
+    "pancake cafe",
+    "pancake restaurant",
+    "松饼",
+    "松饼店",
+    "薄煎饼",
+    "ホットケーキ",
+    "팬케이크 카페",
+    "핫케이크"
+   ]
+  },
+  {
+   "key": "pastry_shop",
+   "label": "Pastry shop",
+   "group": "retail",
+   "tag": "urn:tag:category:place:pastry_shop",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 50,
+    "Seoul": 1
+   },
+   "google": {
+    "ja": "ケーキ屋",
+    "en": "pastry shop",
+    "ko": "케이크 전문점"
+   },
+   "aliases": [
+    "patisserie",
+    "pastries",
+    "cake shop",
+    "糕点店",
+    "西点店",
+    "パティスリー",
+    "파티세리"
+   ]
+  },
+  {
+   "key": "perfume_store",
+   "label": "Perfume store",
+   "group": "retail",
+   "tag": "urn:tag:genre:place:perfume_store",
+   "coverage": {
+    "Tokyo": 12,
+    "New York": 50,
+    "Seoul": 13
+   },
+   "google": {
+    "ja": "香水店",
+    "en": "perfume store",
+    "ko": "향수 매장"
+   },
+   "aliases": [
+    "fragrance store",
+    "perfumery",
+    "fragrances",
+    "香水",
+    "フレグランス",
+    "니치 향수"
+   ]
+  },
+  {
+   "key": "peruvian",
+   "label": "Peruvian restaurant",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:peruvian",
+   "coverage": {
+    "Tokyo": 10,
+    "New York": 41,
+    "Seoul": 0
+   },
+   "google": {
+    "ja": "ペルー料理",
+    "en": "peruvian restaurant",
+    "ko": "페루 음식"
+   },
+   "aliases": [
+    "peruvian food",
+    "ceviche",
+    "pollo a la brasa",
+    "秘鲁菜",
+    "秘鲁餐厅",
+    "페루 레스토랑"
+   ]
+  },
+  {
+   "key": "pet_groomer",
+   "label": "Pet groomer",
+   "group": "lifestyle",
+   "tag": "urn:tag:genre:place:pet_groomer",
+   "coverage": {
+    "Tokyo": 22,
+    "New York": 25,
+    "Seoul": 0
+   },
+   "google": {
+    "ja": "トリミングサロン",
+    "en": "pet grooming",
+    "ko": "애견미용"
+   },
+   "aliases": [
+    "dog groomer",
+    "dog grooming",
+    "pet salon",
+    "宠物美容",
+    "宠物洗护",
+    "ペットサロン",
+    "トリミング",
+    "펫 미용"
+   ]
+  },
+  {
+   "key": "pet_supply_store",
+   "label": "Pet supply store",
+   "group": "retail",
+   "tag": "urn:tag:category:place:pet_supply_store",
+   "coverage": {
+    "Tokyo": 41,
+    "New York": 43,
+    "Seoul": 1
+   },
+   "google": {
+    "ja": "ペット用品店",
+    "en": "pet store",
+    "ko": "애견용품점"
+   },
+   "aliases": [
+    "pet shop",
+    "pet supplies",
+    "宠物店",
+    "宠物用品店",
+    "ペットショップ",
+    "펫샵"
+   ]
+  },
+  {
+   "key": "photography_studio",
+   "label": "Photography studio",
+   "group": "lifestyle",
+   "tag": "urn:tag:category:place:photography_studio",
+   "coverage": {
+    "Tokyo": 18,
+    "New York": 24,
+    "Seoul": 7
+   },
+   "google": {
+    "ja": "写真スタジオ",
+    "en": "photo studio",
+    "ko": "사진관"
+   },
+   "aliases": [
+    "portrait studio",
+    "photographer",
+    "摄影工作室",
+    "照相馆",
+    "写真館",
+    "フォトスタジオ",
+    "사진 스튜디오"
+   ]
+  },
+  {
+   "key": "pilates_studio",
+   "label": "Pilates studio",
+   "group": "lifestyle",
+   "tag": "urn:tag:genre:place:pilates_studio",
+   "coverage": {
+    "Tokyo": 6,
+    "New York": 32,
+    "Seoul": 0
+   },
+   "google": {
+    "ja": "ピラティススタジオ",
+    "en": "pilates studio",
+    "ko": "필라테스"
+   },
+   "aliases": [
+    "pilates",
+    "reformer pilates",
+    "pilates class",
+    "普拉提",
+    "普拉提馆",
+    "ピラティス",
+    "필라테스 스튜디오"
+   ]
+  },
+  {
+   "key": "pizza",
+   "label": "Pizzeria",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:pizza",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 50,
+    "Seoul": 50
+   },
+   "google": {
+    "ja": "ピザ",
+    "en": "pizza",
+    "ko": "피자"
+   },
+   "aliases": [
+    "pizzeria",
+    "pizza place",
+    "pizza shop",
+    "披萨",
+    "比萨",
+    "ピッツェリア",
+    "ピザ屋",
+    "피자집"
+   ]
+  },
+  {
+   "key": "polish",
+   "label": "Polish restaurant",
+   "group": "dining",
+   "tag": "urn:tag:cuisine:qloo:polish",
+   "coverage": {
+    "Tokyo": 7,
+    "New York": 32,
+    "Seoul": 1
+   },
+   "google": {
+    "ja": "ポーランド料理",
+    "en": "polish restaurant",
+    "ko": "폴란드 음식"
+   },
+   "aliases": [
+    "polish food",
+    "pierogi",
+    "波兰菜",
+    "波兰餐厅",
+    "폴란드 레스토랑"
+   ]
+  },
+  {
+   "key": "pool_hall",
+   "label": "Pool hall",
+   "group": "lifestyle",
+   "tag": "urn:tag:genre:place:pool_hall",
+   "coverage": {
+    "Tokyo": 22,
+    "New York": 39,
+    "Seoul": 0
+   },
+   "google": {
+    "ja": "ビリヤード",
+    "en": "pool hall",
+    "ko": "당구장"
+   },
+   "aliases": [
+    "billiards",
+    "snooker",
+    "billiard hall",
+    "台球厅",
+    "桌球",
+    "ビリヤード場",
+    "포켓볼"
+   ]
+  },
+  {
+   "key": "ramen",
+   "label": "Ramen shop",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:ramen",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 50,
+    "Seoul": 50
+   },
+   "google": {
+    "ja": "ラーメン",
+    "en": "ramen",
+    "ko": "라멘"
+   },
+   "aliases": [
+    "ramen shop",
+    "ramen bar",
+    "拉面",
+    "日式拉面",
+    "ラーメン屋",
+    "中華そば",
+    "라멘집"
+   ]
+  },
+  {
+   "key": "record_store",
+   "label": "Record store",
+   "group": "retail",
+   "tag": "urn:tag:genre:place:record_store",
+   "mockTag": "urn:tag:mock:place:record_store",
+   "coverage": {
+    "Tokyo": 27,
+    "New York": 25,
+    "Seoul": 1
+   },
+   "google": {
+    "ja": "レコード店",
+    "en": "record store",
+    "ko": "레코드 가게"
+   },
+   "aliases": [
+    "vinyl",
+    "record shop",
+    "music records",
+    "唱片店",
+    "黑胶唱片",
+    "レコードショップ",
+    "레코드샵",
+    "レコード屋"
+   ]
+  },
+  {
+   "key": "rock_climbing_gym",
+   "label": "Rock climbing gym",
+   "group": "lifestyle",
+   "tag": "urn:tag:genre:place:rock_climbing_gym",
+   "coverage": {
+    "Tokyo": 5,
+    "New York": 8,
+    "Seoul": 2
+   },
+   "google": {
+    "ja": "ボルダリングジム",
+    "en": "climbing gym",
+    "ko": "클라이밍장"
+   },
+   "aliases": [
+    "bouldering",
+    "bouldering gym",
+    "indoor climbing",
+    "攀岩馆",
+    "抱石",
+    "クライミングジム",
+    "볼더링",
+    "실내 클라이밍"
+   ]
+  },
+  {
+   "key": "russian",
+   "label": "Russian restaurant",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:russian",
+   "coverage": {
+    "Tokyo": 17,
+    "New York": 29,
+    "Seoul": 4
+   },
+   "google": {
+    "ja": "ロシア料理",
+    "en": "russian restaurant",
+    "ko": "러시아 음식"
+   },
+   "aliases": [
+    "russian food",
+    "pelmeni",
+    "blini",
+    "俄罗斯菜",
+    "俄式餐厅",
+    "러시아 레스토랑"
+   ]
+  },
+  {
+   "key": "salad_shop",
+   "label": "Salad shop",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:salad_shop",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 50,
+    "Seoul": 16
+   },
+   "google": {
+    "ja": "サラダ専門店",
+    "en": "salad",
+    "ko": "샐러드"
+   },
+   "aliases": [
+    "salad bar",
+    "salad shop",
+    "salads",
+    "沙拉",
+    "沙拉店",
+    "サラダ",
+    "샐러드 가게"
+   ]
+  },
+  {
+   "key": "sandwich_shop",
+   "label": "Sandwich shop",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:sandwich_shop",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 50,
+    "Seoul": 50
+   },
+   "google": {
+    "ja": "サンドイッチ",
+    "en": "sandwich shop",
+    "ko": "샌드위치"
+   },
+   "aliases": [
+    "sandwiches",
+    "sub shop",
+    "deli",
+    "hoagie",
+    "三明治",
+    "三明治店",
+    "サンドイッチ屋",
+    "샌드위치 가게"
+   ]
+  },
+  {
+   "key": "sauna",
+   "label": "Sauna",
+   "group": "lifestyle",
+   "tag": "urn:tag:genre:place:sauna",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 14,
+    "Seoul": 16
+   },
+   "google": {
+    "ja": "サウナ",
+    "en": "sauna",
+    "ko": "사우나"
+   },
+   "aliases": [
+    "saunas",
+    "steam room",
+    "bathhouse",
+    "桑拿",
+    "汗蒸",
+    "銭湯",
+    "찜질방",
+    "목욕탕"
+   ]
+  },
+  {
+   "key": "second_hand_store",
+   "label": "Second-hand store",
+   "group": "retail",
+   "tag": "urn:tag:genre:place:second_hand_store",
+   "coverage": {
+    "Tokyo": 18,
+    "New York": 12,
+    "Seoul": 0
+   },
+   "google": {
+    "ja": "リサイクルショップ",
+    "en": "secondhand store",
+    "ko": "중고 매장"
+   },
+   "aliases": [
+    "used goods",
+    "pre-owned",
+    "second hand",
+    "secondhand shop",
+    "二手店",
+    "中古",
+    "중고샵"
+   ]
+  },
+  {
+   "key": "shabu_shabu",
+   "label": "Shabu-shabu restaurant",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:shabu_shabu",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 7,
+    "Seoul": 50
+   },
+   "google": {
+    "ja": "しゃぶしゃぶ",
+    "en": "shabu shabu",
+    "ko": "샤브샤브"
+   },
+   "aliases": [
+    "shabu-shabu",
+    "japanese hot pot",
+    "涮涮锅",
+    "日式火锅",
+    "しゃぶしゃぶ屋",
+    "샤브샤브집"
+   ]
+  },
+  {
+   "key": "shoe_store",
+   "label": "Shoe store",
+   "group": "retail",
+   "tag": "urn:tag:genre:place:shoe_store",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 50,
+    "Seoul": 45
+   },
+   "google": {
+    "ja": "靴屋",
+    "en": "shoe store",
+    "ko": "신발 가게"
+   },
+   "aliases": [
+    "shoes",
+    "sneaker store",
+    "footwear",
+    "鞋店",
+    "球鞋店",
+    "シューズショップ",
+    "슈즈"
+   ]
+  },
+  {
+   "key": "sichuan",
+   "label": "Sichuan restaurant",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:sichuan",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 50,
+    "Seoul": 5
+   },
+   "google": {
+    "ja": "四川料理",
+    "en": "sichuan restaurant",
+    "ko": "사천 요리"
+   },
+   "aliases": [
+    "szechuan",
+    "sichuan food",
+    "mala",
+    "川菜",
+    "四川菜",
+    "川菜馆",
+    "쓰촨 요리"
+   ]
+  },
+  {
+   "key": "small_plates",
+   "label": "Small plates restaurant",
+   "group": "dining",
+   "tag": "urn:tag:cuisine:qloo:small_plates",
+   "coverage": {
+    "Tokyo": 44,
+    "New York": 34,
+    "Seoul": 30
+   },
+   "google": {
+    "ja": "小皿料理",
+    "en": "small plates",
+    "ko": "스몰 플레이트"
+   },
+   "aliases": [
+    "shared plates",
+    "sharing plates",
+    "tapas style",
+    "小盘菜",
+    "分享盘",
+    "小皿",
+    "다이닝 바"
+   ]
+  },
+  {
+   "key": "soul_food",
+   "label": "Soul food restaurant",
+   "group": "dining",
+   "tag": "urn:tag:cuisine:qloo:soul_food",
+   "coverage": {
+    "Tokyo": 7,
+    "New York": 49,
+    "Seoul": 1
+   },
+   "google": {
+    "ja": "アメリカ南部料理",
+    "en": "soul food",
+    "ko": "미국 남부 음식"
+   },
+   "aliases": [
+    "southern food",
+    "fried chicken and waffles",
+    "collard greens",
+    "灵魂食物",
+    "美国南方菜",
+    "ソウルフード",
+    "南部料理",
+    "소울푸드"
+   ]
+  },
+  {
+   "key": "souvenir_store",
+   "label": "Souvenir shop",
+   "group": "retail",
+   "tag": "urn:tag:genre:place:souvenir_store",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 5,
+    "Seoul": 3
+   },
+   "google": {
+    "ja": "お土産屋",
+    "en": "souvenir shop",
+    "ko": "기념품 가게"
+   },
+   "aliases": [
+    "souvenirs",
+    "tourist shop",
+    "纪念品店",
+    "伴手礼",
+    "土産物店",
+    "기념품점"
+   ]
+  },
+  {
+   "key": "spa",
+   "label": "Spa",
+   "group": "lifestyle",
+   "tag": "urn:tag:genre:place:spa",
+   "coverage": {
+    "Tokyo": 44,
+    "New York": 50,
+    "Seoul": 15
+   },
+   "google": {
+    "ja": "スパ",
+    "en": "spa",
+    "ko": "스파"
+   },
+   "aliases": [
+    "spas",
+    "wellness center",
+    "hot spring",
+    "水疗",
+    "温泉",
+    "スーパー銭湯",
+    "온천",
+    "웰니스"
+   ]
+  },
+  {
+   "key": "spanish",
+   "label": "Spanish restaurant",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:spanish",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 50,
+    "Seoul": 20
+   },
+   "google": {
+    "ja": "スペイン料理",
+    "en": "spanish restaurant",
+    "ko": "스페인 음식"
+   },
+   "aliases": [
+    "spanish food",
+    "paella",
+    "西班牙菜",
+    "西班牙餐厅",
+    "パエリア",
+    "스페인 레스토랑",
+    "스페인 요리"
+   ]
+  },
+  {
+   "key": "sporting_goods_store",
+   "label": "Sporting goods store",
+   "group": "retail",
+   "tag": "urn:tag:genre:place:sporting_goods_store",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 23,
+    "Seoul": 36
+   },
+   "google": {
+    "ja": "スポーツ用品店",
+    "en": "sporting goods store",
+    "ko": "스포츠용품점"
+   },
+   "aliases": [
+    "sports store",
+    "sports shop",
+    "athletic gear",
+    "体育用品店",
+    "运动用品店",
+    "スポーツショップ",
+    "스포츠 매장"
+   ]
+  },
+  {
+   "key": "sports_bar",
+   "label": "Sports bar",
+   "group": "nightlife",
+   "tag": "urn:tag:genre:place:restaurant:sports_bar",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 50,
+    "Seoul": 6
+   },
+   "google": {
+    "ja": "スポーツバー",
+    "en": "sports bar",
+    "ko": "스포츠 바"
+   },
+   "aliases": [
+    "sports bars",
+    "sports pub",
+    "game day bar",
+    "体育酒吧",
+    "看球酒吧",
+    "스포츠펍"
+   ]
+  },
+  {
+   "key": "sri_lankan",
+   "label": "Sri Lankan restaurant",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:sri_lankan",
+   "coverage": {
+    "Tokyo": 18,
+    "New York": 7,
+    "Seoul": 0
+   },
+   "google": {
+    "ja": "スリランカ料理",
+    "en": "sri lankan restaurant",
+    "ko": "스리랑카 음식"
+   },
+   "aliases": [
+    "sri lankan food",
+    "hoppers",
+    "sri lankan curry",
+    "斯里兰卡菜",
+    "スリランカカレー",
+    "스리랑카 레스토랑"
+   ]
+  },
+  {
+   "key": "stationery_store",
+   "label": "Stationery store",
+   "group": "retail",
+   "tag": "urn:tag:genre:place:stationery_store",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 50,
+    "Seoul": 7
+   },
+   "google": {
+    "ja": "文房具店",
+    "en": "stationery store",
+    "ko": "문구점"
+   },
+   "aliases": [
+    "stationery",
+    "pens",
+    "paper goods",
+    "文具店",
+    "文具",
+    "文房具",
+    "문구"
+   ]
+  },
+  {
+   "key": "sushi",
+   "label": "Sushi restaurant",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:sushi",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 50,
+    "Seoul": 50
+   },
+   "google": {
+    "ja": "寿司",
+    "en": "sushi",
+    "ko": "스시"
+   },
+   "aliases": [
+    "sushi bar",
+    "omakase",
+    "sashimi",
+    "寿司店",
+    "すし",
+    "鮨",
+    "초밥",
+    "오마카세"
+   ]
+  },
+  {
+   "key": "taco",
+   "label": "Taco shop",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:taco",
+   "coverage": {
+    "Tokyo": 29,
+    "New York": 50,
+    "Seoul": 9
+   },
+   "google": {
+    "ja": "タコス",
+    "en": "tacos",
+    "ko": "타코"
+   },
+   "aliases": [
+    "taco",
+    "taqueria",
+    "taco truck",
+    "塔可",
+    "墨西哥夹饼",
+    "タコス屋",
+    "타코 가게"
+   ]
+  },
+  {
+   "key": "taiwanese",
+   "label": "Taiwanese restaurant",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:taiwanese",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 27,
+    "Seoul": 7
+   },
+   "google": {
+    "ja": "台湾料理",
+    "en": "taiwanese restaurant",
+    "ko": "대만 음식"
+   },
+   "aliases": [
+    "taiwanese food",
+    "beef noodle soup",
+    "台湾菜",
+    "台湾小吃",
+    "台湾餐厅",
+    "대만 요리"
+   ]
+  },
+  {
+   "key": "tapas_bar",
+   "label": "Tapas bar",
+   "group": "nightlife",
+   "tag": "urn:tag:genre:place:restaurant:tapas_bar",
+   "coverage": {
+    "Tokyo": 15,
+    "New York": 50,
+    "Seoul": 5
+   },
+   "google": {
+    "ja": "スペインバル",
+    "en": "tapas bar",
+    "ko": "타파스 바"
+   },
+   "aliases": [
+    "tapas",
+    "spanish tapas",
+    "bar de tapas",
+    "西班牙小吃吧",
+    "塔帕斯",
+    "タパス",
+    "スペインバル",
+    "스페인 바"
+   ]
+  },
+  {
+   "key": "tea_house",
+   "label": "Tea house",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:tea_house",
+   "coverage": {
+    "Tokyo": 49,
+    "New York": 50,
+    "Seoul": 13
+   },
+   "google": {
+    "ja": "日本茶カフェ",
+    "en": "tea house",
+    "ko": "찻집"
+   },
+   "aliases": [
+    "teahouse",
+    "tea room",
+    "tea salon",
+    "茶馆",
+    "茶室",
+    "茶屋",
+    "茶房",
+    "ティールーム",
+    "전통찻집"
+   ]
+  },
+  {
+   "key": "tea_store",
+   "label": "Tea shop",
+   "group": "retail",
+   "tag": "urn:tag:genre:place:tea_store",
+   "coverage": {
+    "Tokyo": 26,
+    "New York": 36,
+    "Seoul": 3
+   },
+   "google": {
+    "ja": "日本茶専門店",
+    "en": "tea shop",
+    "ko": "차 전문점"
+   },
+   "aliases": [
+    "loose leaf tea",
+    "tea store",
+    "teas",
+    "茶叶店",
+    "茶庄",
+    "お茶屋",
+    "찻잎"
+   ]
+  },
+  {
+   "key": "tempura",
+   "label": "Tempura restaurant",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:tempura",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 4,
+    "Seoul": 5
+   },
+   "google": {
+    "ja": "天ぷら",
+    "en": "tempura",
+    "ko": "덴푸라"
+   },
+   "aliases": [
+    "tempura restaurant",
+    "tendon",
+    "天妇罗",
+    "天丼",
+    "天ぷら屋",
+    "텐동"
+   ]
+  },
+  {
+   "key": "teppanyaki",
+   "label": "Teppanyaki restaurant",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:teppanyaki",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 15,
+    "Seoul": 5
+   },
+   "google": {
+    "ja": "鉄板焼き",
+    "en": "teppanyaki",
+    "ko": "철판요리"
+   },
+   "aliases": [
+    "hibachi",
+    "japanese steakhouse",
+    "铁板烧",
+    "鉄板焼",
+    "데판야키",
+    "철판구이"
+   ]
+  },
+  {
+   "key": "thai",
+   "label": "Thai restaurant",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:thai",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 50,
+    "Seoul": 50
+   },
+   "google": {
+    "ja": "タイ料理",
+    "en": "thai restaurant",
+    "ko": "태국 음식"
+   },
+   "aliases": [
+    "thai food",
+    "pad thai",
+    "泰国菜",
+    "泰餐",
+    "泰国餐厅",
+    "タイ料理屋",
+    "태국 레스토랑"
+   ]
+  },
+  {
+   "key": "thrift_store",
+   "label": "Thrift store",
+   "group": "retail",
+   "tag": "urn:tag:genre:place:thrift_store",
+   "coverage": {
+    "Tokyo": 46,
+    "New York": 23,
+    "Seoul": 1
+   },
+   "google": {
+    "ja": "古着屋",
+    "en": "thrift store",
+    "ko": "구제 가게"
+   },
+   "aliases": [
+    "thrift shop",
+    "charity shop",
+    "vintage clothing",
+    "旧货店",
+    "二手服装店",
+    "ヴィンテージ",
+    "빈티지샵"
+   ]
+  },
+  {
+   "key": "toy_store",
+   "label": "Toy store",
+   "group": "retail",
+   "tag": "urn:tag:genre:place:toy_store",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 50,
+    "Seoul": 6
+   },
+   "google": {
+    "ja": "おもちゃ屋",
+    "en": "toy store",
+    "ko": "장난감 가게"
+   },
+   "aliases": [
+    "toys",
+    "toy shop",
+    "玩具店",
+    "トイショップ",
+    "완구점"
+   ]
+  },
+  {
+   "key": "trading_card_store",
+   "label": "Trading card store",
+   "group": "retail",
+   "tag": "urn:tag:genre:place:trading_card_store",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 36,
+    "Seoul": 0
+   },
+   "google": {
+    "ja": "カードショップ",
+    "en": "trading card store",
+    "ko": "카드샵"
+   },
+   "aliases": [
+    "tcg store",
+    "pokemon cards",
+    "card shop",
+    "卡牌店",
+    "集换式卡牌",
+    "トレカ",
+    "트레이딩 카드"
+   ]
+  },
+  {
+   "key": "turkish",
+   "label": "Turkish restaurant",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:turkish",
+   "coverage": {
+    "Tokyo": 28,
+    "New York": 50,
+    "Seoul": 7
+   },
+   "google": {
+    "ja": "トルコ料理",
+    "en": "turkish restaurant",
+    "ko": "터키 음식"
+   },
+   "aliases": [
+    "turkish food",
+    "doner",
+    "kebab",
+    "土耳其菜",
+    "土耳其餐厅",
+    "ケバブ",
+    "튀르키예 음식"
+   ]
+  },
+  {
+   "key": "udon_noodle",
+   "label": "Udon shop",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:udon_noodle",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 12,
+    "Seoul": 46
+   },
+   "google": {
+    "ja": "うどん",
+    "en": "udon",
+    "ko": "우동"
+   },
+   "aliases": [
+    "udon noodles",
+    "sanuki udon",
+    "乌冬面",
+    "乌冬",
+    "讃岐うどん",
+    "うどん屋",
+    "우동집"
+   ]
+  },
+  {
+   "key": "ukrainian",
+   "label": "Ukrainian restaurant",
+   "group": "dining",
+   "tag": "urn:tag:cuisine:qloo:ukrainian",
+   "coverage": {
+    "Tokyo": 5,
+    "New York": 28,
+    "Seoul": 1
+   },
+   "google": {
+    "ja": "ウクライナ料理",
+    "en": "ukrainian restaurant",
+    "ko": "우크라이나 음식"
+   },
+   "aliases": [
+    "ukrainian food",
+    "varenyky",
+    "borscht",
+    "乌克兰菜",
+    "乌克兰餐厅",
+    "우크라이나 레스토랑"
+   ]
+  },
+  {
+   "key": "used_book_store",
+   "label": "Used book store",
+   "group": "retail",
+   "tag": "urn:tag:genre:place:used_book_store",
+   "coverage": {
+    "Tokyo": 38,
+    "New York": 13,
+    "Seoul": 16
+   },
+   "google": {
+    "ja": "古本屋",
+    "en": "used bookstore",
+    "ko": "중고서점"
+   },
+   "aliases": [
+    "used books",
+    "secondhand bookstore",
+    "second hand books",
+    "antiquarian bookstore",
+    "二手书店",
+    "旧书店",
+    "古書店",
+    "헌책방"
+   ]
+  },
+  {
+   "key": "vegan",
+   "label": "Vegan restaurant",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:vegan",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 50,
+    "Seoul": 25
+   },
+   "google": {
+    "ja": "ヴィーガン",
+    "en": "vegan restaurant",
+    "ko": "비건 식당"
+   },
+   "aliases": [
+    "vegan food",
+    "plant based",
+    "纯素餐厅",
+    "ビーガン",
+    "비건"
+   ]
+  },
+  {
+   "key": "video_arcade",
+   "label": "Video arcade",
+   "group": "lifestyle",
+   "tag": "urn:tag:genre:place:video_arcade",
+   "coverage": {
+    "Tokyo": 40,
+    "New York": 44,
+    "Seoul": 1
+   },
+   "google": {
+    "ja": "ゲームセンター",
+    "en": "arcade",
+    "ko": "오락실"
+   },
+   "aliases": [
+    "video game arcade",
+    "game center",
+    "arcade games",
+    "电玩城",
+    "游戏厅",
+    "ゲーセン",
+    "게임센터"
+   ]
+  },
+  {
+   "key": "video_game_store",
+   "label": "Video game store",
+   "group": "retail",
+   "tag": "urn:tag:genre:place:video_game_store",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 50,
+    "Seoul": 1
+   },
+   "google": {
+    "ja": "ゲームショップ",
+    "en": "video game store",
+    "ko": "게임 매장"
+   },
+   "aliases": [
+    "video games",
+    "game shop",
+    "games store",
+    "retro games",
+    "游戏店",
+    "电玩店",
+    "ゲーム屋",
+    "게임샵"
+   ]
+  },
+  {
+   "key": "vietnamese",
+   "label": "Vietnamese restaurant",
+   "group": "dining",
+   "tag": "urn:tag:genre:place:restaurant:vietnamese",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 50,
+    "Seoul": 50
+   },
+   "google": {
+    "ja": "ベトナム料理",
+    "en": "vietnamese restaurant",
+    "ko": "베트남 음식"
+   },
+   "aliases": [
+    "vietnamese food",
+    "pho",
+    "banh mi",
+    "越南菜",
+    "越南粉",
+    "越南餐厅",
+    "フォー",
+    "쌀국수"
+   ]
+  },
+  {
+   "key": "watch_store",
+   "label": "Watch store",
+   "group": "retail",
+   "tag": "urn:tag:genre:place:watch_store",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 50,
+    "Seoul": 31
+   },
+   "google": {
+    "ja": "時計店",
+    "en": "watch store",
+    "ko": "시계 매장"
+   },
+   "aliases": [
+    "watches",
+    "watch shop",
+    "watch boutique",
+    "wristwatch",
+    "手表店",
+    "钟表店",
+    "腕時計",
+    "시계방"
+   ]
+  },
+  {
+   "key": "wine_bar",
+   "label": "Wine bar",
+   "group": "nightlife",
+   "tag": "urn:tag:genre:place:restaurant:wine_bar",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 50,
+    "Seoul": 50
+   },
+   "google": {
+    "ja": "ワインバー",
+    "en": "wine bar",
+    "ko": "와인바"
+   },
+   "aliases": [
+    "wine bars",
+    "wine tasting",
+    "wine lounge",
+    "葡萄酒吧",
+    "红酒吧",
+    "ワインバル"
+   ]
+  },
+  {
+   "key": "wine_store",
+   "label": "Wine store",
+   "group": "retail",
+   "tag": "urn:tag:genre:place:wine_store",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 50,
+    "Seoul": 4
+   },
+   "google": {
+    "ja": "ワインショップ",
+    "en": "wine shop",
+    "ko": "와인샵"
+   },
+   "aliases": [
+    "wine store",
+    "wine shops",
+    "wines",
+    "红酒店",
+    "葡萄酒专卖店",
+    "ワイン専門店",
+    "와인 가게"
+   ]
+  },
+  {
+   "key": "womens_clothing_store",
+   "label": "Women's clothing store",
+   "group": "retail",
+   "tag": "urn:tag:genre:place:womens_clothing_store",
+   "coverage": {
+    "Tokyo": 50,
+    "New York": 50,
+    "Seoul": 50
+   },
+   "google": {
+    "ja": "レディースファッション",
+    "en": "women's clothing store",
+    "ko": "여성 의류"
+   },
+   "aliases": [
+    "womens clothing",
+    "women's fashion",
+    "ladies clothing",
+    "dress shop",
+    "女装店",
+    "女装",
+    "婦人服",
+    "여성복",
+    "women's clothing"
+   ]
+  },
+  {
+   "key": "yoga_studio",
+   "label": "Yoga studio",
+   "group": "lifestyle",
+   "tag": "urn:tag:genre:place:yoga_studio",
+   "coverage": {
+    "Tokyo": 9,
+    "New York": 50,
+    "Seoul": 0
+   },
+   "google": {
+    "ja": "ヨガスタジオ",
+    "en": "yoga studio",
+    "ko": "요가 스튜디오"
+   },
+   "aliases": [
+    "yoga",
+    "yoga class",
+    "hot yoga",
+    "瑜伽馆",
+    "瑜伽",
+    "ヨガ",
+    "ホットヨガ",
+    "요가원",
+    "요가"
+   ]
+  }
+ ]
+}

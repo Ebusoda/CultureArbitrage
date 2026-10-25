@@ -28,5 +28,7 @@ export async function POST(request: Request) {
   if ("error" in body) return bad(body.status, body.error);
   const parsed = parseExploreBody(body.text);
   if ("error" in parsed) return bad(parsed.status, parsed.error);
-  return exploreResponse({ city: parsed.city, focus: parsed.focus }, request);
+  // category / query are only present when the visitor checks one business type.
+  const { city, focus, category, query } = parsed;
+  return exploreResponse({ city, focus, ...(category ? { category } : {}), ...(query ? { query } : {}) }, request);
 }

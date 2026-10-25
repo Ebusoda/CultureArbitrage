@@ -5,6 +5,35 @@ export type Focus = "all" | "dining" | "nightlife" | "retail";
 export interface ExploreRequest {
   city: string;
   focus: Focus;
+  // Optional: check one business type instead of scanning the focus's categories. Either a
+  // catalog key (src/lib/agent/catalog.ts) or free text matched to a Qloo tag when the run starts.
+  // When both are given, category wins. Without either, the run is the scan it always was.
+  category?: string;
+  query?: string;
+  // Set by run.ts once the business type is matched to a Qloo tag; the agent then looks at
+  // this one category only.
+  target?: Target;
+}
+
+// The one business type a run checks, matched to a Qloo tag.
+export interface Target {
+  tag: string;
+  label: string;
+  // Catalog key, when the tag is one of the catalog's.
+  key?: string;
+  // catalog: picked from (or typed text matched to) the catalog; qloo: found with Qloo's tag search.
+  source: "catalog" | "qloo";
+  // What the visitor typed, when it was free text.
+  query?: string;
+  // Places Qloo lists for it across each city (50 = 50 or more), when known (live data).
+  coverage?: Record<string, number>;
+}
+
+// What the visitor asked to check, as the start event repeats it (before it is matched).
+export interface AskedTarget {
+  label: string;
+  key?: string;
+  query?: string;
 }
 
 export interface ScoreItem {
@@ -105,7 +134,12 @@ export interface SupplyEvent {
 }
 
 export type AgentEvent =
-  | { type: "start"; city: string; focus: Focus; qlooMode: string; llmMode: string; budget: number; model?: string }
+  | { type: "start"; city: string; focus: Focus; qlooMode: string; llmMode: string; budget: number; model?: string; target?: AskedTarget }
+  // Only in a run that checks one business type: what it was matched to, or why it could not be.
+  // coverage: places Qloo lists for it across each city (from the catalog, or counted in this run),
+  // where 50 means 50 or more.
+  | { type: "target"; status: "matched"; target: Target; coverage?: Record<string, number>; coverageDate?: string; calls: number[] }
+  | { type: "target"; status: "unmatched"; query: string; reason: string; calls: number[] }
   // model: the model now running, when it changed (a retry on the default model).
   | { type: "mode"; llmMode: string; reason: string; model?: string }
   | { type: "step"; id: string; phase: Phase; title: string; detail?: string }

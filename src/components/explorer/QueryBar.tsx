@@ -1,10 +1,11 @@
 "use client";
 
 import { useRef } from "react";
-import type { Focus } from "@/lib/agent/types";
+import type { AskedTarget, Focus } from "@/lib/agent/types";
 import { Arrow } from "./Arrow";
-import { FOCUS_OPTIONS } from "./format";
-import type { RunState } from "./useExploreRun";
+import { CategoryPicker } from "./CategoryPicker";
+import { businessName, clip, FOCUS_OPTIONS } from "./format";
+import { sameTarget, type RunState } from "./useExploreRun";
 
 interface Props {
   state: RunState;
@@ -14,16 +15,21 @@ interface Props {
   onRun: () => void;
   // Whether the page has an example result to link to (How it works).
   hasExample?: boolean;
+  // Picks (or clears) one business type to check instead of a scan. Without it, no search box.
+  onTarget?: (target: AskedTarget | null) => void;
+  // The server's Qloo mode (a recording on screen carries the mode it was recorded in).
+  qlooMode?: string;
 }
 
-export function QueryBar({ state, cities, onCity, onFocus, onRun, hasExample = true }: Props) {
+export function QueryBar({ state, cities, onCity, onFocus, onRun, hasExample = true, onTarget, qlooMode }: Props) {
   const { status, pickCity: city, pickFocus: focus, meta, callsUsed } = state;
+  const target = state.pickTarget;
   const busy = status === "connecting" || status === "running";
   // Once results are on screen, a changed picker means a new question, so the button names it.
-  const changed = city !== state.city || focus !== state.focus;
+  const changed = city !== state.city || focus !== state.focus || !sameTarget(target, state.askedTarget);
   const label = busy ? "Exploring…" : status === "done" && !changed ? "Explore again" : status === "error" && !changed ? "Try again" : (
     <>
-      Explore {city} <Arrow silent />
+      {target ? `Check ${clip(businessName(target.label), 28)} in ${city}` : `Explore ${city}`} <Arrow silent />
     </>
   );
   const radios = useRef<(HTMLButtonElement | null)[]>([]);
@@ -64,9 +70,10 @@ export function QueryBar({ state, cities, onCity, onFocus, onRun, hasExample = t
         <span>missing?</span>
       </label>
 
-      <div role="radiogroup" aria-label="Focus" className="grid w-full grid-cols-4 rounded-full bg-line/60 p-1 md:inline-grid md:w-auto">
+      <div role="radiogroup" aria-label="Focus" className={`grid w-full grid-cols-4 rounded-full bg-line/60 p-1 md:inline-grid md:w-auto${target ? " opacity-60" : ""}`}>
         {FOCUS_OPTIONS.map((f, i) => {
-          const on = f.value === focus;
+          // Checking one business type: no focus is in use (picking one goes back to a scan).
+          const on = f.value === focus && !target;
           return (
             <button
               key={f.value}
@@ -76,7 +83,7 @@ export function QueryBar({ state, cities, onCity, onFocus, onRun, hasExample = t
               type="button"
               role="radio"
               aria-checked={on}
-              tabIndex={on ? 0 : -1}
+              tabIndex={on || (target && f.value === focus) ? 0 : -1}
               // aria-disabled, not disabled: a disabled button drops keyboard focus to the page.
               aria-disabled={busy}
               onClick={() => !busy && onFocus(f.value)}
@@ -99,6 +106,13 @@ export function QueryBar({ state, cities, onCity, onFocus, onRun, hasExample = t
         {busy && <span className="h-4 w-4 animate-spin rounded-full border-2 border-on-accent border-t-transparent motion-reduce:animate-none" aria-hidden="true" />}
         {label}
       </button>
+
+      {/* Live runs off: every run plays a recorded scan, so a business check could not run. */}
+      {onTarget && !meta.forceReplay && (
+        <div className="w-full">
+          <CategoryPicker value={target} onChange={onTarget} city={city} cities={cities} qlooMode={qlooMode ?? meta.qlooMode} disabled={busy} />
+        </div>
+      )}
 
       <div className="flex w-full flex-wrap items-center justify-between gap-x-6 gap-y-2">
         <p className="text-[13px] text-muted">

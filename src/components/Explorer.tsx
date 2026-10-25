@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useRef } from "react";
-import type { Focus, Modes } from "@/lib/agent/types";
+import type { AskedTarget, Focus, Modes } from "@/lib/agent/types";
 import { AgentLog, NowTicker } from "./explorer/AgentLog";
 import { AppHeader } from "./explorer/AppHeader";
 import { arcs as deriveArcs, rankOf, trayCards } from "./explorer/derive";
@@ -32,17 +32,24 @@ export function Explorer({ cities, modes, hasExample = true }: { cities: string[
   // The Retry button and the try-another chips go away once a run starts, so keyboard focus
   // moves to the caption that reports the new run instead of falling back to the page.
   const focusCaption = () => caption.current?.focus({ preventScroll: true });
-  // Try-another chips start a run straight away, so the picker follows them.
-  const tryOther = (c: string, f: Focus) => {
+  // Try-another chips start a run straight away, so the picker follows them. target: the business
+  // type to check (null: a scan; absent: none, as for a scan).
+  const tryOther = (c: string, f: Focus, target: AskedTarget | null = null) => {
     act.setCity(c);
     act.setFocus(f);
-    void act.run(c, f);
+    act.setTarget(target);
+    void act.run(c, f, target);
     focusCaption();
   };
   // A retry asks the visitor's question again, even when a recording for another focus answered it.
   const retry = () => {
-    void act.run(city, state.askedFocus);
+    void act.run(city, state.askedFocus, state.askedTarget);
     focusCaption();
+  };
+  // Picking a focus goes back to scanning it.
+  const onFocus = (f: Focus) => {
+    act.setFocus(f);
+    if (state.pickTarget) act.setTarget(null);
   };
   const onFocusDone = useCallback(() => act.focusCall(null), [act]);
 
@@ -50,7 +57,16 @@ export function Explorer({ cities, modes, hasExample = true }: { cities: string[
     <div className="mx-auto w-full max-w-[1360px] px-4 md:px-6 lg:px-8">
       <AppHeader meta={state.meta} />
       <Hero idle={idle} />
-      <QueryBar state={state} cities={cities} onCity={act.setCity} onFocus={act.setFocus} onRun={() => void act.run(state.pickCity, state.pickFocus)} hasExample={hasExample} />
+      <QueryBar
+        state={state}
+        cities={cities}
+        onCity={act.setCity}
+        onFocus={onFocus}
+        onTarget={act.setTarget}
+        qlooMode={modes.qlooMode}
+        onRun={() => void act.run(state.pickCity, state.pickFocus, state.pickTarget)}
+        hasExample={hasExample}
+      />
 
       <main>
         <div className="mt-6 flex flex-col lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-x-6">

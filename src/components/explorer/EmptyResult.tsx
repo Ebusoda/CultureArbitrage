@@ -1,15 +1,17 @@
 "use client";
 
-import type { Focus } from "@/lib/agent/types";
+import { CATALOG, searchCatalog } from "@/lib/agent/catalog";
+import type { AskedTarget, Focus } from "@/lib/agent/types";
 import { emptySummary, gapScan, type GapVerdict, unfinished } from "./derive";
-import { count, FOCUS_OPTIONS, focusLabel, plural, stoppedText } from "./format";
+import { businessName, count, FOCUS_OPTIONS, focusLabel, plural, stoppedText } from "./format";
 import { QChips } from "./OpportunityDetail";
 import type { RunState } from "./useExploreRun";
 
 interface Props {
   state: RunState;
   cities: string[];
-  onTry: (city: string, focus: Focus) => void;
+  // target: a business type to check instead of a scan (absent or null: a scan).
+  onTry: (city: string, focus: Focus, target?: AskedTarget | null) => void;
   onChip: (n: number) => void;
 }
 
@@ -23,6 +25,10 @@ const VERDICT: Record<GapVerdict, string> = {
 
 export function EmptyResult({ state, cities, onTry, onChip }: Props) {
   const { city, focus, meta } = state;
+  if (state.unmatched) return <Unmatched state={state} onTry={onTry} />;
+  // The business type the run on screen checked (null for a scan, and for a recording of one).
+  const target = state.runTarget;
+  const checked = target ? businessName(state.matched?.target.label ?? target.label) : null;
   // The summary and the table come from the same rows (derive.ts), so they cannot disagree.
   const sum = emptySummary(state);
   const early = unfinished(sum);
@@ -34,14 +40,14 @@ export function EmptyResult({ state, cities, onTry, onChip }: Props) {
     <section className="fade-in">
       <h2 className="font-serif text-[26px] leading-tight">
         {early ? `No answer yet for ${city}` : `No convincing gap in ${city}`}
-        {focus !== "all" && ` for ${focusLabel(focus)}`}.
+        {checked ? ` for ${checked}` : focus !== "all" && ` for ${focusLabel(focus)}`}.
       </h2>
       <p className="mt-3 max-w-[68ch] text-[15px] text-muted">
         The agent profiled {plural(sum.hoods, "neighbourhood")} and compared {plural(sum.pairs, "taste-twin pair")}, using {used}/{meta.budget} Qloo calls.{" "}
         {sum.stopped ? (
-          <>{stoppedText(sum.stopped)} This is not an answer yet: try again, or try another city or focus.</>
+          <>{stoppedText(sum.stopped)} This is not an answer yet: try again, or try another city{target ? "" : " or focus"}.</>
         ) : sum.pairs === 0 ? (
-          <>The run ended before it could compare any pair (out of Qloo calls or time), so this is not an answer yet: try again, or try another city or focus.</>
+          <>The run ended before it could compare any pair (out of Qloo calls or time), so this is not an answer yet: try again, or try another city{target ? "" : " or focus"}.</>
         ) : (
           <>
             {sum.ruledOut > 0 && (
@@ -57,6 +63,7 @@ export function EmptyResult({ state, cities, onTry, onChip }: Props) {
             )}
             {sum.unclear > 0 && <>{plural(sum.unclear, "possible gap")} rested on a capped count, which may be too low. </>}
             {found === 0 && <>In every pair {city} already had about as much as its twin, or the twin had too few places to count as proven. </>}
+            {checked && found === 0 && sum.supplied > 0 && sum.small === 0 && <>For someone planning to open one, {city} looks well supplied with {checked} places for its tastes. </>}
             “Nothing here” is a valid answer: the agent is built to doubt itself rather than invent a gap.
           </>
         )}
@@ -65,11 +72,16 @@ export function EmptyResult({ state, cities, onTry, onChip }: Props) {
         {cities
           .filter((c) => c !== city)
           .map((c) => (
-            <button key={c} type="button" onClick={() => onTry(c, focus)} className="rounded-full border border-line bg-surface px-3 py-1 text-[13px] hover:border-ink">
+            <button key={c} type="button" onClick={() => onTry(c, focus, target)} className="rounded-full border border-line bg-surface px-3 py-1 text-[13px] hover:border-ink">
               Try {c}
             </button>
           ))}
-        {FOCUS_OPTIONS.filter((f) => f.value !== focus).map((f) => (
+        {target && (
+          <button type="button" onClick={() => onTry(city, "all", null)} className="rounded-full border border-line bg-surface px-3 py-1 text-[13px] hover:border-ink">
+            Scan everything in {city}
+          </button>
+        )}
+        {!target && FOCUS_OPTIONS.filter((f) => f.value !== focus).map((f) => (
           <button
             key={f.value}
             type="button"
@@ -116,6 +128,30 @@ export function EmptyResult({ state, cities, onTry, onChip }: Props) {
           </table>
         </div>
       )}
+    </section>
+  );
+}
+
+// The business type could not be matched to a Qloo category. The reason is the answer; close
+// names from the list are offered instead.
+function Unmatched({ state, onTry }: { state: RunState; onTry: Props["onTry"] }) {
+  const { city, focus, unmatched } = state;
+  const entries = state.meta.qlooMode === "live" ? CATALOG : CATALOG.filter((e) => e.mockTag);
+  const close = unmatched ? searchCatalog(unmatched.query.split(" ")[0] ?? "", entries, 3) : [];
+  return (
+    <section className="fade-in">
+      <h2 className="font-serif text-[26px] leading-tight">Could not check “{unmatched?.query}” in {city}.</h2>
+      <p className="mt-3 max-w-[68ch] text-[15px] text-muted">{unmatched?.reason}</p>
+      <div className="mt-4 flex flex-wrap gap-2">
+        {close.map((e) => (
+          <button key={e.key} type="button" onClick={() => onTry(city, focus, { key: e.key, label: e.label })} className="rounded-full border border-line bg-surface px-3 py-1 text-[13px] hover:border-ink">
+            Check {businessName(e.label)}
+          </button>
+        ))}
+        <button type="button" onClick={() => onTry(city, "all", null)} className="rounded-full border border-line bg-surface px-3 py-1 text-[13px] hover:border-ink">
+          Scan everything in {city}
+        </button>
+      </div>
     </section>
   );
 }

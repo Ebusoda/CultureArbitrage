@@ -3,7 +3,7 @@
 import type { OpportunityCard } from "@/lib/agent/types";
 import { MoveTitle } from "./AgentLog";
 import { currentStep, emptySummary, unfinished } from "./derive";
-import { BAND_TEXT, band, clip, count, errorText, firstSentence, focusLabel, isFading, km, PHASE_LABEL, pct, plural, stoppedText } from "./format";
+import { BAND_TEXT, band, businessName, clip, count, errorText, firstSentence, focusLabel, isFading, km, PHASE_LABEL, pct, plural, stoppedText } from "./format";
 import { ReplayBanner } from "./ReplayBanner";
 import type { RunState } from "./useExploreRun";
 
@@ -22,6 +22,8 @@ const headline = "font-serif text-[26px] leading-[1.12] tabular-nums md:text-[28
 
 export function StoryCaption({ state, selected, ruledOut, rank, total, onRetry }: Props) {
   const { status, city, focus, meta } = state;
+  // The business type the run on screen checks (null for a scan, and for a recording of one).
+  const checked = state.runTarget ? businessName(state.matched?.target.label ?? state.runTarget.label) : null;
   let top: React.ReactNode;
   let main: React.ReactNode;
   let sub: React.ReactNode = null;
@@ -34,7 +36,7 @@ export function StoryCaption({ state, selected, ruledOut, rank, total, onRetry }
       "Taiwanese bubble-tea chains opened in Tokyo from 2013; by 2019 “tapiru” was a buzzword of the year. Malatang reached Japan’s Gen Z by way of Seoul and K-pop. The demand was visible somewhere else first.";
   } else if (status === "connecting") {
     top = <span className="text-muted">Starting</span>;
-    main = `Asking Qloo about ${city}…`;
+    main = state.askedTarget ? `Asking Qloo about ${businessName(state.askedTarget.label)} in ${city}…` : `Asking Qloo about ${city}…`;
     if (meta.llmMode === "claude") sub = "Claude is planning the search…";
   } else if (status === "error" && !selected) {
     top = <span className="text-danger">Run stopped</span>;
@@ -130,20 +132,25 @@ export function StoryCaption({ state, selected, ruledOut, rank, total, onRetry }
           <p className="mt-2 text-[13px] text-danger">{errorText(state.error ?? "", meta.budget)}</p>
         </>
       );
+  } else if (status === "done" && state.unmatched) {
+    // The business type could not be matched to a Qloo category: the reason is the answer.
+    top = <span className="text-doubt">Could not check this business</span>;
+    main = `Could not check “${clip(state.unmatched.query, 40)}” in ${city}.`;
+    sub = state.unmatched.reason;
   } else if (status === "done") {
     // The try-another chips sit in the result panel below, not here.
     const sum = emptySummary(state);
     if (unfinished(sum)) {
       // Stopped early, or nothing compared: not an answer, so say so and offer a retry.
       top = <span className="text-doubt">Stopped early</span>;
-      main = `No answer yet for ${city}${focus !== "all" ? ` in ${focusLabel(focus)}` : ""}.`;
+      main = checked ? `No answer yet for ${checked} in ${city}.` : `No answer yet for ${city}${focus !== "all" ? ` in ${focusLabel(focus)}` : ""}.`;
       sub = sum.stopped
         ? `${stoppedText(sum.stopped)} The agent compared ${plural(sum.pairs, "taste-twin pair")} before it stopped.`
         : "The run ended before it could compare any taste-twin pair (out of Qloo calls or time).";
       extra = <Retry onClick={onRetry} />;
     } else {
       top = <span className="text-muted">No convincing gap</span>;
-      main = `Nothing ${city} is clearly missing${focus !== "all" ? ` in ${focusLabel(focus)}` : ""}.`;
+      main = checked ? `No convincing gap for ${checked} places in ${city}.` : `Nothing ${city} is clearly missing${focus !== "all" ? ` in ${focusLabel(focus)}` : ""}.`;
       const found = sum.ruledOut + sum.notSubmitted + sum.unclear;
       sub = found
         ? `The agent compared ${plural(sum.pairs, "taste-twin pair")}. ${[
@@ -153,7 +160,11 @@ export function StoryCaption({ state, selected, ruledOut, rank, total, onRetry }
           ]
             .filter(Boolean)
             .join("; ")}. None made it to an opportunity.`
-        : `The agent compared ${plural(sum.pairs, "taste-twin pair")}, but none of them supports something ${city} lacks. That is a real answer, not an error.`;
+        : checked
+          ? sum.supplied > 0 && sum.small === 0
+            ? `The agent compared ${plural(sum.pairs, "taste-twin pair")}: in each one, ${city} already has at least as many ${checked} places as its twin. For this type, the city looks well supplied.`
+            : `The agent compared ${plural(sum.pairs, "taste-twin pair")}. Where the twin has more, it has too few to count as proven, so no gap is established; that is not proof the city is well supplied either.`
+          : `The agent compared ${plural(sum.pairs, "taste-twin pair")}, but none of them supports something ${city} lacks. That is a real answer, not an error.`;
     }
   } else {
     const step = currentStep(state);
@@ -172,7 +183,9 @@ export function StoryCaption({ state, selected, ruledOut, rank, total, onRetry }
 
   // Screen readers hear the outcome once, not every step of the run.
   const outcome =
-    status === "done"
+    status === "done" && state.unmatched && !state.cards.length
+      ? `Could not check “${state.unmatched.query}”: ${state.unmatched.reason}`
+      : status === "done"
       ? state.cards.length
         ? `Finished: ${state.cards.length} ${state.cards.length === 1 ? "opportunity" : "opportunities"} for ${city}.`
         : unfinished(emptySummary(state))
@@ -184,7 +197,7 @@ export function StoryCaption({ state, selected, ruledOut, rank, total, onRetry }
 
   return (
     <div>
-      {state.replay && <ReplayBanner replay={state.replay} className="mb-3" focus={state.focus} askedFocus={state.askedFocus} />}
+      {state.replay && <ReplayBanner replay={state.replay} className="mb-3" focus={state.focus} askedFocus={state.askedFocus} askedTarget={state.askedTarget} runTarget={state.runTarget} />}
       <p className="sr-only" aria-live="polite">
         {outcome}
       </p>
