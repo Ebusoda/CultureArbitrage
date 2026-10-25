@@ -15,8 +15,10 @@ export function envInt(name: string, fallback: number, min: number, max: number)
 export const config = {
   // Max Qloo calls per exploration.
   callBudget: () => envInt("QLOO_CALL_BUDGET", 40, 1, 200),
-  // No new lookups after this long; the run finishes with what it has.
-  timeBudgetMs: () => envInt("EXPLORE_TIME_BUDGET_MS", 150_000, 10_000, 280_000),
+  // No new lookups after this long; the run finishes with what it has. At most 200 s, so the
+  // last lookups, a replay after a failed run and the stream's end fit in route.ts's
+  // maxDuration of 300 s; at least 30 s, so Claude (which needs 10 s left to start a turn) can run.
+  timeBudgetMs: () => envInt("EXPLORE_TIME_BUDGET_MS", 150_000, 30_000, 200_000),
   mockDelayMs: () => envInt("MOCK_DELAY_MS", 350, 0, 5_000),
   // Per-request timeout and retries for the live Qloo client.
   qlooTimeoutMs: () => envInt("QLOO_TIMEOUT_MS", 10_000, 1_000, 60_000),
@@ -30,8 +32,11 @@ export const config = {
   // Protects the public demo's Qloo and Claude credit.
   maxConcurrentRuns: () => envInt("EXPLORE_MAX_CONCURRENT", 3, 1, 50),
   runsPerIpPerHour: () => envInt("EXPLORE_RUNS_PER_IP_PER_HOUR", 20, 1, 10_000),
-  // EXPLORE_FORCE_REPLAY=1: every request plays the city's recorded run instead of running live.
-  forceReplay: () => ["1", "true"].includes((process.env.EXPLORE_FORCE_REPLAY ?? "").trim().toLowerCase()),
+  // Every request plays the city's recorded run instead of running live, when
+  // EXPLORE_FORCE_REPLAY=1 or the kill switch EXPLORE_LIVE_ENABLED=false is set.
+  forceReplay: () =>
+    ["1", "true"].includes((process.env.EXPLORE_FORCE_REPLAY ?? "").trim().toLowerCase()) ||
+    ["0", "false", "off", "no"].includes((process.env.EXPLORE_LIVE_ENABLED ?? "").trim().toLowerCase()),
   // How long a recorded run takes to play back (it never plays slower than it ran live).
   replayMs: () => envInt("EXPLORE_REPLAY_SECONDS", 20, 0, 120) * 1000,
 };

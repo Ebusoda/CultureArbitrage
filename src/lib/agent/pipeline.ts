@@ -3,10 +3,12 @@ import { CITIES } from "../cities";
 import { categoriesFor, categoryLabel } from "./categories";
 import type { Evidence } from "./evidence";
 import type { RunContext } from "./run";
-import { buildCard, isGap, MIN_CONFIDENCE } from "./score";
+import { buildCard, cardId, isGap, MIN_CONFIDENCE } from "./score";
 import type { ExploreRequest, OpportunityCard } from "./types";
 
 const HOODS_TO_PROFILE = 3;
+// Claude lists this many; a fallback run reuses that list instead of asking Qloo again.
+const CLAUDE_HOODS = 5;
 const MAX_CARDS = 4;
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e)).slice(0, 200);
@@ -18,24 +20,48 @@ export async function runPipeline(req: ExploreRequest, ev: Evidence, ctx: RunCon
   const categories = categoriesFor(req.focus);
   const otherCities = CITIES.filter((c) => c !== req.city);
   const outOfTime = () => Date.now() > deadline;
+  // Ids already shown or ruled out in this run (by Claude, before a fallback): not looked at again.
+  const skip = (id: string) => ctx.skip?.(id) ?? false;
+  if (outOfTime()) {
+    step("think", "Out of time, stopping with what was found");
+    return [];
+  }
 
   step("profile", `Listing neighbourhoods in ${req.city}`);
-  const hoods = await ev.listNeighbourhoods(req.city, HOODS_TO_PROFILE);
+  const listed = ev.peek<{ name: string }[]>(`hoods:${ev.city(req.city)}:${CLAUDE_HOODS}`);
+  const hoods = listed ? listed.slice(0, HOODS_TO_PROFILE) : await ev.listNeighbourhoods(req.city, HOODS_TO_PROFILE);
   if (!hoods.length) throw new Error(`Qloo returned no neighbourhoods for ${req.city}.`);
 
+  // The run said it stopped early, or a loop below was cut short by the time limit (then the
+  // run must say so too, not look like "nothing found").
+  let stopReported = false;
+  let cutShort = false;
+  const stopped = (s: { reason: "budget" | "time"; unscored: number }) => {
+    stopReported = true;
+    ctx.onStopped?.(s);
+  };
   const pairs: { hood: string; twin: string; twinCity: string; similarity: number }[] = [];
   for (const { name } of hoods) {
-    if (outOfTime()) break;
+    if (outOfTime()) {
+      cutShort = true;
+      break;
+    }
     try {
       step("profile", `Reading the taste profile of ${name}`);
       const tastes = await ev.tasteProfile(name, req.city);
       if (!tastes.length) continue;
       step("twins", `Looking for taste twins of ${name}`, tastes.map((t) => t.name).join(" · "));
       let best: (typeof pairs)[number] | null = null;
+      // Each city on its own: a failed lookup in one keeps the twin found in the other.
       for (const other of otherCities) {
-        const twin = (await ev.findTwins(name, req.city, other, 1))[0];
-        if (twin && (!best || twin.similarity > best.similarity)) {
-          best = { hood: name, twin: twin.name, twinCity: other, similarity: twin.similarity };
+        try {
+          const twin = (await ev.findTwins(name, req.city, other, 1))[0];
+          if (twin && (!best || twin.similarity > best.similarity)) {
+            best = { hood: name, twin: twin.name, twinCity: other, similarity: twin.similarity };
+          }
+        } catch (e) {
+          if (isFatalQlooError(e)) throw e;
+          step("twins", `Skipped twins of ${name} in ${other}: Qloo lookup failed`, message(e));
         }
       }
       if (best) pairs.push(best);
@@ -47,20 +73,25 @@ export async function runPipeline(req: ExploreRequest, ev: Evidence, ctx: RunCon
 
   const gaps: { pair: (typeof pairs)[number]; cat: string; home: number; twin: number }[] = [];
   for (const pair of pairs) {
-    if (outOfTime()) break;
+    if (outOfTime()) {
+      cutShort = true;
+      break;
+    }
     try {
       step("compare", `Comparing ${pair.hood} with ${pair.twin}, ${pair.twinCity}`);
       const home = await ev.supply(pair.hood, req.city);
       const twin = await ev.supply(pair.twin, pair.twinCity);
+      ctx.onCompare?.(true);
       for (const cat of categories) {
         const t = twin.counts[cat] ?? 0;
         let h = home.counts[cat] ?? 0;
         // A capped home page is a sample: before calling something a gap, count it on its own.
         if (home.capped && isGap(t, h)) h = (await ev.homeCount(pair.hood, req.city, cat)).count;
-        if (isGap(t, h)) gaps.push({ pair, cat, home: h, twin: t });
+        if (isGap(t, h) && !skip(cardId(pair.hood, pair.twin, pair.twinCity, cat))) gaps.push({ pair, cat, home: h, twin: t });
       }
     } catch (e) {
       if (isFatalQlooError(e)) throw e;
+      ctx.onCompare?.(false);
       step("compare", `Skipped ${pair.hood} vs ${pair.twin}: Qloo lookup failed`, message(e));
     }
   }
@@ -68,10 +99,12 @@ export async function runPipeline(req: ExploreRequest, ev: Evidence, ctx: RunCon
 
   const cards: OpportunityCard[] = [];
   // Gaps its own checks rule out don't use up a slot: keep going until there are enough.
-  for (const g of gaps) {
+  for (const [i, g] of gaps.entries()) {
     if (cards.length >= MAX_CARDS) break;
     if (ev.qloo.remaining < 5 || outOfTime()) {
       step("score", "Stopping early to stay within the Qloo budget and time limit");
+      // Found but never scored: the run says so instead of looking like "nothing found".
+      stopped({ reason: outOfTime() ? "time" : "budget", unscored: gaps.length - i });
       break;
     }
     const label = categoryLabel(g.cat);
@@ -98,12 +131,15 @@ export async function runPipeline(req: ExploreRequest, ev: Evidence, ctx: RunCon
     }
 
     step("score", `Scoring ${label} in ${g.pair.hood}`);
-    const tastes = ev.peek<{ name: string }[]>(`taste:${g.pair.hood}, ${req.city}`) ?? [];
-    const why =
-      `People in ${g.pair.hood} share their taste profile with ${g.pair.twin} (${tastes.map((t) => t.name).join(", ")}). ` +
-      `That audience supports ${g.twin} ${label.toLowerCase()} places in ${g.pair.twin}, but ${g.pair.hood} has only ${g.home}.`;
     try {
-      const card = buildCard(ev, { category: g.cat, hood: g.pair.hood, city: req.city, twin: g.pair.twin, twinCity: g.pair.twinCity, why, doubts: [], productFit: null });
+      const card = buildCard(ev, { category: g.cat, hood: g.pair.hood, city: req.city, twin: g.pair.twin, twinCity: g.pair.twinCity, why: "", doubts: [], productFit: null });
+      // The tastes named are the card's own shared tastes (the twin's, when known).
+      const tastes = card.sharedTastes.map((t) => t.name);
+      card.why =
+        `People in ${g.pair.hood} share their taste profile with ${g.pair.twin}${tastes.length ? ` (${tastes.join(", ")})` : ""}. ` +
+        `That audience supports ${card.capped.twin ? "at least " : ""}${card.twinCount} ${label.toLowerCase()} places in ${g.pair.twin}, ` +
+        `but ${g.pair.hood} has ${card.capped.home ? `at least ${card.homeCount} (a capped count)` : `only ${card.homeCount}`}.`;
+      card.author = "pipeline";
       if (card.google?.verdict === "contradicts") {
         ctx.onRejected?.(card, "Ruled out by a cross-check against a second index (see the card)");
         continue;
@@ -117,6 +153,11 @@ export async function runPipeline(req: ExploreRequest, ev: Evidence, ctx: RunCon
     } catch (e) {
       step("score", `Skipped ${label} in ${g.pair.hood}`, message(e));
     }
+  }
+  // Out of time before every neighbourhood was profiled or every pair compared.
+  if (cutShort && !stopReported) {
+    step("score", "Stopping early to stay within the time limit");
+    stopped({ reason: "time", unscored: 0 });
   }
   return cards;
 }

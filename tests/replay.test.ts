@@ -7,7 +7,11 @@ import { initialState, reducer, type RunState } from "../src/components/explorer
 import type { AgentEvent, OpportunityCard } from "../src/lib/agent/types";
 import { exploreResponse, REPLAY_REASON, type ExploreDeps } from "../src/lib/explore-stream";
 import { admit, resetLimits, runningCount } from "../src/lib/limits";
-import { MAX_REPLAY_GAP_MS, playRecording, recordingFor, replayDelays, type RecordedEvent, type Recording } from "../src/lib/replay";
+import { MAX_REPLAY_GAP_MS, playRecording, recordingFor, replayDelays, usableRecording, type RecordedEvent, type Recording } from "../src/lib/replay";
+import { CITIES } from "../src/lib/cities";
+import { QlooError } from "../src/lib/qloo";
+import sampleRun from "../src/data/sample-run.json";
+import tokyoFile from "../src/data/replays/tokyo.json";
 
 process.env.MOCK_DELAY_MS = "0";
 process.env.QLOO_MODE = "mock";
@@ -37,7 +41,7 @@ function withoutT(e: object) {
 
 const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
 
-// The real Tokyo recording (src/data/sample-run.json until src/data/replays/tokyo.json holds one).
+// The real Tokyo recording, from src/data/replays/tokyo.json (sample-run.json is only its fallback).
 const TOKYO = recordingFor("Tokyo")!;
 
 // A small recording, for the paths that don't need the real one.
@@ -55,16 +59,29 @@ const mustNotRunLive: ExploreDeps["explore"] = async () => assert.fail("nothing 
 const card = { id: "c1", category: "Bagels" } as unknown as OpportunityCard;
 const liveStart = (city: string): AgentEvent => ({ type: "start", city, focus: "all", qlooMode: "live", llmMode: "none", budget: 40 });
 
-test("recordings: Tokyo has one, from its own start to done; a placeholder file counts as none", () => {
-  assert.ok(TOKYO, "Tokyo has a recording");
-  assert.equal(TOKYO.events[0].type, "start");
-  assert.equal(TOKYO.events.at(-1)?.type, "done");
-  assert.ok(!TOKYO.events.some((e) => e.type === "error" || e.type === "replay"));
-  for (const city of ["New York", "Seoul"]) {
+test("recordings: every city has one, a whole run of that city from its own start to done", () => {
+  for (const city of CITIES) {
     const rec = recordingFor(city);
-    if (rec) assert.equal((rec.events[0] as Extract<AgentEvent, { type: "start" }>).city, city, `${city}'s recording is a run of ${city}`);
+    assert.ok(rec, `${city} has a usable recording`);
+    const start = rec.events[0];
+    assert.ok(start.type === "start", `${city}'s recording opens with its start event`);
+    assert.equal(start.city, city, `${city}'s recording is a run of ${city}`);
+    assert.equal(rec.events.at(-1)?.type, "done", `${city}'s recording ends with done`);
+    assert.ok(!rec.events.some((e) => e.type === "error" || e.type === "replay"), `${city}'s recording has no error or replay`);
   }
+  // Tokyo plays its own recording, not the older sample run it falls back to.
+  assert.equal(TOKYO.recordedAt, tokyoFile.recordedAt, "Tokyo's recording comes from replays/tokyo.json");
+  assert.notEqual(TOKYO.recordedAt, sampleRun.recordedAt);
   assert.equal(recordingFor("Paris"), null);
+});
+
+test("recordings: a placeholder file (no events) or a broken one counts as none", () => {
+  assert.equal(usableRecording({ recordedAt: "2026-10-24T09:00:00.000Z", events: [] }, "Tokyo"), null, "placeholder");
+  assert.equal(usableRecording({ events: tiny.events }, "Tokyo"), null, "no recordedAt");
+  assert.equal(usableRecording(tiny, "Seoul"), null, "a run of another city");
+  assert.equal(usableRecording({ ...tiny, events: tiny.events.slice(0, 2) }, "Tokyo"), null, "no done");
+  assert.equal(usableRecording({ ...tiny, events: [...tiny.events.slice(0, 2), { type: "error", message: "x" }, tiny.events[2]] }, "Tokyo"), null, "an error inside");
+  assert.deepEqual(usableRecording(tiny, "Tokyo"), tiny, "a whole run is usable as is");
 });
 
 test("EXPLORE_FORCE_REPLAY=1: the route streams replay, then the recording from start to done, unchanged", async () => {
@@ -94,6 +111,67 @@ test("EXPLORE_FORCE_REPLAY=1: the route streams replay, then the recording from 
   } finally {
     delete process.env.EXPLORE_FORCE_REPLAY;
   }
+});
+
+test("EXPLORE_LIVE_ENABLED=false is a kill switch: recordings only, nothing runs live", async () => {
+  resetLimits();
+  process.env.EXPLORE_LIVE_ENABLED = "false";
+  try {
+    const events = await lines(exploreResponse(TOKYO_ALL, post("Tokyo"), { recording: () => tiny, explore: mustNotRunLive }));
+    assert.deepEqual(withoutT(events[0]), { type: "replay", recordedAt: tiny.recordedAt, reason: REPLAY_REASON.forced });
+    assert.deepEqual(types(events), ["replay", "start", "step", "done"]);
+    assert.equal(runningCount(), 0);
+    const none = exploreResponse(TOKYO_ALL, post("Tokyo"), { recording: () => null, explore: mustNotRunLive });
+    assert.equal(none.status, 503);
+  } finally {
+    delete process.env.EXPLORE_LIVE_ENABLED;
+  }
+  // Any other value (or none) leaves live runs on.
+  for (const v of ["true", "1", ""]) {
+    process.env.EXPLORE_LIVE_ENABLED = v;
+    let ran = false;
+    await lines(exploreResponse(TOKYO_ALL, post("Tokyo"), { recording: () => tiny, explore: async (req, emit) => { ran = true; emit({ type: "done", callsUsed: 0, budget: 40, cards: 0 }); } }));
+    assert.ok(ran, `EXPLORE_LIVE_ENABLED=${v} runs live`);
+  }
+  delete process.env.EXPLORE_LIVE_ENABLED;
+});
+
+test("the route refuses a body not declared as application/json (cross-site simple POSTs)", async () => {
+  resetLimits();
+  const { POST } = await import("../src/app/api/explore/route");
+  const send = (headers: Record<string, string>) => POST(new Request("http://x/api/explore", { method: "POST", headers, body: '{"city":"Tokyo"}' }));
+  assert.equal((await send({})).status, 415);
+  assert.equal((await send({ "content-type": "text/plain; x=application/json" })).status, 415);
+  assert.equal(runningCount(), 0, "nothing was admitted");
+});
+
+test("a viewer leaving aborts the live run and frees its slot at once", async () => {
+  resetLimits();
+  const viewer = new AbortController();
+  const request = new Request("http://x/api/explore", { method: "POST", headers: { "content-type": "application/json" }, body: "{}", signal: viewer.signal });
+  let sawAbort = false;
+  let finish!: () => void;
+  const finished = new Promise<void>((r) => (finish = r));
+  const res = exploreResponse(TOKYO_ALL, request, {
+    recording: () => tiny,
+    explore: (req, emit, { signal }) =>
+      new Promise<void>((resolve) => {
+        emit(liveStart(req.city));
+        // A live run stops at its next lookup once the signal fires; this one stops at once.
+        signal.addEventListener("abort", () => {
+          sawAbort = true;
+          resolve();
+          finish();
+        });
+      }),
+  });
+  assert.equal(runningCount(), 1, "the live run holds a slot");
+  viewer.abort();
+  assert.equal(runningCount(), 0, "the slot is freed as soon as the viewer leaves");
+  await finished;
+  assert.ok(sawAbort, "the run's signal (passed to Qloo, Claude and Google) is aborted");
+  await res.body?.cancel().catch(() => {});
+  assert.equal(runningCount(), 0, "and not released twice");
 });
 
 test("a refused admit() replays when a recording exists (200, Retry-After kept) and 429s when not", async () => {
@@ -152,7 +230,8 @@ test("a live run that fails before any card is replaced by the recording; later 
   const thrown = await run(async (req, emit) => {
     emit(liveStart(req.city));
     emit({ type: "step", id: "s1", phase: "profile", title: "Listing neighbourhoods in Tokyo" });
-    throw new Error("Qloo rejected the API key");
+    // The banner shows a fixed public sentence for the error kind, never the raw upstream text.
+    throw new QlooError("auth", "Qloo /v2/insights failed: 401 raw upstream body");
   });
   assert.deepEqual(types(thrown), ["start", "step", "replay", "start", "step", "done"], "the partial live run, then the recording");
   assert.deepEqual(withoutT(thrown[2]), { type: "replay", recordedAt: tiny.recordedAt, reason: REPLAY_REASON.failed("Qloo rejected the API key") });
@@ -267,9 +346,12 @@ test("pacing: a 90 s run plays in 15-25 s, in order, never slower than it ran", 
 
 test("the page drops the partial live run on a replay event and keeps the banner until the next run", () => {
   const ev = (event: AgentEvent | RecordedEvent) => (s: RunState) => reducer(s, { type: "event", event });
-  let s = initialState("Tokyo", { qlooMode: "live", llmMode: "claude", budget: 40 });
+  // The live run starts in other modes than the recording's, so the meta checks below can only
+  // pass if the recording's own start replaces them.
+  let s = initialState("Tokyo", { qlooMode: "mock", llmMode: "none", budget: 12 });
   s = reducer(s, { type: "reset", city: "Tokyo", focus: "dining" });
-  s = ev({ type: "start", city: "Tokyo", focus: "dining", qlooMode: "live", llmMode: "claude", budget: 40 })(s);
+  s = ev({ type: "start", city: "Tokyo", focus: "dining", qlooMode: "mock", llmMode: "none", budget: 12 })(s);
+  assert.equal(s.meta.model, undefined);
   s = ev({ type: "step", id: "s1", phase: "profile", title: "a live step" })(s);
   s = ev({ type: "replay", recordedAt: TOKYO.recordedAt, reason: REPLAY_REASON.busy })(s);
   assert.equal(s.steps.length, 0, "the partial live run is gone");
@@ -279,8 +361,11 @@ test("the page drops the partial live run on a replay event and keeps the banner
   for (const e of TOKYO.events) s = ev(e)(s);
   const recorded = TOKYO.events[0] as Extract<AgentEvent, { type: "start" }>;
   assert.equal(s.status, "done");
+  assert.ok(recorded.qlooMode !== "mock" && recorded.llmMode !== "none" && recorded.budget !== 12 && recorded.model, "the recording ran in other modes than the live start");
   assert.equal(s.meta.qlooMode, recorded.qlooMode);
   assert.equal(s.meta.llmMode, recorded.llmMode);
+  assert.equal(s.meta.model, recorded.model);
+  assert.equal(s.meta.budget, recorded.budget);
   assert.equal(s.focus, recorded.focus, "the focus shown is the one the recording ran with");
   assert.ok(s.replay, "the banner stays while the recording is on screen");
 

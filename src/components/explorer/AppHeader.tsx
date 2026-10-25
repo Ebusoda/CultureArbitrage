@@ -1,18 +1,18 @@
 import type { Meta } from "./useExploreRun";
 
-export const REPO_URL = "https://github.com/";
+export const REPO_URL = "https://github.com/Ebusoda/CultureArbitrage";
 
 export function QlooBadge({ meta }: { meta: Meta }) {
   return meta.qlooMode === "live" ? (
-    <span title="Every number comes from live Qloo API responses." className="whitespace-nowrap rounded-full border border-twin/30 bg-twin/10 px-2.5 py-0.5 text-[12px] text-twin">
-      Qloo · live data
+    <span title="Taste and place numbers come from live Qloo API responses; other sources are labelled where they appear." className="whitespace-nowrap rounded-full border border-twin/30 bg-twin/10 px-2.5 py-0.5 text-[12px] text-twin">
+      Live Qloo data
     </span>
   ) : (
     <span
-      title="Qloo responses are simulated from hand-made sample data until the API key arrives."
+      title="Sample data: demo numbers, not real Qloo data. The site falls back to this when no Qloo key is set."
       className="whitespace-nowrap rounded-full border border-doubt/30 bg-doubt/10 px-2.5 py-0.5 text-[12px] text-doubt"
     >
-      Qloo · sample data
+      Sample data
     </span>
   );
 }
@@ -20,14 +20,14 @@ export function QlooBadge({ meta }: { meta: Meta }) {
 export function AgentBadge({ meta }: { meta: Meta }) {
   return meta.llmMode === "claude" ? (
     <span title={`Claude plans the search and calls Qloo through tools${meta.model ? ` (${meta.model})` : ""}.`} className="rounded-full border border-llm/30 bg-llm/10 px-2.5 py-0.5 text-[12px] text-llm">
-      Agent · Claude
+      Planned by Claude
     </span>
   ) : (
     <span
       title={meta.fallbackReason ? `Claude was unavailable (${meta.fallbackReason}), so the fixed pipeline ran.` : "A fixed sequence of Qloo lookups, with no language model."}
       className="rounded-full border border-line px-2.5 py-0.5 text-[12px] text-muted"
     >
-      Agent · fixed pipeline (no LLM)
+      Fixed pipeline, no LLM
     </span>
   );
 }

@@ -8,7 +8,7 @@ import landTopo from "world-atlas/land-110m.json";
 import { CITY_COORDS, PRECEDENTS } from "@/lib/cities";
 import type { Arc } from "./derive";
 import { pct } from "./format";
-import { useElementSize, usePrefersReducedMotion } from "./hooks";
+import { useCaptionOverMap, useElementSize, usePrefersReducedMotion } from "./hooks";
 import type { Status } from "./useExploreRun";
 
 const topo = landTopo as unknown as Topology<{ land: GeometryCollection }>;
@@ -62,6 +62,11 @@ interface Props {
   // Card auto-selected when the run finished; its arc plays a one-off reveal.
   revealId: string | null;
   onSelect: (id: string) => void;
+  // Twin pair of the selected idea (linkKey), so a ruled-out idea, which has no route of its own,
+  // still highlights the pair it came from.
+  selectedKey?: string | null;
+  // Live data: the twin score is the shared-taste score (share of tags in common), not a Qloo affinity.
+  sharedTaste?: boolean;
 }
 
 export function RouteMap(props: Props) {
@@ -72,10 +77,12 @@ export function RouteMap(props: Props) {
   );
 }
 
-function MapSvg({ cities, home, status, arcs, selectedId, revealId, onSelect }: Props) {
+function MapSvg({ cities, home, status, arcs, selectedId, revealId, onSelect, selectedKey = null, sharedTaste = false }: Props) {
+  const scoreName = sharedTaste ? "shared-taste score" : "taste affinity";
   const box = useRef<HTMLDivElement>(null);
   const { w, h } = useElementSize(box);
   const reduced = usePrefersReducedMotion();
+  const captionOver = useCaptionOverMap();
   const idle = status === "idle";
   const phone = w < 640;
 
@@ -92,16 +99,22 @@ function MapSvg({ cities, home, status, arcs, selectedId, revealId, onSelect }: 
             [lng - 12, lat - 12],
             [lng + 12, lat + 12],
           ];
-    const extent: [Pt, Pt] = phone
+    // When the caption floats over the bottom of the map (lg), the cities sit in the top part, out of its way.
+    const extent: [Pt, Pt] = captionOver
       ? [
-          [0.2 * w, 0.34 * h],
-          [0.9 * w, 0.86 * h],
+          [0.16 * w, 0.16 * h],
+          [0.9 * w, 0.4 * h],
         ]
-      : [
-          // Extra room on the left for labels that sit left of the westmost cities.
-          [0.16 * w, 0.28 * h],
-          [0.9 * w, 0.54 * h],
-        ];
+      : phone
+        ? [
+            [0.2 * w, 0.34 * h],
+            [0.9 * w, 0.86 * h],
+          ]
+        : [
+            // Extra room on the left for labels that sit left of the westmost cities.
+            [0.16 * w, 0.28 * h],
+            [0.9 * w, 0.54 * h],
+          ];
     const proj = geoEqualEarth()
       .rotate([-center, 0])
       .fitExtent(extent, { type: "MultiPoint", coordinates: fit })
@@ -111,7 +124,7 @@ function MapSvg({ cities, home, status, arcs, selectedId, revealId, onSelect }: 
       ]);
     const path = geoPath(proj).digits(1);
     return { proj, land: path(LAND) ?? "", graticule: path(GRATICULE) ?? "" };
-  }, [onMap, center, w, h, phone]);
+  }, [onMap, center, w, h, phone, captionOver]);
 
   const at = (city: string): Pt | null => {
     const c = CITY_COORDS[city];
@@ -119,7 +132,7 @@ function MapSvg({ cities, home, status, arcs, selectedId, revealId, onSelect }: 
     return p ? [Math.round(p[0] * 10) / 10, Math.round(p[1] * 10) / 10] : null;
   };
 
-  const selectedArc = arcs.find((a) => a.cards.some((c) => c.id === selectedId)) ?? null;
+  const selectedArc = arcs.find((a) => a.cards.some((c) => c.id === selectedId)) ?? (selectedKey ? (arcs.find((a) => a.key === selectedKey) ?? null) : null);
   const drawn = arcs
     .map((a) => {
       const p0 = at(a.link.twinCity);
@@ -158,7 +171,7 @@ function MapSvg({ cities, home, status, arcs, selectedId, revealId, onSelect }: 
   const notOnMap = cities.filter((c) => !CITY_COORDS[c]);
   const label = idle
     ? "Map of past trend routes: boba from Taipei to Tokyo; malatang from Seoul to Tokyo."
-    : `Map. Home city ${home}. ${arcs.length} taste twins found.` +
+    : `Map. Home city ${home}. ${arcs.length} ${arcs.length === 1 ? "taste twin" : "taste twins"} found.` +
       (arcs.some((a) => a.cards.length)
         ? ` Opportunities: ${arcs
             .flatMap((a) => a.cards.map((c) => `${c.category} from ${c.twinLocality}, ${c.twinCity} to ${c.homeLocality}, ${c.homeCity}`))
@@ -191,17 +204,21 @@ function MapSvg({ cities, home, status, arcs, selectedId, revealId, onSelect }: 
 
         {twinArcs.map((a) => {
           const base = (a.link.rank ?? 1) === 1 ? 0.25 + 0.5 * a.link.similarity : 0.2;
+          // The pair behind a selected ruled-out idea: full strength, with the doubt-coloured halo.
+          const selected = a.key === selectedArc?.key;
           return (
-            <path
-              key={a.key}
-              d={a.geo.d}
-              className="fade-in fill-none stroke-twin"
-              strokeWidth={1.5}
-              strokeLinecap="round"
-              style={{ opacity: base * dim(a), transition: "opacity 300ms" }}
-            >
-              <title>{`${a.link.twin}, ${a.link.twinCity} → ${a.link.home}, ${a.link.homeCity} · taste affinity ${a.link.similarity.toFixed(2)}`}</title>
-            </path>
+            <g key={a.key}>
+              {selected && <path d={a.geo.d} className="fill-none stroke-doubt" strokeWidth={11} strokeLinecap="round" style={{ opacity: 0.14 }} />}
+              <path
+                d={a.geo.d}
+                className="fade-in fill-none stroke-twin"
+                strokeWidth={1.5}
+                strokeLinecap="round"
+                style={{ opacity: selected ? 1 : base * dim(a), transition: "opacity 300ms" }}
+              >
+                <title>{`${a.link.twin}, ${a.link.twinCity} → ${a.link.home}, ${a.link.homeCity} · ${scoreName} ${a.link.similarity.toFixed(2)}`}</title>
+              </path>
+            </g>
           );
         })}
 
@@ -210,9 +227,9 @@ function MapSvg({ cities, home, status, arcs, selectedId, revealId, onSelect }: 
           const top = a.cards.reduce((b, c) => (c.confidence > b.confidence ? c : b));
           const fading = a.state === "fading";
           const title =
-            `${a.link.twin}, ${a.link.twinCity} → ${a.link.home}, ${a.link.homeCity} · taste affinity ${a.link.similarity.toFixed(2)} · ` +
+            `${a.link.twin}, ${a.link.twinCity} → ${a.link.home}, ${a.link.homeCity} · ${scoreName} ${a.link.similarity.toFixed(2)} · ` +
             a.cards.map((c) => `${c.category} ${pct(c.confidence)}%`).join(" · ");
-          const apexText = fading ? `${a.cards[0].category} · fading` : a.cards.map((c) => c.category).join(" · ");
+          const apexText = fading ? `${a.cards[0].category}, fading` : a.cards.map((c) => c.category).join(", ");
           return (
             <g key={a.key} style={{ opacity: dim(a), transition: "opacity 300ms" }}>
               {selected && (

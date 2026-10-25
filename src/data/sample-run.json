@@ -1302,7 +1302,7 @@
       "label": "Proven elsewhere",
       "value": 1,
       "source": "Qloo",
-      "note": "38 places in Manhattan"
+      "note": "at least 38 places in Manhattan"
      },
      {
       "key": "bridge",
@@ -1323,7 +1323,7 @@
       "label": "Local undersupply",
       "value": 0.9736842105263158,
       "source": "Qloo",
-      "note": "1 in Shibuya-ku vs 38 in Manhattan, 15 across Tokyo"
+      "note": "1 in Shibuya-ku vs at least 38 in Manhattan, 15 across Tokyo"
      },
      {
       "key": "fit",
@@ -1340,23 +1340,22 @@
       "note": "Not measurable: Qloo's trend data covers artists, brands, films and TV, not places"
      }
     ],
-    "confidence": 0.57,
+    "confidence": 0.61,
     "confidenceMath": {
      "mean": 0.71,
      "measured": 5,
-     "doubts": 4,
-     "penalty": 0.8
+     "doubts": 3,
+     "penalty": 0.85
     },
     "doubts": [
      "Bagel fans skew female and 55+ (positive 55+ and 45-54 affinity), while Shibuya-ku residents lean toward 35-44 and 45-54, so the core audience is only a partial match.",
      "The New York count is from a capped sample, so the true twin count may differ.",
-     "Place counts come from a capped sample of Qloo results, not a full census.",
      "15 exist elsewhere in Tokyo, so the gap may be local only."
     ],
     "trail": [
      {
-      "label": "Gap found: 38 in Manhattan, 1 in Shibuya-ku",
-      "confidence": 0.84,
+      "label": "Gap found: at least 38 in Manhattan, 1 in Shibuya-ku",
+      "confidence": 0.89,
       "calls": [
        12,
        13
@@ -1364,21 +1363,21 @@
      },
      {
       "label": "Checked the rest of Tokyo: 15 places",
-      "confidence": 0.8,
+      "confidence": 0.84,
       "calls": [
        14
       ]
      },
      {
       "label": "Checked who it is for: 31% age match",
-      "confidence": 0.67,
+      "confidence": 0.71,
       "calls": [
        17
       ]
      },
      {
       "label": "Final score, with product fit 60%, 2 doubts of its own",
-      "confidence": 0.57,
+      "confidence": 0.61,
       "calls": []
      }
     ],
@@ -1481,7 +1480,7 @@
       "label": "Proven elsewhere",
       "value": 0.8,
       "source": "Qloo",
-      "note": "12 places in Union Square"
+      "note": "at least 12 places in Union Square"
      },
      {
       "key": "bridge",
@@ -1502,7 +1501,7 @@
       "label": "Local undersupply",
       "value": 0.5,
       "source": "Qloo",
-      "note": "2 in Shinjuku vs 12 in Union Square, 27 across Tokyo"
+      "note": "2 in Shinjuku vs at least 12 in Union Square, 27 across Tokyo"
      },
      {
       "key": "fit",
@@ -1519,23 +1518,22 @@
       "note": "Not measurable: Qloo's trend data covers artists, brands, films and TV, not places"
      }
     ],
-    "confidence": 0.41,
+    "confidence": 0.43,
     "confidenceMath": {
      "mean": 0.51,
      "measured": 5,
-     "doubts": 4,
-     "penalty": 0.8
+     "doubts": 3,
+     "penalty": 0.85
     },
     "doubts": [
      "Record store fans skew 45+ and female, while Shinjuku residents skew 24 and younger and 25-29, so the core audience does not match well.",
      "Tokyo has 27 record stores citywide, so the category is not scarce, and the New York count is from a capped sample.",
-     "Place counts come from a capped sample of Qloo results, not a full census.",
      "27 exist elsewhere in Tokyo, so the gap may be local only."
     ],
     "trail": [
      {
-      "label": "Gap found: 12 in Union Square, 2 in Shinjuku",
-      "confidence": 0.74,
+      "label": "Gap found: at least 12 in Union Square, 2 in Shinjuku",
+      "confidence": 0.78,
       "calls": [
        9,
        11
@@ -1543,21 +1541,21 @@
      },
      {
       "label": "Checked the rest of Tokyo: 27 places",
-      "confidence": 0.6,
+      "confidence": 0.63,
       "calls": [
        15
       ]
      },
      {
       "label": "Checked who it is for: 10% age match",
-      "confidence": 0.47,
+      "confidence": 0.5,
       "calls": [
        18
       ]
      },
      {
       "label": "Final score, with product fit 45%, 2 doubts of its own",
-      "confidence": 0.41,
+      "confidence": 0.43,
       "calls": []
      }
     ],
@@ -2004,7 +2002,7 @@
       "label": "Proven elsewhere",
       "value": 0.3333333333333333,
       "source": "Qloo",
-      "note": "5 places in Midtown East"
+      "note": "at least 5 places in Midtown East"
      },
      {
       "key": "bridge",
@@ -2025,7 +2023,7 @@
       "label": "Local undersupply",
       "value": 1,
       "source": "Qloo",
-      "note": "0 in Chiyoda-ku vs 5 in Midtown East, 4 across Tokyo"
+      "note": "0 in Chiyoda-ku vs at least 5 in Midtown East, 4 across Tokyo"
      },
      {
       "key": "fit",
@@ -2042,23 +2040,22 @@
       "note": "Not measurable: Qloo's trend data covers artists, brands, films and TV, not places"
      }
     ],
-    "confidence": 0.46,
+    "confidence": 0.49,
     "confidenceMath": {
      "mean": 0.57,
      "measured": 5,
-     "doubts": 4,
-     "penalty": 0.8
+     "doubts": 3,
+     "penalty": 0.85
     },
     "doubts": [
      "Fans skew 55+ and female, while Chiyoda-ku residents are only mildly older (35-54 modestly positive), so the core audience fit is partial.",
      "The Midtown East count is from a capped sample, and the twin similarity of 0.63 is moderate.",
-     "Thin evidence: only 5 places in Midtown East.",
-     "Place counts come from a capped sample of Qloo results, not a full census."
+     "Thin evidence: 5 places counted in Midtown East, from a capped sample (there may be more)."
     ],
     "trail": [
      {
-      "label": "Gap found: 5 in Midtown East, 0 in Chiyoda-ku",
-      "confidence": 0.59,
+      "label": "Gap found: at least 5 in Midtown East, 0 in Chiyoda-ku",
+      "confidence": 0.62,
       "calls": [
        21,
        22
@@ -2066,21 +2063,21 @@
      },
      {
       "label": "Checked the rest of Tokyo: 4 places",
-      "confidence": 0.59,
+      "confidence": 0.62,
       "calls": [
        23
       ]
      },
      {
       "label": "Checked who it is for: 41% age match",
-      "confidence": 0.53,
+      "confidence": 0.56,
       "calls": [
        24
       ]
      },
      {
       "label": "Final score, with product fit 50%, 2 doubts of its own",
-      "confidence": 0.46,
+      "confidence": 0.49,
       "calls": []
      }
     ],
@@ -2131,7 +2128,7 @@
    "t": 83069
   },
   {
-   "type": "rejected",
+   "type": "card",
    "card": {
     "id": "Chiyoda-ku|Midtown East|New York|urn:tag:genre:place:restaurant:bagel_shop",
     "category": "Bagel shop",
@@ -2183,7 +2180,7 @@
       "label": "Proven elsewhere",
       "value": 1,
       "source": "Qloo",
-      "note": "30 places in Midtown East"
+      "note": "at least 30 places in Midtown East"
      },
      {
       "key": "bridge",
@@ -2204,7 +2201,7 @@
       "label": "Local undersupply",
       "value": 0.9333333333333333,
       "source": "Qloo",
-      "note": "2 in Chiyoda-ku vs 30 in Midtown East, 15 across Tokyo"
+      "note": "2 in Chiyoda-ku vs at least 30 in Midtown East, 15 across Tokyo"
      },
      {
       "key": "fit",
@@ -2221,23 +2218,22 @@
       "note": "Not measurable: Qloo's trend data covers artists, brands, films and TV, not places"
      }
     ],
-    "confidence": 0.54,
+    "confidence": 0.58,
     "confidenceMath": {
      "mean": 0.68,
      "measured": 5,
-     "doubts": 4,
-     "penalty": 0.8
+     "doubts": 3,
+     "penalty": 0.85
     },
     "doubts": [
      "Bagel fans skew female and 55+, while Chiyoda-ku residents are only mildly older, so the core audience fit is partial.",
      "The Midtown East count is from a capped sample and the twin similarity of 0.63 is moderate.",
-     "Place counts come from a capped sample of Qloo results, not a full census.",
      "15 exist elsewhere in Tokyo, so the gap may be local only."
     ],
     "trail": [
      {
-      "label": "Gap found: 30 in Midtown East, 2 in Chiyoda-ku",
-      "confidence": 0.81,
+      "label": "Gap found: at least 30 in Midtown East, 2 in Chiyoda-ku",
+      "confidence": 0.85,
       "calls": [
        21,
        22
@@ -2245,21 +2241,21 @@
      },
      {
       "label": "Checked the rest of Tokyo: 15 places",
-      "confidence": 0.77,
+      "confidence": 0.81,
       "calls": [
        14
       ]
      },
      {
       "label": "Checked who it is for: 23% age match",
-      "confidence": 0.63,
+      "confidence": 0.66,
       "calls": [
        17
       ]
      },
      {
       "label": "Final score, with product fit 60%, 2 doubts of its own",
-      "confidence": 0.54,
+      "confidence": 0.58,
       "calls": []
      }
     ],
@@ -2289,7 +2285,6 @@
      "trend": []
     }
    },
-   "reason": "Below the 55% bar",
    "t": 83069
   },
   {
@@ -2312,7 +2307,7 @@
    "type": "done",
    "callsUsed": 24,
    "budget": 40,
-   "cards": 1,
+   "cards": 2,
    "t": 87996
   }
  ]

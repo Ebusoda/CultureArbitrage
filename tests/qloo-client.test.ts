@@ -65,7 +65,8 @@ test("gives up after the retry limit with a rate_limit error", async () => {
 test("does not retry a 400 (wrong parameters would fail again)", async () => {
   const f = fakeFetch([json({ error: "bad signal" }, 400), json(OK)]);
   const q = new LiveQloo(KEY, { fetch: f.fn, sleep: noSleep });
-  await assert.rejects(q.insights({}), (e: unknown) => e instanceof QlooError && e.kind === "bad_request" && /bad signal/.test(e.message));
+  // Qloo's own text is kept as detail (server log), never in the message the page may show.
+  await assert.rejects(q.insights({}), (e: unknown) => e instanceof QlooError && e.kind === "bad_request" && /bad signal/.test(e.detail ?? "") && !/bad signal/.test(e.message));
   assert.equal(q.attempts, 1);
 });
 

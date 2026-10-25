@@ -44,6 +44,8 @@ export class GooglePlacesError extends Error {
   constructor(
     message: string,
     readonly status?: number,
+    // Google answered that the key itself is invalid. It does so with 400, not 401/403.
+    readonly keyRejected = false,
   ) {
     super(message);
     this.name = "GooglePlacesError";
@@ -51,7 +53,7 @@ export class GooglePlacesError extends Error {
 
   // A rejected key or a disabled API fails every later request the same way.
   get fatal() {
-    return this.status === 401 || this.status === 403;
+    return this.status === 401 || this.status === 403 || this.keyRejected;
   }
 }
 
@@ -147,12 +149,21 @@ export class GooglePlaces {
         signal: this.opts.signal ? AbortSignal.any([timeout, this.opts.signal]) : timeout,
       });
     } catch (e) {
-      throw this.redact(new GooglePlacesError(timeout.aborted ? "Google Maps: no answer in time" : `Google Maps: ${e instanceof Error ? e.message : String(e)}`));
+      if (this.opts.signal?.aborted) throw new GooglePlacesError("Google Maps: run was cancelled");
+      if (timeout.aborted) throw new GooglePlacesError("Google Maps: no answer in time");
+      console.error("[google] network error:", this.redactText(e instanceof Error ? e.message : String(e)));
+      throw new GooglePlacesError("Google Maps: could not reach Google");
     }
     if (!res.ok) {
-      const text = (await res.text().catch(() => "")).replace(/\s+/g, " ").slice(0, 200);
-      const hint = res.status === 403 || res.status === 401 ? " (key rejected, or Places API (New) not enabled for it)" : res.status === 429 ? " (quota reached)" : "";
-      throw this.redact(new GooglePlacesError(`Google Maps failed: ${res.status}${hint}${text ? ` ${text}` : ""}`, res.status));
+      // Google's error body can hold anything: it goes to the server log (key redacted first,
+      // then shortened), not into the message, which can reach the page.
+      const raw = this.redactText(await res.text().catch(() => ""));
+      const text = raw.replace(/\s+/g, " ").slice(0, 300);
+      if (text) console.error(`[google] ${res.status}: ${text}`);
+      const keyRejected = res.status === 400 && isInvalidKey(raw);
+      const hint =
+        res.status === 403 || res.status === 401 || keyRejected ? " (key rejected, or Places API (New) not enabled for it)" : res.status === 429 ? " (quota reached)" : "";
+      throw new GooglePlacesError(`Google Maps failed: ${res.status}${hint}`, res.status, keyRejected);
     }
     try {
       return (await res.json()) as { places?: { id?: string }[]; nextPageToken?: string };
@@ -162,9 +173,20 @@ export class GooglePlaces {
   }
 
   // The key must never reach a log line or the screen, even if an error echoes it.
-  private redact(err: GooglePlacesError): GooglePlacesError {
-    if (!this.apiKey || !err.message.includes(this.apiKey)) return err;
-    return new GooglePlacesError(err.message.split(this.apiKey).join("[key]"), err.status);
+  private redactText(text: string): string {
+    return this.apiKey ? text.split(this.apiKey).join("[key]") : text;
+  }
+}
+
+// Google answers an invalid key with 400 INVALID_ARGUMENT and reason API_KEY_INVALID.
+function isInvalidKey(body: string): boolean {
+  if (/API_KEY_INVALID/.test(body)) return true;
+  try {
+    const err = (JSON.parse(body) as { error?: { message?: unknown; details?: { reason?: unknown }[] } }).error;
+    if (err?.details?.some((d) => d?.reason === "API_KEY_INVALID")) return true;
+    return typeof err?.message === "string" && /api key not valid/i.test(err.message);
+  } catch {
+    return /api key not valid/i.test(body);
   }
 }
 

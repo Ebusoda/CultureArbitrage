@@ -29,7 +29,9 @@ if (!out.endsWith(".json")) throw new Error(`--out must name a .json file, not $
 
 const res = await fetch(`${base}/api/explore`, {
   method: "POST",
-  headers: { "Content-Type": "application/json" },
+  // In production (`npm start`, a deployment) the route only takes requests from the site's own
+  // origin, so say we are that site, as a browser on the page would.
+  headers: { "Content-Type": "application/json", Origin: new URL(base).origin },
   body: JSON.stringify({ city, focus }),
 });
 if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
@@ -43,11 +45,13 @@ const events = (await res.text())
 if (events.some((e) => e.type === "replay")) {
   throw new Error("The server played a recorded run instead of a live one (busy, hourly limit, a failed live run, or EXPLORE_FORCE_REPLAY=1). Fix that and record again.");
 }
-const start = events.find((e) => e.type === "start");
-const done = events.find((e) => e.type === "done");
 const error = events.find((e) => e.type === "error");
 if (error) throw new Error(`The run failed: ${error.message}`);
-if (!done) throw new Error("The run was cut off before it finished.");
+// The same shape src/lib/replay.ts (usableRecording) accepts: its own start first, done last.
+const start = events[0]?.type === "start" ? events[0] : null;
+const done = events.at(-1)?.type === "done" ? events.at(-1) : null;
+if (!start) throw new Error(`The first event is ${events[0]?.type ?? "missing"}, not "start". Record again.`);
+if (!done) throw new Error("The run was cut off before it finished (the last event is not \"done\").");
 
 // Google's terms don't allow storing Places results, and this file ships with the page.
 if (events.some((e) => e.card?.google || e.card?.googleSkipped) || JSON.stringify(events).includes("Google Maps")) {
@@ -56,6 +60,8 @@ if (events.some((e) => e.card?.google || e.card?.googleSkipped) || JSON.stringif
 
 // src/lib/replay.ts looks a city's fallback up by file name, and only plays it for that city.
 if (basename(dirname(out)) === "replays") {
+  // A recorded run stands in for a live one: made-up mock data must not be shown as that.
+  if (start.qlooMode !== "live") throw new Error(`This run used ${start.qlooMode ?? "unknown"} Qloo data. A replay must be a live run: set QLOO_MODE=live and QLOO_API_KEY, restart npm run dev, and record again.`);
   const slug = String(start?.city ?? city).trim().toLowerCase().replace(/\s+/g, "-");
   if (basename(out) !== `${slug}.json`) throw new Error(`This is a run of ${start?.city ?? city}; save it as src/data/replays/${slug}.json.`);
 }

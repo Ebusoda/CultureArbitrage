@@ -107,12 +107,16 @@ body {
 }
 
 .num {
-  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
 }
 
 .bar-llm {
   background: repeating-linear-gradient(135deg, var(--llm) 0 4px, transparent 4px 7px);
+}
+
+.bar-doubt {
+  background: repeating-linear-gradient(135deg, var(--doubt) 0 3px, transparent 3px 6px);
+  opacity: 0.6;
 }
 
 .track-pending {

@@ -1,6 +1,7 @@
 import type { OpportunityCard, Phase } from "@/lib/agent/types";
+import { isGap } from "@/lib/agent/rules";
 import { isFading } from "./format";
-import { linkKey, type RunState, type TwinLink } from "./useExploreRun";
+import { linkKey, type HoodSupply, type RunState, type TwinLink } from "./useExploreRun";
 
 export function currentStep(s: RunState) {
   return s.steps.at(-1) ?? null;
@@ -45,13 +46,19 @@ export function arcs(s: RunState): Arc[] {
   });
 }
 
+// Twin pairs whose supply was fetched on both sides: the pairs actually compared.
+function comparedPairs(s: RunState) {
+  return s.twins.filter((t) => s.supply[`${t.home}|${t.homeCity}`] && s.supply[`${t.twin}|${t.twinCity}`]);
+}
+
 export function emptyStats(s: RunState) {
   return {
     hoods: new Set(s.twins.map((t) => t.home)).size,
-    pairs: s.twins.length,
-    compares: s.steps.filter((st) => st.phase === "compare").length,
+    pairs: comparedPairs(s).length,
   };
 }
+
+export type GapVerdict = "ruledOut" | "notSubmitted" | "unclear" | "supplied" | "small";
 
 export interface GapRow {
   category: string;
@@ -60,20 +67,91 @@ export interface GapRow {
   twinCity: string;
   here: number;
   there: number;
+  // The count is a lower bound: the shared page of places was capped and nothing recounted it.
+  hereCapped: boolean;
+  thereCapped: boolean;
   calls: number[];
+  verdict: GapVerdict;
+}
+
+// An exact recount wins over the shared page; without one, a capped page only gives a lower bound.
+function countOf(h: HoodSupply, category: string) {
+  const exact = h.exact?.[category];
+  return exact !== undefined ? { n: exact, capped: !!h.exactCapped?.[category] } : { n: h.counts[category] ?? 0, capped: !!h.capped };
 }
 
 // Every category compared in every twin pair, biggest difference first.
-export function gapScan(s: RunState): GapRow[] {
+// limit: how many rows to keep (the table shows 6); omit for all of them.
+export function gapScan(s: RunState, limit: number | null = 6): GapRow[] {
   const rows: GapRow[] = [];
-  for (const t of s.twins) {
+  for (const t of comparedPairs(s)) {
     const h = s.supply[`${t.home}|${t.homeCity}`];
     const o = s.supply[`${t.twin}|${t.twinCity}`];
-    if (!h || !o) continue;
-    for (const category of Object.keys(h.counts)) {
-      if (!h.counts[category] && !o.counts[category]) continue;
-      rows.push({ category, home: t.home, twin: t.twin, twinCity: t.twinCity, here: h.counts[category] ?? 0, there: o.counts[category] ?? 0, calls: [...h.calls, ...o.calls] });
+    for (const category of [...new Set([...Object.keys(h.counts), ...Object.keys(h.exact ?? {})])]) {
+      const here = countOf(h, category);
+      const there = countOf(o, category);
+      if (!here.n && !there.n) continue;
+      const ruledOut = s.rejected.some(({ card }) => card.homeLocality === t.home && card.twinLocality === t.twin && card.category === category);
+      // Same bar as isGap() in score.ts. A capped home count may be too low, so it cannot settle a
+      // gap; a capped twin count may be too low too, so it cannot settle that a gap is small.
+      const verdict: GapVerdict = ruledOut
+        ? "ruledOut"
+        : isGap(there.n, here.n)
+          ? here.capped
+            ? "unclear"
+            : "notSubmitted"
+          : here.n >= there.n
+            ? "supplied"
+            : there.capped && !here.capped
+              ? "unclear"
+              : "small";
+      rows.push({
+        category,
+        home: t.home,
+        twin: t.twin,
+        twinCity: t.twinCity,
+        here: here.n,
+        there: there.n,
+        hereCapped: here.capped,
+        thereCapped: there.capped,
+        calls: [...new Set([...h.calls, ...o.calls])].sort((a, b) => a - b),
+        verdict,
+      });
     }
   }
-  return rows.sort((a, b) => b.there - b.here - (a.there - a.here)).slice(0, 6);
+  const sorted = rows.sort((a, b) => b.there - b.here - (a.there - a.here));
+  return limit === null ? sorted : sorted.slice(0, limit);
+}
+
+// What a finished run with no opportunities found, taken from the same rows as the gap scan,
+// so the summary never contradicts the table.
+export interface EmptySummary {
+  hoods: number;
+  pairs: number;
+  // The run stopped early (Qloo budget or time) with this many gaps not checked yet.
+  stopped: { reason: "budget" | "time"; unscored: number } | null;
+  // Ideas the agent submitted and its own checks ruled out.
+  ruledOut: number;
+  // Rows that meet the gap rule but were never submitted.
+  notSubmitted: number;
+  // Rows that meet the rule only on a capped (lower-bound) home count.
+  unclear: number;
+}
+
+export function emptySummary(s: RunState): EmptySummary {
+  const rows = gapScan(s, null);
+  const n = (v: GapVerdict) => rows.filter((r) => r.verdict === v).length;
+  const stats = emptyStats(s);
+  return {
+    ...stats,
+    stopped: s.summary?.stopped ?? null,
+    ruledOut: s.rejected.length,
+    notSubmitted: n("notSubmitted"),
+    unclear: n("unclear"),
+  };
+}
+
+// The run did not get as far as an answer: it stopped early, or compared no pair at all.
+export function unfinished(e: EmptySummary) {
+  return e.stopped !== null || e.pairs === 0;
 }

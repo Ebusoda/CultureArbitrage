@@ -66,10 +66,31 @@ test("follows pages with the same request plus the token, counts distinct ids, a
   assert.ok(GOOGLE_MAX === 60);
 });
 
-test("a rejected key is a fatal error, and the key never appears in the message", async () => {
-  const f = fakeFetch([json({ error: { message: `API key not valid: ${KEY}` } }, 403)]);
+test("a key without access (403) is a fatal error, and neither the key nor Google's text appears in the message", async () => {
+  const f = fakeFetch([json({ error: { message: `Places API (New) has not been used with key ${KEY}` } }, 403)]);
   const g = new GooglePlaces(KEY, { fetch: f.fn });
-  await assert.rejects(g.count(Q, BOX), (e: unknown) => e instanceof GooglePlacesError && e.fatal && !e.message.includes(KEY) && e.message.includes("[key]"));
+  await assert.rejects(g.count(Q, BOX), (e: unknown) => e instanceof GooglePlacesError && e.fatal && !e.message.includes(KEY) && !e.message.includes("has not been used"));
+});
+
+// What Google really answers for a wrong key: 400 INVALID_ARGUMENT, reason API_KEY_INVALID.
+test("an invalid key (400 API_KEY_INVALID) is a fatal error too", async () => {
+  const f = fakeFetch([
+    json(
+      {
+        error: {
+          code: 400,
+          message: "API key not valid. Please pass a valid API key.",
+          status: "INVALID_ARGUMENT",
+          details: [{ "@type": "type.googleapis.com/google.rpc.ErrorInfo", reason: "API_KEY_INVALID", domain: "googleapis.com" }],
+        },
+      },
+      400,
+    ),
+  ]);
+  const g = new GooglePlaces(KEY, { fetch: f.fn });
+  await assert.rejects(g.count(Q, BOX), (e: unknown) => e instanceof GooglePlacesError && e.fatal && e.status === 400);
+  const other = new GooglePlaces(KEY, { fetch: fakeFetch([json({ error: { code: 400, message: "Invalid pageToken", status: "INVALID_ARGUMENT" } }, 400)]).fn });
+  await assert.rejects(other.count(Q, BOX), (e: unknown) => e instanceof GooglePlacesError && !e.fatal, "any other 400 is not fatal");
 });
 
 test("stops at the per-run request cap", async () => {

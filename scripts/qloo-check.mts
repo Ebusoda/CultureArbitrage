@@ -20,15 +20,27 @@ const qloo = new LiveQloo(key, { baseUrl, retries: 0, timeoutMs: 15_000 });
 console.log(`Qloo address: ${baseUrl}`);
 console.log(`Key: set (${key.length} characters)`);
 
+let failures = 0;
+
+// A check passes only when Qloo answered with at least one result.
 async function check(label: string, fn: () => Promise<unknown>) {
   try {
     const res = (await fn()) as { results: Record<string, unknown[] | unknown> };
     const parts = Object.entries(res.results).map(([k, v]) => `${k}: ${Array.isArray(v) ? v.length : typeof v}`);
-    console.log(`OK    ${label}  (${parts.join(", ") || "empty results"})`);
+    const found = Object.values(res.results).reduce<number>((n, v) => n + (Array.isArray(v) ? v.length : v ? 1 : 0), 0);
+    if (!found) {
+      failures++;
+      console.log(`EMPTY ${label}  (${parts.join(", ") || "empty results"})`);
+      return null;
+    }
+    console.log(`OK    ${label}  (${parts.join(", ")})`);
     return res;
   } catch (e) {
+    failures++;
     const kind = e instanceof QlooError ? e.kind : "error";
-    console.log(`FAIL  ${label}  [${kind}] ${e instanceof Error ? e.message : String(e)}`);
+    // detail is Qloo's own error text, key already redacted.
+    const detail = e instanceof QlooError && e.detail ? ` (${e.detail})` : "";
+    console.log(`FAIL  ${label}  [${kind}] ${e instanceof Error ? e.message : String(e)}${detail}`);
     if (kind === "auth") console.log("      The key was rejected. Check it was copied fully, and ask on the Qloo Discord whether hackathon keys use a different address (QLOO_API_URL).");
     if (kind === "not_found") console.log("      Wrong address? Set QLOO_API_URL in .env.local to the one Qloo gave you.");
     return null;
@@ -53,4 +65,5 @@ if (process.argv.includes("--tags")) {
   }
 }
 console.log(`Qloo requests sent: ${qloo.attempts}`);
-process.exit(hoods ? 0 : 1);
+if (failures) console.log(`${failures} check(s) failed or found nothing.`);
+process.exit(hoods && !failures ? 0 : 1);

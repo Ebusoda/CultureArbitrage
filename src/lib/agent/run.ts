@@ -3,7 +3,7 @@ import { config } from "../config";
 import { createGooglePlaces } from "../google";
 import { BudgetedQloo, createQloo, isFatalQlooError, qlooMode } from "../qloo";
 import { categoriesFor, categoryLabel } from "./categories";
-import { DEFAULT_MODEL, runClaudeAgent } from "./claude-agent";
+import { DEFAULT_MODEL, runClaudeAgent, TurnCutOffError } from "./claude-agent";
 import { Evidence, type Supply } from "./evidence";
 import { runPipeline } from "./pipeline";
 import { cardId, isGap, provisional } from "./score";
@@ -13,35 +13,80 @@ const MAX_CARDS = 4;
 
 export type StepFn = (phase: Phase, title: string, detail?: string) => void;
 
+export type StopReason = { reason: "budget" | "time"; unscored: number };
+
 export interface RunContext {
   step: StepFn;
   onCard: (card: OpportunityCard) => void;
   // A submission ruled out by its own checks, shown greyed out with the reason.
   onRejected?: (card: OpportunityCard, reason: string) => void;
+  // A home/twin supply comparison finished (true) or failed on a Qloo error (false).
+  onCompare?: (ok: boolean) => void;
+  // The run stopped for the Qloo budget or time with gaps found but not scored.
+  onStopped?: (stopped: StopReason) => void;
+  // Card ids already shown or ruled out in this run, which a fallback must not look at again.
+  skip?: (id: string) => boolean;
   // Epoch ms after which no new lookups start.
   deadline: number;
   // Aborted when the viewer disconnects.
   signal: AbortSignal;
 }
 
+// What run.ts needs from an Anthropic client (a fake one in tests).
+export type ClaudeClient = Pick<Anthropic, "beta" | "models">;
+
 function budget() {
   return config.callBudget();
 }
 
 function claudeEnabled() {
-  return process.env.LLM_MODE === "claude" && !!process.env.ANTHROPIC_API_KEY?.trim();
+  return process.env.LLM_MODE?.trim().toLowerCase() === "claude" && !!process.env.ANTHROPIC_API_KEY?.trim();
+}
+
+function configuredModel() {
+  return process.env.ANTHROPIC_MODEL?.trim() || DEFAULT_MODEL;
 }
 
 // What the page shows before a run starts. Never exposes keys, only whether they are set.
 export function currentModes(): Modes {
-  return { qlooMode: qlooMode(), llmMode: claudeEnabled() ? "claude" : "none", budget: budget() };
+  return { qlooMode: qlooMode(), llmMode: claudeEnabled() ? "claude" : "none", budget: budget(), ...(config.forceReplay() ? { forceReplay: true } : {}) };
 }
 
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e)).slice(0, 200);
+// Shown to the public: a short, generic reason. The upstream message stays in the server log.
+function publicReason(e: unknown): string {
+  if (e instanceof TurnCutOffError) return "a Claude reply was cut off";
+  if (e instanceof Anthropic.APIConnectionError) return "Claude could not be reached";
+  if (e instanceof Anthropic.RateLimitError) return "Claude is rate limited";
+  if (e instanceof Anthropic.AuthenticationError || e instanceof Anthropic.PermissionDeniedError) return "the Claude API key was refused";
+  if (e instanceof Anthropic.APIError && (e.status ?? 0) >= 500) return "Claude is overloaded or down";
+  if (e instanceof Anthropic.APIError) return "the Claude API refused the request";
+  return "Claude stopped unexpectedly";
+}
+
+// ANTHROPIC_MODEL names that the API says do not exist, so a run can start on the default instead.
+const modelExists = new Map<string, boolean>();
+
+// A mistyped ANTHROPIC_MODEL is caught before the run starts, so the start event names the
+// model that really runs. Anything but a clear "not found" keeps the configured model.
+async function checkModel(client: ClaudeClient, model: string, signal: AbortSignal): Promise<string> {
+  if (model === DEFAULT_MODEL) return model;
+  const known = modelExists.get(model);
+  if (known !== undefined) return known ? model : DEFAULT_MODEL;
+  try {
+    await client.models.retrieve(model, null, { signal: AbortSignal.any([signal, AbortSignal.timeout(5_000)]), maxRetries: 0 });
+    modelExists.set(model, true);
+    return model;
+  } catch (e) {
+    if (!(e instanceof Anthropic.NotFoundError)) return model;
+    console.error(`[explore] ANTHROPIC_MODEL ${model} was not found, using ${DEFAULT_MODEL}`);
+    modelExists.set(model, false);
+    return DEFAULT_MODEL;
+  }
+}
 
 // LLM_MODE=claude runs the Claude tool-calling agent (needs ANTHROPIC_API_KEY).
 // Otherwise, or if Claude fails before submitting anything, the fixed pipeline runs.
-export async function explore(req: ExploreRequest, emit: (e: AgentEvent) => void, opts: { deadline: number; signal: AbortSignal }) {
+export async function explore(req: ExploreRequest, emit: (e: AgentEvent) => void, opts: { deadline: number; signal: AbortSignal; client?: ClaudeClient }) {
   let stepId = "";
   let stepNo = 0;
   const step: StepFn = (phase, title, detail) => {
@@ -51,6 +96,10 @@ export async function explore(req: ExploreRequest, emit: (e: AgentEvent) => void
 
   const qloo = new BudgetedQloo(createQloo({ signal: opts.signal }), budget(), (call) => emit({ type: "call", stepId, call }));
   const categories = categoriesFor(req.focus);
+  // Cards are keyed by id so a fallback run cannot repeat one Claude already submitted.
+  const emitted = new Map<string, OpportunityCard>();
+  // Ids ruled out by the agent's own checks: a fallback pipeline must not bring them back.
+  const ruledOut = new Set<string>();
   // Gaps found so far (card id -> confidence last shown). Each new answer re-scores them,
   // so the log shows the agent talking an idea down (or up) before it submits anything.
   const shown = new Map<string, number>();
@@ -62,9 +111,11 @@ export async function explore(req: ExploreRequest, emit: (e: AgentEvent) => void
       if (!here || !there) continue;
       for (const category of categories) {
         if (!isGap(there.counts[category] ?? 0, here.counts[category] ?? 0)) continue;
+        const id = cardId(hood, twin.name, twin.city, category);
+        // Already on screen as an opportunity or as ruled out: the card says the rest.
+        if (emitted.has(id) || ruledOut.has(id)) continue;
         const now = provisional(ev, { category, hood, city: req.city, twin: twin.name, twinCity: twin.city });
         if (!now) continue;
-        const id = cardId(hood, twin.name, twin.city, category);
         const before = shown.get(id);
         shown.set(id, now.confidence);
         if (before === undefined || Math.round(before * 100) === Math.round(now.confidence * 100)) continue;
@@ -80,11 +131,14 @@ export async function explore(req: ExploreRequest, emit: (e: AgentEvent) => void
     google: createGooglePlaces(opts.signal),
   });
   const useClaude = claudeEnabled();
-  const model = process.env.ANTHROPIC_MODEL || DEFAULT_MODEL;
+  const client: ClaudeClient | null = useClaude ? (opts.client ?? new Anthropic({ maxRetries: 4 })) : null;
+  const model = client ? await checkModel(client, configuredModel(), opts.signal) : DEFAULT_MODEL;
   emit({ type: "start", city: req.city, focus: req.focus, qlooMode: qloo.mode, llmMode: useClaude ? "claude" : "none", budget: qloo.budget, model: useClaude ? model : undefined });
 
-  // Cards are keyed by id so a fallback run cannot repeat one Claude already submitted.
-  const emitted = new Map<string, OpportunityCard>();
+  let compareOk = 0;
+  let compareFailed = 0;
+  let stopped: StopReason | undefined;
+  const outOfTime = () => Date.now() > opts.deadline;
   const ctx: RunContext = {
     step,
     deadline: opts.deadline,
@@ -95,20 +149,33 @@ export async function explore(req: ExploreRequest, emit: (e: AgentEvent) => void
       emit({ type: "card", card });
     },
     onRejected: (card, reason) => {
-      if (!emitted.has(card.id)) emit({ type: "rejected", card, reason });
+      if (emitted.has(card.id)) return;
+      ruledOut.add(card.id);
+      emit({ type: "rejected", card, reason });
     },
+    onCompare: (ok) => {
+      if (ok) compareOk++;
+      else compareFailed++;
+    },
+    onStopped: (s) => {
+      stopped = s;
+    },
+    skip: (id) => emitted.has(id) || ruledOut.has(id),
   };
 
   let runPipelineNext = !useClaude;
-  if (useClaude) {
+  if (client) {
     try {
       try {
-        await runClaudeAgent(req, ev, ctx, { model });
+        await runClaudeAgent(req, ev, ctx, { model, client });
       } catch (e) {
-        // A mistyped ANTHROPIC_MODEL should not sink the demo: retry once on the default.
+        // A model that vanished after the check should not sink the demo: retry once on the default.
         if (e instanceof Anthropic.NotFoundError && model !== DEFAULT_MODEL && emitted.size === 0) {
+          console.error(`[explore] model ${model} not found:`, e);
           step("think", `Model ${model} was not found, retrying with ${DEFAULT_MODEL}`);
-          await runClaudeAgent(req, ev, ctx, { model: DEFAULT_MODEL });
+          // The start event named the model that vanished: say which one runs now.
+          emit({ type: "mode", llmMode: "claude", reason: `Model ${model} was not found`, model: DEFAULT_MODEL });
+          await runClaudeAgent(req, ev, ctx, { model: DEFAULT_MODEL, client });
         } else {
           throw e;
         }
@@ -117,16 +184,27 @@ export async function explore(req: ExploreRequest, emit: (e: AgentEvent) => void
       // A spent budget ends the run as an error; the cards already sent stay on screen.
       // So does a Qloo error every later call would repeat (rejected key, wrong URL).
       if (opts.signal.aborted || isFatalQlooError(e)) throw e;
+      console.error("[explore] Claude run failed:", e);
       if (emitted.size > 0) {
-        step("think", "Claude stopped early, keeping the opportunities it already submitted", message(e));
+        step("think", "Claude stopped early, keeping the opportunities it already submitted", publicReason(e));
+      } else if (outOfTime()) {
+        // No time left for a fallback: the run ends with what it has.
+        step("think", "Out of time, stopping with what was found");
       } else {
         // Evidence already gathered stays cached, so the pipeline reuses it without new Qloo calls.
-        emit({ type: "mode", llmMode: "none", reason: message(e) });
-        step("think", "Claude is unavailable, switching to the fixed pipeline", message(e));
+        const reason = publicReason(e);
+        emit({ type: "mode", llmMode: "none", reason });
+        step("think", "Claude is unavailable, switching to the fixed pipeline", reason);
+        stopped = undefined;
         runPipelineNext = true;
       }
     }
   }
   if (runPipelineNext) await runPipeline(req, ev, ctx);
-  emit({ type: "done", callsUsed: qloo.used, budget: qloo.budget, cards: emitted.size });
+  // No cards and no comparison that finished (or mostly failed ones): this is a failed run,
+  // not "nothing found", so it ends as an error and the city's recording can take over.
+  if (emitted.size === 0 && (compareOk === 0 || compareFailed > compareOk)) {
+    throw new Error(compareOk === 0 ? "The run ended before any neighbourhood comparison finished" : "Most neighbourhood comparisons failed");
+  }
+  emit({ type: "done", callsUsed: qloo.used, budget: qloo.budget, cards: emitted.size, ...(stopped ? { stopped } : {}) });
 }

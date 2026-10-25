@@ -1,4 +1,4 @@
-import { BudgetExceededError, type BudgetedQloo } from "../qloo";
+import { type BudgetedQloo, QlooError } from "../qloo";
 import { CITY_LANGUAGE, canonicalCity, qlooLocation } from "../cities";
 import { boxAround, GOOGLE_PAGES, GooglePlacesError, type GoogleCount, type GooglePlaces } from "../google";
 import type { QlooEntity, QlooParams } from "../qloo";
@@ -13,6 +13,9 @@ export interface Demographics {
   proxy?: string;
   // Who a neighbourhood profile describes when it is not Qloo's own, e.g. "residents of Shibuya ward (...)".
   basis?: string;
+  // How to read the age values: "share" of the audience per band (mock data), or "lean" from -1
+  // to 1 against the average (live Qloo, Tokyo ward statistics). Picks ageOverlap's comparison.
+  kind?: "lean" | "share";
 }
 
 export interface Trend {
@@ -139,7 +142,16 @@ const GENERIC_TAGS = new Set([
 // number that did not come from a Qloo response.
 export class Evidence {
   private cache = new Map<string, unknown>();
+  // Failures that are rethrown for free on a repeat lookup (see memo).
   private failures = new Map<string, unknown>();
+  // The last error of every failed lookup, memoised or not, so a card can say why a check is missing.
+  private errors = new Map<string, unknown>();
+  // "<norm name>|<norm city>" -> the first spelling used for a neighbourhood Qloo never listed.
+  private spellings = new Map<string, string>();
+  // Supply memo key -> category label -> exact single-category recount (live, capped pages).
+  private exact = new Map<string, Record<string, number>>();
+  // Same keys: whether each recount hit the page size.
+  private exactCapped = new Map<string, Record<string, boolean>>();
   // Memo key -> Qloo call numbers that produced it. Valid because lookups are
   // awaited one at a time, so a call range belongs to exactly one key.
   private prov = new Map<string, number[]>();
@@ -173,7 +185,8 @@ export class Evidence {
       ok = true;
       return v;
     } catch (e) {
-      if (!(e instanceof BudgetExceededError)) this.failures.set(key, e);
+      this.errors.set(key, e);
+      if (memoisable(e)) this.failures.set(key, e);
       throw e;
     } finally {
       const calls = [...(this.prov.get(key) ?? [])];
@@ -190,8 +203,10 @@ export class Evidence {
   // "Williamsburg, New York" lands somewhere else. The name is the fallback when no centre is known.
   private area(hood: string, city: string): QlooParams {
     const c = this.qloo.mode === "live" ? this.centres.get(`${norm(hood)}|${norm(city)}`) : undefined;
-    if (c) return { "filter.location": `POINT(${c.lng} ${c.lat})`, "filter.location.radius": SUPPLY_RADIUS_M };
-    return { "filter.location.query": `${hood}, ${this.loc(city)}` };
+    // "_where" is display-only: it names the neighbourhood in the call log and never reaches Qloo.
+    const _where = `${hood}, ${city}`;
+    if (c) return { "filter.location": `POINT(${c.lng} ${c.lat})`, "filter.location.radius": SUPPLY_RADIUS_M, _where };
+    return { "filter.location.query": `${hood}, ${this.loc(city)}`, _where };
   }
 
   // Qloo location query for a city; mock data knows cities by their plain names.
@@ -201,7 +216,7 @@ export class Evidence {
 
   // Why a lookup failed, if it did.
   failureOf(key: string): string | null {
-    const e = this.failures.get(key);
+    const e = this.errors.get(key);
     return e === undefined ? null : e instanceof Error ? e.message : String(e);
   }
 
@@ -222,12 +237,23 @@ export class Evidence {
   hood(raw: string, rawCity: string): string {
     const city = norm(this.city(rawCity));
     const n = norm(raw);
-    const candidates = [n, n.replace(new RegExp(`,\\s*${city}$`), ""), n.split(",")[0].trim()];
+    // "Shimokitazawa, Tokyo" -> "shimokitazawa": drop a trailing ", <city>" (no RegExp: the
+    // city name comes from the model and may hold any character).
+    const comma = n.lastIndexOf(",");
+    const noCity = comma >= 0 && n.slice(comma + 1).trim() === city ? n.slice(0, comma).trim() : n;
+    const candidates = [n, noCity, n.split(",")[0].trim()];
     for (const c of candidates) {
       const hit = this.names.get(`${c}|${city}`);
       if (hit) return hit;
     }
-    return raw.split(",")[0].trim();
+    // Not a name Qloo returned: keep the first spelling seen for it, so "shimokitazawa" and
+    // "Shimokitazawa" (or "Shimo-kitazawa") share one cache key for the whole run.
+    const name = raw.split(",")[0].trim();
+    const k = `${norm(name)}|${city}`;
+    const first = this.spellings.get(k);
+    if (first) return first;
+    this.spellings.set(k, name);
+    return name;
   }
 
   private remember(name: string, city: string, e?: QlooEntity) {
@@ -256,6 +282,9 @@ export class Evidence {
       const out: { name: string; popularity: number | null }[] = [];
       for (const e of r.results.entities ?? []) {
         if (seen.has(norm(e.name)) || !isNeighbourhood(e, city)) continue;
+        // Live: the same filters as liveTwins, so every listed neighbourhood can be searched for
+        // twins and compared (named districts with taste tags only).
+        if (this.qloo.mode === "live" && !usableLiveHood(e)) continue;
         seen.add(norm(e.name));
         this.remember(e.name, city, e);
         out.push({ name: e.name, popularity: e.popularity ?? null });
@@ -268,6 +297,9 @@ export class Evidence {
     const city = this.city(rawCity);
     const hood = this.hood(rawHood, city);
     return this.memo(`taste:${hood}, ${city}`, async () => {
+      // Deliberately "<hood>, <city>" and not this.loc(city) ("New York City"): Qloo geocodes the
+      // plain city name better (see area()), and the review found no harm from the difference.
+      // Changing it would change every recorded taste profile, so it stays.
       const r = await this.qloo.insights({ "filter.type": "urn:tag", "signal.location.query": `${hood}, ${city}`, take: take + GENERIC_TAGS.size });
       return (r.results.tags ?? [])
         .filter((t) => !GENERIC_TAGS.has(t.tag_id))
@@ -288,6 +320,9 @@ export class Evidence {
       const id = this.qloo.mode === "live" ? this.ids.get(k) : undefined;
       const homeTags = this.tags.get(k);
       if (id && homeTags) return this.liveTwins(id, homeTags, other, take);
+      if (this.qloo.mode === "live" && id) {
+        throw new Error(`Qloo lists ${hood} in ${city} but has no taste tags for it, so it has no taste twins to find. Pick another neighbourhood.`);
+      }
       // Live Qloo scores every locality the same for a tag signal, so that search would return
       // arbitrary "twins". Ask for a neighbourhood Qloo listed instead.
       if (this.qloo.mode === "live") {
@@ -347,10 +382,9 @@ export class Evidence {
     for (const e of r.results.entities ?? []) {
       // Seoul answers include tiny dong-level quarters named only in Hangul (순화동); Qloo lists
       // no places for them, so a gap could never be checked there. Named districts only.
-      if (!isNeighbourhood(e, other) || !/[a-z]/i.test(e.name)) continue;
-      const theirs = tasteTags(e);
       // No tags means Qloo knows nothing about the place, not that it is unlike.
-      if (!theirs.size) continue;
+      if (!isNeighbourhood(e, other) || !usableLiveHood(e)) continue;
+      const theirs = tasteTags(e);
       const shared = [...homeTags.keys()].filter((id) => theirs.has(id));
       const jaccard = shared.length / (homeTags.size + theirs.size - shared.length);
       this.remember(e.name, other, e);
@@ -394,6 +428,7 @@ export class Evidence {
         city,
         counts: Object.fromEntries(cats.map((c) => [categoryLabel(c), s.counts[c] ?? 0])),
         calls: this.calls(key),
+        capped: s.capped,
       });
     }
     return s;
@@ -408,11 +443,36 @@ export class Evidence {
     const hood = this.hood(rawHood, city);
     const s = await this.supply(hood, city);
     if (this.qloo.mode !== "live" || !s.capped) return { count: s.counts[category] ?? 0, capped: s.capped };
-    return this.memo(`supply1:${category}:${hood}, ${city}`, async () => {
+    const key = `supply1:${category}:${hood}, ${city}`;
+    const fresh = !this.cache.has(key);
+    const one = await this.memo(key, async () => {
       const r = await this.qloo.insights({ "filter.type": "urn:entity:place", ...this.area(hood, city), "filter.tags": category, take: SUPPLY_TAKE.live });
       const n = (r.results.entities ?? []).length;
       return { count: n, capped: n >= SUPPLY_TAKE.live };
     });
+    // Send the neighbourhood's supply again with the exact count, so the page's gap table does
+    // not judge the category on the capped shared sample.
+    if (fresh && this.hooks.onSupply) {
+      const supplyKey = `supply:${hood}, ${city}`;
+      const exact = { ...this.exact.get(supplyKey), [categoryLabel(category)]: one.count };
+      this.exact.set(supplyKey, exact);
+      // A recount can hit the page size too: then it is still only a lower bound.
+      const exactCapped = { ...this.exactCapped.get(supplyKey), [categoryLabel(category)]: one.capped };
+      this.exactCapped.set(supplyKey, exactCapped);
+      const cats = this.hooks.categories ?? Object.keys(s.counts);
+      const recounts = cats.map((c) => `supply1:${c}:${hood}, ${city}`).filter((k) => this.cache.has(k));
+      this.hooks.onSupply({
+        type: "supply",
+        hood,
+        city,
+        counts: Object.fromEntries(cats.map((c) => [categoryLabel(c), s.counts[c] ?? 0])),
+        calls: this.calls(supplyKey, ...recounts),
+        capped: s.capped,
+        exact,
+        exactCapped,
+      });
+    }
+    return one;
   }
 
   citySupply(rawCity: string, category: string) {
@@ -542,11 +602,32 @@ export class Evidence {
 // entry per signal tag that has data, [{ entity_id, query: { age, gender } }], where each
 // value is a lean from -1 to 1 against the average. Several live entries are averaged.
 function asDemographics(v: unknown): Demographics | null {
-  const all = (Array.isArray(v) ? v : [v])
+  // The live shape wraps each profile in "query" and holds leans; the mock one holds shares.
+  const rows = Array.isArray(v) ? v : [v];
+  const kind = rows.some((x) => x && typeof x === "object" && "query" in x) ? "lean" : "share";
+  const all = rows
     .map((x) => (x && typeof x === "object" && "query" in x ? (x as { query: unknown }).query : x))
     .filter((d): d is Demographics => !!d && typeof d === "object" && "age" in d && !!d.age && typeof d.age === "object");
-  if (all.length <= 1) return all[0] ?? null;
+  if (!all.length) return null;
+  if (all.length === 1) return { ...all[0], kind };
   const age: Record<string, number> = {};
   for (const d of all) for (const [k, n] of Object.entries(d.age)) age[k] = (age[k] ?? 0) + n / all.length;
-  return { age };
+  return { age, kind };
+}
+
+// Live neighbourhoods worth using: named in Latin letters (Seoul answers include tiny dong-level
+// quarters named only in Hangul, such as 순화동, where Qloo lists no places) and with taste tags
+// (without them Qloo knows nothing about the place, so no twin can be found for it).
+function usableLiveHood(e: QlooEntity): boolean {
+  return /[a-z]/i.test(e.name) && tasteTags(e).size > 0;
+}
+
+// Only failures a repeat would hit again are memoised: Qloo and Google errors (quota is spent
+// either way). Not a cancelled request (another run may have cancelled a shared one), not a
+// budget stop, and not a precondition the agent can still fix ("call list_neighbourhoods
+// first", "No map position known"): those are thrown again only if they happen again.
+function memoisable(e: unknown): boolean {
+  if (e instanceof QlooError) return e.kind !== "aborted";
+  if (e instanceof GooglePlacesError) return !/run was cancelled/.test(e.message);
+  return false;
 }

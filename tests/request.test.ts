@@ -1,7 +1,7 @@
 // Input checks for POST /api/explore.
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { parseExploreBody } from "../src/lib/agent/request";
+import { checkExploreHeaders, parseExploreBody } from "../src/lib/agent/request";
 import { canonicalCity } from "../src/lib/cities";
 import { admit, resetLimits } from "../src/lib/limits";
 
@@ -26,6 +26,35 @@ test("rejects bad input with a clear message", () => {
   assert.match(err('{"city":123}').error, /city/);
   assert.match(err('{"city":"Tokyo","focus":"shopping"}').error, /focus/);
   assert.equal(err(JSON.stringify({ city: "Tokyo", pad: "x".repeat(5000) })).status, 413);
+});
+
+test("headers: the body must be declared as exactly application/json", () => {
+  const status = (h: Record<string, string>) => checkExploreHeaders(new Headers(h), false)?.status ?? 200;
+  assert.equal(status({ "content-type": "application/json" }), 200);
+  assert.equal(status({ "content-type": "Application/JSON; charset=utf-8" }), 200);
+  // Each of these can be sent cross-site without a CORS preflight.
+  assert.equal(status({}), 415);
+  assert.equal(status({ "content-type": "text/plain" }), 415);
+  assert.equal(status({ "content-type": "text/plain; x=application/json" }), 415);
+  assert.equal(status({ "content-type": "application/x-www-form-urlencoded" }), 415);
+});
+
+test("headers: in production only this site's own page may start a run", () => {
+  const json = { "content-type": "application/json" };
+  const status = (h: Record<string, string>) => checkExploreHeaders(new Headers({ ...json, ...h }), true)?.status ?? 200;
+  // Browsers send Sec-Fetch-Site; it decides when present.
+  assert.equal(status({ "sec-fetch-site": "same-origin", origin: "https://evil.example" }), 200);
+  assert.equal(status({ "sec-fetch-site": "cross-site", origin: "https://demo.example", host: "demo.example" }), 403);
+  assert.equal(status({ "sec-fetch-site": "same-site" }), 403);
+  // Without it, Origin must match the host the request came to.
+  assert.equal(status({ origin: "https://demo.example", host: "demo.example" }), 200);
+  assert.equal(status({ origin: "https://demo.example", "x-forwarded-host": "demo.example", host: "internal" }), 200);
+  assert.equal(status({ origin: "https://evil.example", host: "demo.example" }), 403);
+  assert.equal(status({ origin: "null", host: "demo.example" }), 403);
+  // Neither header: not a browser on this site.
+  assert.equal(status({ host: "demo.example" }), 403);
+  // Outside production (npm run dev, tests) the origin isn't checked.
+  assert.equal(checkExploreHeaders(new Headers({ ...json, "sec-fetch-site": "cross-site" }), false), null);
 });
 
 test("limits: concurrent runs are capped and slots are released", () => {

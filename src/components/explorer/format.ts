@@ -1,3 +1,4 @@
+import { isFading as fadingDurability } from "@/lib/agent/rules";
 import type { Focus, OpportunityCard, Phase } from "@/lib/agent/types";
 import { kmBetween } from "@/lib/cities";
 import type { QlooCallLog } from "@/lib/qloo/types";
@@ -49,9 +50,28 @@ export function km(a: string, b: string): string | null {
 // "21" or "50+" when the count filled the whole page of results.
 export const count = (n: number, capped: boolean) => (capped ? `${n}+` : String(n));
 
+// "1 place", "2 places"; words: the plural when it is not word + "s".
+export const plural = (n: number, word: string, words = `${word}s`) => `${n} ${n === 1 ? word : words}`;
+
+// Why a finished run stopped early (the done event's stopped), as one sentence.
+export function stoppedText(stopped: { reason: "budget" | "time"; unscored: number }) {
+  const ran = stopped.reason === "budget" ? "the Qloo call budget ran out" : "the time limit ran out";
+  return stopped.unscored > 0 ? `Stopped early: ${ran} before ${plural(stopped.unscored, "gap")} could be checked.` : `Stopped early: ${ran}.`;
+}
+
+// Places the home neighbourhood lacks, as text. A capped home count may be too low, so the
+// difference is at most this; a capped twin count may be too low, so it is at least this.
+export function missingText(card: OpportunityCard) {
+  const m = Math.max(0, card.twinCount - card.homeCount);
+  if (card.capped.home && card.capped.twin) return `about ${m}`;
+  if (card.capped.home) return `up to ${m}`;
+  if (card.capped.twin) return `${m}+`;
+  return String(m);
+}
+
+// Same rule as the "interest is falling" doubt in score.ts (src/lib/agent/rules.ts).
 export function isFading(card: OpportunityCard) {
-  const d = card.scores.find((s) => s.key === "durability")?.value;
-  return d != null && d < 0.35;
+  return fadingDurability(card.scores.find((s) => s.key === "durability")?.value);
 }
 
 export function score(card: OpportunityCard, key: string) {
@@ -60,6 +80,11 @@ export function score(card: OpportunityCard, key: string) {
 
 export function focusLabel(focus: Focus) {
   return FOCUS_OPTIONS.find((f) => f.value === focus)?.label.toLowerCase() ?? focus;
+}
+
+// "all categories", "dining": a focus as words in a sentence.
+export function focusName(focus: Focus) {
+  return focus === "all" ? "all categories" : focusLabel(focus);
 }
 
 const KIND: Record<string, string> = {
@@ -75,7 +100,15 @@ const tagName = (id: string) => (id.split(":").pop() ?? id).replace(/_/g, " ");
 export function callLine(call: QlooCallLog): string {
   const p = call.params;
   const kind = call.endpoint.includes("trending") ? "trend" : (KIND[String(p["filter.type"])] ?? String(p["filter.type"] ?? call.endpoint));
-  const where = p["filter.location.query"] ? `in ${p["filter.location.query"]}` : p["signal.location.query"] ? `people in ${p["signal.location.query"]}` : "";
+  // A call that searches around a point says where in call.where (or the display-only "_where").
+  const named = call.where ?? (p._where !== undefined && p._where !== "" ? String(p._where) : undefined);
+  const where = named
+    ? `in ${named}`
+    : p["filter.location.query"]
+      ? `in ${p["filter.location.query"]}`
+      : p["signal.location.query"]
+        ? `people in ${p["signal.location.query"]}`
+        : "";
   const tagList = String(p["filter.tags"] ?? p["signal.interests.tags"] ?? "")
     .split(",")
     .filter(Boolean)
@@ -86,19 +119,25 @@ export function callLine(call: QlooCallLog): string {
 
 export function requestLine(call: QlooCallLog): string {
   const q = new URLSearchParams();
-  for (const [k, v] of Object.entries(call.params)) if (v !== undefined) q.set(k, String(v));
+  // Display-only params ("_where") are never sent to Qloo, so they are not part of the request.
+  for (const [k, v] of Object.entries(call.params)) if (v !== undefined && !k.startsWith("_")) q.set(k, String(v));
   return `GET ${call.endpoint}?${q.toString()}`;
 }
 
 export function errorText(message: string, budget: number): string {
-  const m = message.toLowerCase();
+  const m = message.toLowerCase().trim();
   if (m.includes("budget")) return `Used all ${budget} Qloo calls before finishing. Results so far are kept.`;
-  if (m.includes("429")) return "Qloo is rate-limiting requests. Try again in a minute.";
+  // Only a Qloo error names Qloo; a bare HTTP 429 comes from this site's own limits.
+  if (m.includes("qloo") && (m.includes("429") || m.includes("rate limit"))) return "Qloo is rate-limiting requests. Try again in a minute.";
+  if (m === "http 429") return "Too many explorations right now. Try again in a minute.";
   if (m.includes("declined")) return "Claude declined this request.";
   if (m === "network") return "Connection lost.";
+  if (m === "bad data") return "The server sent a reply the page could not read.";
   if (m === "cut off") return "The run was cut off before it finished (the server may have hit its time limit).";
-  if (m.startsWith("city must be")) return message;
-  return `Something went wrong: ${message}`.slice(0, 100);
+  if (/^http \d+$/.test(m)) return `The server could not start the run (${message.trim()}).`;
+  if (!m) return "Something went wrong.";
+  // The server's own message (limits, validation, a failed lookup), as it was sent.
+  return clip(message.trim(), 160);
 }
 
 export function firstSentence(s: string, max = 120) {

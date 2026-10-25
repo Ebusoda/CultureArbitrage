@@ -9,6 +9,9 @@ import type { AgentEvent, OpportunityCard } from "../src/lib/agent/types";
 import { BudgetedQloo, createQloo, type QlooCallLog } from "../src/lib/qloo";
 import { CITIES } from "../src/lib/cities";
 import { categoriesFor } from "../src/lib/agent/categories";
+import { exploreResponse } from "../src/lib/explore-stream";
+import { resetLimits, runningCount } from "../src/lib/limits";
+import type { Recording } from "../src/lib/replay";
 
 process.env.MOCK_DELAY_MS = "0";
 process.env.QLOO_MODE = "mock";
@@ -62,24 +65,55 @@ for (const focus of ["dining", "nightlife", "retail"] as const) {
   });
 }
 
-test("a tiny budget ends the run cleanly, not with a crash", async () => {
-  process.env.QLOO_CALL_BUDGET = "3";
+test("a tiny budget ends the run cleanly through the route's stream: an error (or the recording), never a crash", async () => {
+  const budget = 3;
+  process.env.QLOO_CALL_BUDGET = String(budget);
+  const post = () => new Request("http://x/api/explore", { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
+  const ndjson = async (res: Response) => (await res.text()).trim().split("\n").map((l) => JSON.parse(l) as AgentEvent);
   try {
-    const events = await run("Tokyo");
-    const last = events.at(-1)!;
-    assert.ok(last.type === "done" || last.type === "error");
-    assert.ok(events.filter((e) => e.type === "call").length <= 3);
-  } catch (e) {
-    assert.match(String(e), /budget/);
+    // On the mock data, Tokyo needs more than 3 Qloo calls before its first card: the run stops on the budget.
+    resetLimits();
+    const bare = await ndjson(exploreResponse({ city: "Tokyo", focus: "all" }, post(), { recording: () => null }));
+    assert.equal(bare[0].type, "start");
+    assert.equal(bare.filter((e) => e.type === "card").length, 0, "no card fits in 3 calls");
+    const last = bare.at(-1)!;
+    assert.equal(last.type, "error", `run ended with ${JSON.stringify(last)}`);
+    assert.match(last.type === "error" ? last.message : "", /budget/);
+    assert.ok(bare.filter((e) => e.type === "call").length <= budget, "no more Qloo calls than the budget");
+    assert.equal(runningCount(), 0, "the live slot is released");
+
+    // With a recording for the city, the same early failure is replaced by it.
+    const tiny: Recording = {
+      recordedAt: "2026-10-24T09:00:00.000Z",
+      events: [
+        { type: "start", city: "Tokyo", focus: "all", qlooMode: "live", llmMode: "claude", budget: 40 },
+        { type: "done", callsUsed: 0, budget: 40, cards: 0 },
+      ],
+    };
+    process.env.EXPLORE_REPLAY_SECONDS = "0";
+    const replayed = await ndjson(exploreResponse({ city: "Tokyo", focus: "all" }, post(), { recording: () => tiny }));
+    const at = replayed.findIndex((e) => e.type === "replay");
+    assert.ok(at > 0, "the partial live run, then a replay");
+    const reason = replayed[at].type === "replay" ? replayed[at].reason : "";
+    assert.match(reason, /budget/);
+    assert.ok(!replayed.some((e) => e.type === "error"), "the error is not shown");
+    assert.ok(replayed.slice(0, at).filter((e) => e.type === "call").length <= budget);
+    assert.deepEqual(replayed.slice(at + 1).map((e) => e.type), ["start", "done"], "the recording plays to its end");
+    assert.equal(runningCount(), 0);
   } finally {
     delete process.env.QLOO_CALL_BUDGET;
+    delete process.env.EXPLORE_REPLAY_SECONDS;
+    resetLimits();
   }
 });
 
 // A fake Anthropic client that replays tool calls, so the Claude loop is tested offline.
-function scriptedClaude(turns: { name: string; input: Record<string, unknown> }[][], toolResults: string[] = []) {
+// The agent passes its live messages array, so `conversation[0]` also holds the results of a
+// last turn after which the agent stopped without calling the model again.
+function scriptedClaude(turns: { name: string; input: Record<string, unknown> }[][], toolResults: string[] = [], conversation: { role: string; content: unknown }[][] = []) {
   let i = 0;
   const stream = (body: { messages: { role: string; content: unknown }[] }) => {
+    conversation[0] = body.messages;
     // Collect the tool results the agent sent back on this turn.
     const last = body.messages.at(-1);
     if (last?.role === "user" && Array.isArray(last.content)) {
@@ -99,6 +133,9 @@ function scriptedClaude(turns: { name: string; input: Record<string, unknown> }[
   return { beta: { messages: { stream } } } as never;
 }
 
+const toolResultsIn = (messages: { role: string; content: unknown }[] = []) =>
+  messages.flatMap((m) => (m.role === "user" && Array.isArray(m.content) ? (m.content as { type: string; content?: string }[]).filter((b) => b.type === "tool_result").map((b) => String(b.content)) : []));
+
 test("Claude agent loop (scripted, no API key): tool calls become a card with evidence", async () => {
   // Find a real mock gap with the pipeline first, then have "Claude" walk to it.
   const { cards } = checkInvariants(await run("Tokyo"));
@@ -108,7 +145,7 @@ test("Claude agent loop (scripted, no API key): tool calls become a card with ev
   const ev = new Evidence(qloo, { categories: categoriesFor("all") });
   const got: OpportunityCard[] = [];
   const ctx: RunContext = { step: () => {}, onCard: (c) => got.push(c), deadline: Date.now() + 60_000, signal: new AbortController().signal };
-  const client = scriptedClaude([
+  const turns = [
     [{ name: "list_neighbourhoods", input: { city: "tokyo" } }],
     [{ name: "find_taste_twins", input: { neighbourhood: g.homeLocality.toLowerCase(), other_city: g.twinCity } }],
     [{ name: "compare_supply", input: { neighbourhood: g.homeLocality, twin_neighbourhood: g.twinLocality, twin_city: g.twinCity } }],
@@ -134,10 +171,14 @@ test("Claude agent loop (scripted, no API key): tool calls become a card with ev
         },
       },
     ],
-  ]);
+  ];
+  // The same opportunity again: sent back, not shown twice.
+  const results: string[] = [];
+  const client = scriptedClaude([...turns, [turns[4][0]]], results);
   await runClaudeAgent({ city: "Tokyo", focus: "all" }, ev, ctx, { model: "test", client });
   assert.equal(got.length, 1);
   assert.equal(got[0].id, g.id);
+  assert.match(results.at(-1) ?? "", /^Already submitted this opportunity/);
   assert.ok(got[0].scores.some((s) => s.source === "LLM"), "product fit is labelled as LLM judgment");
   assert.ok(got[0].doubts.includes("Rents are high here."), "a new doubt counts");
   assert.ok(!got[0].doubts.some((d) => /skew older/.test(d)), "a doubt about a measured score is not counted twice");
@@ -146,16 +187,66 @@ test("Claude agent loop (scripted, no API key): tool calls become a card with ev
 });
 
 test("Claude agent: a non-gap submission is rejected back to the model, not shown", async () => {
-  const qloo = new BudgetedQloo(createQloo(), 40, () => {});
-  const ev = new Evidence(qloo, { categories: categoriesFor("all") });
-  const got: OpportunityCard[] = [];
-  const ctx: RunContext = { step: () => {}, onCard: (c) => got.push(c), deadline: Date.now() + 60_000, signal: new AbortController().signal };
-  const cat = categoriesFor("all")[0];
-  const client = scriptedClaude([
-    [{ name: "submit_opportunity", input: { category: cat, neighbourhood: "Nowhere", twin_neighbourhood: "Elsewhere", twin_city: "Seoul", why: "", product_fit_score: 1, product_fit_reason: "", doubts: [] } }],
-  ]);
-  await runClaudeAgent({ city: "Tokyo", focus: "all" }, ev, ctx, { model: "test", client });
+  // A real pair (one the pipeline found a gap in), compared first, so the rejection is about the counts.
+  const g = checkInvariants(await run("Tokyo")).cards[0];
+  const compare = { name: "compare_supply", input: { neighbourhood: g.homeLocality, twin_neighbourhood: g.twinLocality, twin_city: g.twinCity } };
+  const fresh = () => {
+    const ev = new Evidence(new BudgetedQloo(createQloo(), 40, () => {}), { categories: categoriesFor("all") });
+    const got: OpportunityCard[] = [];
+    const ctx: RunContext = { step: () => {}, onCard: (c) => got.push(c), deadline: Date.now() + 60_000, signal: new AbortController().signal };
+    return { ev, got, ctx };
+  };
+
+  // Read the comparison once to pick a category that is not a gap for this pair.
+  const probe = fresh();
+  const seen: string[] = [];
+  await runClaudeAgent({ city: "Tokyo", focus: "all" }, probe.ev, probe.ctx, { model: "test", client: scriptedClaude([[compare], []], seen) });
+  const rows = (JSON.parse(seen[0]) as { per_category: { category: string; is_gap: boolean }[] }).per_category;
+  const notGap = rows.find((r) => !r.is_gap);
+  assert.ok(notGap, "the pair has a category that is not a gap");
+
+  const { ev, got, ctx } = fresh();
+  const results: string[] = [];
+  const submit = { category: notGap.category, neighbourhood: g.homeLocality, twin_neighbourhood: g.twinLocality, twin_city: g.twinCity, why: "", product_fit_score: 1, product_fit_reason: "", doubts: [] };
+  await runClaudeAgent({ city: "Tokyo", focus: "all" }, ev, ctx, { model: "test", client: scriptedClaude([[compare], [{ name: "submit_opportunity", input: submit }], []], results) });
   assert.equal(got.length, 0);
+  assert.match(results[1] ?? "", /^Not a gap/, `the model is told why (got ${results[1]})`);
+});
+
+test("Claude agent: at most 4 opportunities; a fifth submission is refused", async () => {
+  const pipelineCards = checkInvariants(await run("Tokyo")).cards;
+  assert.equal(pipelineCards.length, 4, "the mock data holds four real gaps for Tokyo");
+  const ev = new Evidence(new BudgetedQloo(createQloo(), 200, () => {}), { categories: categoriesFor("all") });
+  const got: OpportunityCard[] = [];
+  const ctx: RunContext = { step: () => {}, onCard: (c) => got.push(c), deadline: Date.now() + 120_000, signal: new AbortController().signal };
+  const submitOf = (c: OpportunityCard) => ({
+    name: "submit_opportunity",
+    input: { category: c.categoryId, neighbourhood: c.homeLocality, twin_neighbourhood: c.twinLocality, twin_city: c.twinCity, why: "Test.", product_fit_score: 0.7, product_fit_reason: "Test.", doubts: [] },
+  });
+  const conversation: { role: string; content: unknown }[][] = [];
+  const client = scriptedClaude(
+    [
+      [{ name: "list_neighbourhoods", input: { city: "Tokyo" } }],
+      pipelineCards.flatMap((c) => [
+        { name: "find_taste_twins", input: { neighbourhood: c.homeLocality, other_city: c.twinCity } },
+        { name: "compare_supply", input: { neighbourhood: c.homeLocality, twin_neighbourhood: c.twinLocality, twin_city: c.twinCity } },
+        { name: "check_city_supply", input: { category: c.categoryId } },
+        { name: "trend", input: { category: c.categoryId, city: c.twinCity } },
+        // A skipped check counts as its worst result, so the script runs every check.
+        { name: "audience_profile", input: { category: c.categoryId, neighbourhood: c.homeLocality } },
+      ]),
+      // Four good submissions and a fifth (a repeat), all in one turn.
+      [...pipelineCards.map(submitOf), submitOf(pipelineCards[0])],
+      [{ name: "list_neighbourhoods", input: { city: "Tokyo" } }],
+    ],
+    [],
+    conversation,
+  );
+  await runClaudeAgent({ city: "Tokyo", focus: "all" }, ev, ctx, { model: "test", client });
+  const results = toolResultsIn(conversation[0]);
+  assert.equal(got.length, 4, `four cards (results: ${results.slice(-5).join(" | ")})`);
+  assert.match(results.at(-1) ?? "", /^Already submitted 4\. Stop now\./);
+  assert.equal(conversation[0].filter((m) => m.role === "assistant").length, 3, "the agent stops after the turn that filled the four slots");
 });
 
 test("HTTP route: streams NDJSON for a valid request and 400s a bad one", async () => {

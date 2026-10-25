@@ -19,18 +19,40 @@ export function useElementSize(ref: RefObject<HTMLElement | null>, fallback = { 
   return size;
 }
 
-const QUERY = "(prefers-reduced-motion: reduce)";
+// Whether a line-clamped element cuts its text off, measured rather than guessed from its length.
+// Re-measured when the element resizes and when its content changes. False on the server and first paint.
+export function useOverflows(ref: RefObject<HTMLElement | null>, content: unknown) {
+  const [cut, setCut] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (typeof ResizeObserver === "undefined") return;
+    // An observer reports once as soon as it starts observing, so this also measures on mount.
+    const ro = new ResizeObserver(() => setCut(el.scrollHeight > el.clientHeight + 1));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [ref, content]);
+  return cut;
+}
 
-function subscribe(cb: () => void) {
-  const mq = window.matchMedia(QUERY);
-  mq.addEventListener("change", cb);
-  return () => mq.removeEventListener("change", cb);
+// Whether a media query matches. The server render and first paint assume it does not.
+function useMediaQuery(query: string) {
+  return useSyncExternalStore(
+    (cb) => {
+      const mq = window.matchMedia(query);
+      mq.addEventListener("change", cb);
+      return () => mq.removeEventListener("change", cb);
+    },
+    () => window.matchMedia(query).matches,
+    () => false,
+  );
 }
 
 export function usePrefersReducedMotion() {
-  return useSyncExternalStore(
-    subscribe,
-    () => window.matchMedia(QUERY).matches,
-    () => false,
-  );
+  return useMediaQuery("(prefers-reduced-motion: reduce)");
+}
+
+// Tailwind's lg breakpoint, where the story caption floats over the bottom of the map.
+export function useCaptionOverMap() {
+  return useMediaQuery("(min-width: 1024px)");
 }

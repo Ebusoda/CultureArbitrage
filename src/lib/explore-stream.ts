@@ -1,6 +1,8 @@
 import { explore as exploreLive } from "./agent/run";
 import type { AgentEvent, ExploreRequest } from "./agent/types";
 import { config } from "./config";
+import { GooglePlacesError } from "./google/places";
+import { BudgetExceededError, QlooError, type QlooErrorKind } from "./qloo";
 import { admit, clientIp } from "./limits";
 import { playRecording, recordingFor, type Recording } from "./replay";
 
@@ -28,7 +30,32 @@ const STREAM_LIMIT_MS = 285_000;
 
 const NDJSON = { "Content-Type": "application/x-ndjson; charset=utf-8", "Cache-Control": "no-store" };
 
-const errorMessage = (e: unknown) => (e instanceof Error ? e.message : String(e));
+// What the page may say about a failure. Upstream error text (Qloo, Google or Anthropic
+// bodies, internal TypeErrors) can hold anything, so the page gets a short fixed sentence per
+// kind of failure and the full error goes to the server log.
+const QLOO_PUBLIC: Record<QlooErrorKind, string> = {
+  auth: "Qloo rejected the API key",
+  not_found: "The Qloo address is set up wrongly",
+  bad_request: "Qloo did not accept a request",
+  rate_limit: "Qloo is rate-limiting",
+  server: "Qloo is having server trouble",
+  timeout: "Qloo did not answer in time",
+  network: "Qloo could not be reached",
+  bad_response: "Qloo sent an answer that could not be read",
+  aborted: "The run was cancelled",
+};
+
+export function publicErrorMessage(e: unknown): string {
+  if (e instanceof BudgetExceededError) return e.message;
+  if (e instanceof QlooError) return QLOO_PUBLIC[e.kind] ?? "Qloo failed";
+  if (e instanceof GooglePlacesError) return "The Google Maps cross-check failed";
+  return "The live run hit an unexpected error";
+}
+
+const errorMessage = (e: unknown) => {
+  console.error("[explore]", e);
+  return publicErrorMessage(e);
+};
 
 function clip(s: string, max: number) {
   return s.length > max ? `${s.slice(0, max - 1)}…` : s;
@@ -52,6 +79,12 @@ export function exploreResponse(req: ExploreRequest, request: Request, deps: Par
     if (!recording) return jsonError(slot.status, slot.error, headers);
     return replayResponse(request, recording, slot.reason === "hourly" ? REPLAY_REASON.hourly : REPLAY_REASON.busy, headers);
   }
+
+  // When the viewer leaves, Vercel (with supportsCancellation in vercel.json) aborts
+  // request.signal and then ends the function, possibly before the finally below runs.
+  // Free the live slot right away, so a reused instance doesn't count a dead run.
+  if (request.signal.aborted) slot.release();
+  else request.signal.addEventListener("abort", () => slot.release(), { once: true });
 
   return ndjson(
     request,
@@ -103,14 +136,23 @@ function ndjson(
   const encoder = new TextEncoder();
   const cancelled = new AbortController();
   const signal = AbortSignal.any([request.signal, cancelled.signal]);
+  // closed: the stream takes no more (closed, errored, or cancelled by the viewer). An event
+  // that can't be serialised is skipped on its own and closes nothing.
   let closed = false;
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       const emit: Emit = (e) => {
         if (closed) return;
+        let line: string;
         try {
-          controller.enqueue(encoder.encode(JSON.stringify({ ...e, t: Date.now() - t0 }) + "\n"));
+          line = JSON.stringify({ ...e, t: Date.now() - t0 }) + "\n";
+        } catch (err) {
+          console.error("[explore] skipped an event that could not be serialised:", (e as { type?: unknown })?.type, err);
+          return;
+        }
+        try {
+          controller.enqueue(encoder.encode(line));
         } catch {
           closed = true;
         }
@@ -122,7 +164,9 @@ function ndjson(
       } finally {
         if (!closed) {
           closed = true;
-          controller.close();
+          try {
+            controller.close();
+          } catch {}
         }
       }
     },

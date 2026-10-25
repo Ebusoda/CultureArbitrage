@@ -60,6 +60,9 @@ export interface OpportunityCard {
   audienceBasis?: string;
   // The broader tag whose fans stood in for the category's (e.g. "hot pot").
   audienceProxy?: string;
+  // Who wrote the card's text and product fit: Claude, or the fixed pipeline's template.
+  // Missing in recordings made before it existed.
+  author?: "claude" | "pipeline";
 }
 
 export interface TrailStep {
@@ -92,11 +95,19 @@ export interface SupplyEvent {
   // Category label -> places, for the categories in scope.
   counts: Record<string, number>;
   calls: number[];
+  // True when the page of places hit its size limit, so the counts are a sample (lower bounds).
+  capped?: boolean;
+  // Category label -> exact single-category recount, for categories recounted because the
+  // page was capped. Takes precedence over counts.
+  exact?: Record<string, number>;
+  // Category label -> true when that recount itself hit the page size (still a lower bound).
+  exactCapped?: Record<string, boolean>;
 }
 
 export type AgentEvent =
   | { type: "start"; city: string; focus: Focus; qlooMode: string; llmMode: string; budget: number; model?: string }
-  | { type: "mode"; llmMode: string; reason: string }
+  // model: the model now running, when it changed (a retry on the default model).
+  | { type: "mode"; llmMode: string; reason: string; model?: string }
   | { type: "step"; id: string; phase: Phase; title: string; detail?: string }
   | { type: "call"; stepId: string; call: QlooCallLog }
   | TwinEvent
@@ -106,7 +117,8 @@ export type AgentEvent =
   | { type: "rescore"; id: string; category: string; hood: string; twin: string; twinCity: string; from: number; to: number; reason: string; calls: number[] }
   // A submission the agent's own checks ruled out; never shown as an opportunity.
   | { type: "rejected"; card: OpportunityCard; reason: string }
-  | { type: "done"; callsUsed: number; budget: number; cards: number }
+  // stopped: the run ended early (Qloo budget or time) with gaps found but not checked yet.
+  | { type: "done"; callsUsed: number; budget: number; cards: number; stopped?: { reason: "budget" | "time"; unscored: number } }
   | { type: "error"; message: string }
   // A run recorded earlier, played back instead of a live one (src/lib/replay.ts): when it was
   // recorded and why it is not live. Anything shown before it is dropped; the recording follows,
@@ -119,4 +131,6 @@ export interface Modes {
   qlooMode: "mock" | "live";
   llmMode: "claude" | "none";
   budget: number;
+  // Live runs are switched off (EXPLORE_FORCE_REPLAY / EXPLORE_LIVE_ENABLED): every run plays a recording.
+  forceReplay?: boolean;
 }

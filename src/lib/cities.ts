@@ -7,7 +7,7 @@ export const CITIES = ["Tokyo", "New York", "Seoul"];
 // What to send Qloo as a location query: plain "New York" also matches the state.
 const QLOO_LOCATION: Record<string, string> = { "New York": "New York City" };
 export function qlooLocation(city: string): string {
-  return QLOO_LOCATION[city] ?? city;
+  return own(QLOO_LOCATION, city) ?? city;
 }
 
 // Language and region for Google Maps searches in each city.
@@ -29,6 +29,11 @@ const CITY_ALIASES: Record<string, string> = {
   "ソウル": "Seoul",
 };
 
+// A plain object lookup that ignores inherited keys: "constructor" or "__proto__" is not a city.
+function own<T>(table: Record<string, T>, key: string): T | undefined {
+  return Object.hasOwn(table, key) ? table[key] : undefined;
+}
+
 const norm = (s: string) => s.normalize("NFKC").toLowerCase().replace(/[\s\-_]+/g, " ").trim();
 
 // "tokyo", " NYC ", "東京" -> the city's name in CITIES. Null if it isn't one.
@@ -36,7 +41,7 @@ export function canonicalCity(raw: unknown): string | null {
   if (typeof raw !== "string") return null;
   const n = norm(raw);
   if (!n) return null;
-  return CITIES.find((c) => norm(c) === n) ?? CITY_ALIASES[n] ?? null;
+  return CITIES.find((c) => norm(c) === n) ?? own(CITY_ALIASES, n) ?? null;
 }
 
 // [lng, lat] of each city the map can draw.
@@ -58,8 +63,8 @@ export const PRECEDENTS = [
 
 // Great-circle distance, rounded to 100 km. Null if either city has no coordinates.
 export function kmBetween(a: string, b: string): number | null {
-  const p = CITY_COORDS[a];
-  const q = CITY_COORDS[b];
+  const p = own(CITY_COORDS, a);
+  const q = own(CITY_COORDS, b);
   if (!p || !q) return null;
   return Math.round((geoDistance(p, q) * 6371) / 100) * 100;
 }

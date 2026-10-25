@@ -3,7 +3,7 @@ import { CachedQloo } from "./cache";
 import { LiveQloo, QlooError } from "./live";
 import { MockQloo } from "./mock";
 import { summarize } from "./summary";
-import type { InsightsResponse, QlooCallLog, QlooClient, QlooParams, TrendingResponse } from "./types";
+import { splitDisplayParams, type InsightsResponse, type QlooCallLog, type QlooClient, type QlooParams, type TrendingResponse } from "./types";
 
 export * from "./types";
 export { QlooError, type QlooErrorKind } from "./live";
@@ -11,7 +11,7 @@ export { QlooError, type QlooErrorKind } from "./live";
 let warned = false;
 
 export function qlooMode(): "mock" | "live" {
-  const wantsLive = process.env.QLOO_MODE === "live";
+  const wantsLive = process.env.QLOO_MODE?.trim().toLowerCase() === "live";
   const hasKey = !!process.env.QLOO_API_KEY?.trim();
   if (wantsLive && !hasKey && !warned) {
     warned = true;
@@ -32,7 +32,8 @@ export function createQloo(opts: { signal?: AbortSignal } = {}): QlooClient {
       retries: config.qlooRetries(),
       signal: opts.signal,
     });
-    return new CachedQloo(live, config.qlooCacheTtlMs());
+    // The cache races each shared request against this run's signal (see cache.ts).
+    return new CachedQloo(live, config.qlooCacheTtlMs(), Date.now, opts.signal);
   }
   return new MockQloo(config.mockDelayMs());
 }
@@ -67,37 +68,49 @@ export class BudgetedQloo {
   }
 
   insights(params: QlooParams): Promise<InsightsResponse> {
-    return this.call("/v2/insights", params, () => this.inner.insights(params));
+    return this.call("/v2/insights", params, (send, o) => this.inner.insights(send, o));
   }
 
   trending(params: QlooParams): Promise<TrendingResponse> {
-    return this.call("/v2/trending", params, () => this.inner.trending(params));
+    return this.call("/v2/trending", params, (send, o) => this.inner.trending(send, o));
   }
 
-  private async call<T extends InsightsResponse | TrendingResponse>(endpoint: string, params: QlooParams, fn: () => Promise<T>): Promise<T> {
+  private async call<T extends InsightsResponse | TrendingResponse>(
+    endpoint: string,
+    raw: QlooParams,
+    fn: (send: QlooParams, o: { maxAttempts: number; onAttempt: () => void }) => Promise<T>,
+  ): Promise<T> {
     if (this.used >= this.budget) {
       throw new BudgetExceededError(`Qloo call budget of ${this.budget} used up`);
     }
-    const before = this.inner.attempts;
+    // "_" params (e.g. "_where") are for the log line only: never sent, cached on or mocked.
+    const { send: params, display } = splitDisplayParams(raw);
     const hitsBefore = this.inner.cacheHits ?? 0;
     const n = ++this.lastCall;
-    const base = { n, endpoint, params, mock: this.inner.mode === "mock" };
+    const base = { n, endpoint, params, mock: this.inner.mode === "mock", ...(display._where ? { where: display._where } : {}) };
+    let attempts = 0;
+    // Charge every HTTP attempt, retries included, so the budget matches real quota use.
+    // A cached answer still counts as one call, so a run behaves the same cached or not.
+    // Retries stop at the remaining budget, so used never goes past it.
+    const charge = () => {
+      this.used += Math.max(1, attempts);
+      return this.used;
+    };
+    const o = { maxAttempts: this.remaining, onAttempt: () => void attempts++ };
+    let res: T;
     try {
-      const res = await fn();
-      const r = (res.results ?? {}) as InsightsResponse["results"] & TrendingResponse["results"];
-      const count =
-        (r.entities?.length ?? 0) + (r.tags?.length ?? 0) + (r.heatmap?.length ?? 0) + (r.trending?.length ?? 0) + (r.demographics ? 1 : 0);
-      const cached = (this.inner.cacheHits ?? 0) > hitsBefore;
-      this.onCall({ ...base, resultCount: count, summary: summarize(endpoint, params, res), ...(cached ? { cached } : {}) });
-      return res;
+      res = await fn(params, o);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      this.onCall({ ...base, resultCount: 0, summary: "failed", error: message.slice(0, 200) });
+      this.onCall({ ...base, resultCount: 0, summary: "failed", error: message.slice(0, 200), used: charge() });
       throw err;
-    } finally {
-      // Charge every HTTP attempt, retries included, so the budget matches real quota use.
-      // A cached answer still counts as one call, so a run behaves the same cached or not.
-      this.used += Math.max(1, this.inner.attempts - before);
     }
+    const r = (res.results ?? {}) as InsightsResponse["results"] & TrendingResponse["results"];
+    const count =
+      (r.entities?.length ?? 0) + (r.tags?.length ?? 0) + (r.heatmap?.length ?? 0) + (r.trending?.length ?? 0) + (r.demographics ? 1 : 0);
+    const cached = (this.inner.cacheHits ?? 0) > hitsBefore;
+    const used = charge();
+    this.onCall({ ...base, resultCount: count, summary: summarize(endpoint, params, res), ...(cached ? { cached } : {}), used });
+    return res;
   }
 }

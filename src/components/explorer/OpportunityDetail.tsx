@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { CITY_CROWDED, cityMayBeLocal } from "@/lib/agent/rules";
 import type { EvidenceRef, OpportunityCard, ScoreItem } from "@/lib/agent/types";
 import { Arrow } from "./Arrow";
-import { BAND_TEXT, Q_CHIP, Q_CHIP_HOVER, band, count, isFading, km, pct, score } from "./format";
+import { BAND_TEXT, Q_CHIP, Q_CHIP_HOVER, band, count, isFading, km, missingText, pct, plural, score } from "./format";
+import { useOverflows } from "./hooks";
 
 interface Props {
   card: OpportunityCard;
@@ -13,31 +15,46 @@ interface Props {
   rank?: number | null;
   // Without it, Q-numbers are plain text (the static example on the page).
   onChip?: (n: number) => void;
+  // 3 when the detail sits inside another section with its own h2 (the example in How it works).
+  headingLevel?: 2 | 3;
+  // Closes this idea and goes back to the run's summary (a ruled-out idea in a run with no cards).
+  onBack?: () => void;
 }
 
-export function OpportunityDetail({ card, ruledOut, llmMode, rank, onChip }: Props) {
+export function OpportunityDetail({ card, ruledOut, llmMode, rank, onChip, headingLevel = 2, onBack }: Props) {
   const distance = km(card.twinCity, card.homeCity);
+  const Title = headingLevel === 3 ? "h3" : "h2";
+  // Who wrote the text: the card says when it can (Claude's ideas stay Claude's after a fallback).
+  const byClaude = card.author ? card.author === "claude" : llmMode === "claude";
   return (
     <article className="fade-in">
       {ruledOut && (
         <p className="mb-6 max-w-[80ch] rounded-xl border border-dashed border-doubt/60 bg-page px-4 py-3 text-[14px]">
           <span className="font-semibold text-doubt">Ruled out by the agent’s own checks.</span> {ruledOut}, so it is not counted as an opportunity. It stays
           here so you can see why.
+          {onBack && (
+            <>
+              {" "}
+              <button type="button" onClick={onBack} className="text-[12px] text-muted underline underline-offset-2 hover:text-ink">
+                Back to summary
+              </button>
+            </>
+          )}
         </p>
       )}
       <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_auto] md:gap-10">
         <div>
-          {rank === 1 && <p className="text-[12px] font-semibold uppercase tracking-[0.06em] text-accent">#1 · Strongest opportunity</p>}
-          <h2 className="mt-1 font-serif text-[28px] leading-[1.1] md:text-[32px]">
+          {rank === 1 && <p className="text-[13px] font-semibold text-accent">Strongest opportunity</p>}
+          <Title className="mt-1 font-serif text-[28px] leading-[1.1] md:text-[32px]">
             {card.category}: {card.twinLocality} <Arrow /> {card.homeLocality}
-          </h2>
+          </Title>
           <p className="mt-1 text-[13px] text-muted">
             {card.twinCity} <Arrow /> {card.homeCity}
-            {distance && ` · about ${distance} km`}
+            {distance && `, about ${distance} km apart`}
           </p>
-          <p className="mt-4 max-w-[68ch] text-[15px] md:text-[16px]">{card.why}</p>
+          <WhyText text={card.why} />
           <p className="mt-1.5 flex items-center gap-1.5 text-[12px] text-muted">
-            {llmMode === "claude" ? (
+            {byClaude ? (
               <>
                 <span className="h-1.5 w-1.5 rounded-full bg-llm" aria-hidden="true" />
                 Written by Claude
@@ -52,12 +69,33 @@ export function OpportunityDetail({ card, ruledOut, llmMode, rank, onChip }: Pro
 
       <div className="mt-10 grid gap-10 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] lg:gap-8">
         <EvidenceChain card={card} onChip={onChip} />
-        <div className="space-y-10">
-          <ScoreList card={card} onChip={onChip} />
+        {/* The answer to "can I trust this?" comes first; the score breakdown opens on request. */}
+        <div className="space-y-8">
           <SelfCheck card={card} onChip={onChip} />
+          <ScoreList card={card} onChip={onChip} />
         </div>
       </div>
     </article>
+  );
+}
+
+// The agent's own explanation, two lines until opened.
+function WhyText({ text }: { text: string }) {
+  const [open, setOpen] = useState(false);
+  const box = useRef<HTMLParagraphElement>(null);
+  // The button shows when the two lines really cut the text off, whatever its length.
+  const cut = useOverflows(box, text);
+  return (
+    <div className="mt-4 max-w-[68ch]">
+      <p ref={box} className={`text-[15px] md:text-[16px] ${open ? "" : "line-clamp-2"}`}>
+        {text}
+      </p>
+      {(open || cut) && (
+        <button type="button" onClick={() => setOpen(!open)} className="text-[12px] text-muted underline underline-offset-2 hover:text-ink">
+          {open ? "Less" : "Read more"}
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -66,17 +104,30 @@ function ConfidenceBlock({ card, ruledOut }: { card: OpportunityCard; ruledOut: 
   const b = band(card.confidence);
   const m = card.confidenceMath;
   const fitPending = score(card, "fit")?.value == null;
+  // The unrounded average when the scores give it, so the formula below multiplies out.
+  const values = card.scores.flatMap((s) => (s.value === null ? [] : [s.value]));
+  const exactMean = m && values.length === m.measured ? (values.reduce((a, v) => a + v, 0) / Math.max(values.length, 1)) * 100 : m ? m.mean * 100 : p;
+  const mean = Math.round(exactMean);
   return (
     <div className="md:w-[260px] md:text-right">
       <p className="font-serif text-[56px] font-extrabold leading-none tabular-nums">{p}%</p>
       <p className={`mt-1 text-[14px] font-semibold ${ruledOut ? "text-doubt" : BAND_TEXT[b]}`}>{ruledOut ? "Ruled out" : b}</p>
-      {m && (
-        <p className="num mt-2 text-[12px] text-muted">
-          Average of {m.measured} of 6 scores ({Math.round(m.mean * 100)}) × doubt penalty {m.penalty.toFixed(2)} ({m.doubts} {m.doubts === 1 ? "doubt" : "doubts"}) ={" "}
-          {p}%.
-        </p>
-      )}
-      {fitPending && <p className="mt-1 text-[12px] text-muted">Product fit is pending and not counted.</p>}
+      {/* The bar: the average of the scores, with the part the doubts took off hatched. */}
+      <div className="relative mt-3 h-2.5 overflow-hidden rounded-full bg-line" title={`Average ${mean}, open doubts take it to ${p}`} aria-hidden="true">
+        <div className="bar-doubt absolute inset-y-0 left-0" style={{ width: `${mean}%` }} />
+        <div className={`absolute inset-y-0 left-0 rounded-full ${ruledOut ? "bg-doubt" : "bg-accent"}`} style={{ width: `${p}%` }} />
+        <div className="absolute inset-y-0 w-px bg-ink/40" style={{ left: "55%" }} />
+      </div>
+      <details className="mt-2 text-[12px] text-muted">
+        <summary className="cursor-pointer hover:text-ink">How {p}% is worked out</summary>
+        {m && (
+          <p className="num mt-1">
+            Average of {m.measured} of 6 scores ({exactMean.toFixed(1)}) × doubt penalty {m.penalty.toFixed(2)} ({plural(m.doubts, "doubt")}) ≈ {p}%. The line
+            marks 55%: below it an idea is ruled out.
+          </p>
+        )}
+        {fitPending && <p className="mt-1">Product fit is pending and not counted.</p>}
+      </details>
     </div>
   );
 }
@@ -85,12 +136,14 @@ export function QChips({ calls, onChip }: { calls: number[]; onChip?: (n: number
   const [all, setAll] = useState(false);
   if (!calls.length) return <span className="text-[11px] text-muted">not fetched</span>;
   const shown = all ? calls : calls.slice(0, 3);
-  const chip = `rounded-full px-1.5 font-mono text-[11px] font-semibold leading-[18px] ${Q_CHIP}`;
+  const chip = `rounded-full px-1.5 text-[11px] font-semibold tabular-nums leading-[18px] ${Q_CHIP}`;
+  // Buttons get an invisible 24px-tall hit area so they are easier to tap; the chip looks the same.
+  const hit = "relative after:absolute after:inset-x-0 after:-inset-y-[3px] after:content-['']";
   return (
     <span className="inline-flex shrink-0 flex-wrap justify-end gap-1">
       {shown.map((n) =>
         onChip ? (
-          <button key={n} type="button" onClick={() => onChip(n)} className={`${chip} ${Q_CHIP_HOVER}`} aria-label={`Show Qloo call ${n} in the agent log`}>
+          <button key={n} type="button" onClick={() => onChip(n)} className={`${chip} ${hit} ${Q_CHIP_HOVER}`} aria-label={`Show Qloo call ${n} in the agent log`}>
             Q{n}
           </button>
         ) : (
@@ -100,7 +153,7 @@ export function QChips({ calls, onChip }: { calls: number[]; onChip?: (n: number
         ),
       )}
       {!all && calls.length > 3 && (
-        <button type="button" onClick={() => setAll(true)} className={chip}>
+        <button type="button" onClick={() => setAll(true)} className={`${chip} ${hit}`} aria-label={`Show ${calls.length - 3} more Qloo calls`}>
           +{calls.length - 3}
         </button>
       )}
@@ -108,11 +161,12 @@ export function QChips({ calls, onChip }: { calls: number[]; onChip?: (n: number
   );
 }
 
-function Row({ n, children, refs, onChip }: { n: number | null; children: React.ReactNode; refs?: number[]; onChip?: (n: number) => void }) {
+// One piece of evidence: the figure first, a short line beside it, its sources on the right.
+function Row({ big, children, refs, onChip, muted = false }: { big: React.ReactNode; children: React.ReactNode; refs?: number[]; onChip?: (n: number) => void; muted?: boolean }) {
   return (
-    <li className="flex items-start gap-3 py-2.5">
-      <span className="num flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-line/70 text-[11px] font-semibold text-ink">{n ?? "·"}</span>
-      <p className="min-w-0 flex-1 text-[14px] md:text-[15px]">{children}</p>
+    <li className="flex items-start gap-3 py-3">
+      <span className={`w-[4.5rem] shrink-0 font-serif text-[24px] leading-none tabular-nums ${muted ? "text-muted" : ""}`}>{big}</span>
+      <div className="min-w-0 flex-1 pt-0.5 text-[14px]">{children}</div>
       {refs && <QChips calls={refs} onChip={onChip} />}
     </li>
   );
@@ -141,7 +195,8 @@ function GoogleMapsCheck({ card }: { card: OpportunityCard }) {
         <p className="text-muted">Cross-check not run: {card.googleSkipped}.</p>
       )}
       <p className="mt-1 text-[12px] text-muted">
-        Cross-check against a second index. It changes no score or confidence; a gap it does not see is ruled out. Source:{" "}
+        Cross-check against a second index. It changes no score or confidence. A gap it does not see (at least as many places around the home neighbourhood
+        as around the twin) is ruled out; with fewer than 4 places on both sides, or past its 60-result limit, it is inconclusive and rules nothing out. Source:{" "}
         <span translate="no" className="font-medium text-ink">
           Google Maps
         </span>
@@ -156,95 +211,109 @@ function EvidenceChain({ card, onChip }: { card: OpportunityCard; onChip?: (n: n
   const audience = score(card, "audience");
   const durability = score(card, "durability");
   const fit = score(card, "fit");
+  const live = card.twinSharedShare !== undefined;
+  // "+42% over 12 points" -> "+42%" as the figure, the rest beside it. Anything else stays as text.
+  const trend = durability?.value != null ? /^([+−-]?\d+(?:\.\d+)?%)\s+(.+)$/.exec(durability.note) : null;
+  const notMeasurable = durability?.value == null && durability?.note.startsWith("Not measurable");
+  const noFanData = audience?.value == null && !!audience?.note.startsWith("Qloo has no age data");
+  const missing = Math.max(0, card.twinCount - card.homeCount);
+  // A capped home count may be too low (so fewer are missing); a capped twin count, too low (so more are).
+  const missingBig = `−${missing}${card.capped.twin && !card.capped.home ? "+" : ""}`;
+  const residents = !!card.audienceBasis?.startsWith("residents");
   return (
     <section>
-      <h3 className="text-[12px] font-semibold uppercase tracking-[0.06em] text-muted">Evidence chain</h3>
-      <ol className="mt-2 divide-y divide-line">
-        <Row n={1} refs={card.twinSharedShare !== undefined ? r.twin : r.taste} onChip={onChip}>
-          {card.twinSharedShare !== undefined ? <>{card.homeLocality} and {card.twinLocality} share Qloo tastes such as </> : <>People in {card.homeLocality} are into </>}
-          {t.length
-            ? t.map((x, i) => (
-                <span key={x.name}>
-                  {i > 0 && (i === t.length - 1 ? " and " : ", ")}
+      <h3 className="text-[13px] font-semibold text-muted">Evidence chain</h3>
+      <ol className="mt-1 divide-y divide-line">
+        <Row
+          big={
+            <svg viewBox="0 0 20 20" className="h-7 w-7 fill-none stroke-twin" strokeWidth={1.6} aria-hidden="true">
+              <circle cx="7" cy="10" r="5" />
+              <circle cx="13" cy="10" r="5" />
+            </svg>
+          }
+          refs={live ? r.twin : r.taste}
+          onChip={onChip}
+        >
+          <p className="sr-only">{live ? `${card.homeLocality} and ${card.twinLocality} share these Qloo tastes:` : `People in ${card.homeLocality} are into:`}</p>
+          <div className="flex flex-wrap gap-1.5">
+            {t.length ? (
+              t.map((x) => (
+                <span key={x.name} className="rounded-full bg-twin/10 px-2.5 py-0.5 text-[13px] font-medium text-twin">
                   {x.name}
-                  {x.affinity !== null && (
-                    <>
-                      {" "}
-                      (<B>{x.affinity.toFixed(2)}</B>)
-                    </>
-                  )}
+                  {x.affinity !== null && <span className="ml-1 text-[11px] tabular-nums opacity-80">{x.affinity.toFixed(2)}</span>}
                 </span>
               ))
-            : "(no taste tags returned)"}
-          .
+            ) : (
+              <span className="text-muted">No taste tags returned</span>
+            )}
+          </div>
         </Row>
-        <Row n={2} refs={r.twin} onChip={onChip}>
-          {card.twinSharedShare !== undefined ? (
+        <Row big={live ? `${pct(card.twinSharedShare!)}%` : card.twinRank !== null ? `#${card.twinRank}` : "—"} refs={r.twin} onChip={onChip}>
+          {live ? (
             <>
-              {card.twinLocality} {card.twinRank !== null && <>(<B>#{card.twinRank}</B> in {card.twinCity}) </>}and {card.homeLocality} share <B>{pct(card.twinSharedShare)}%</B> of the Qloo taste tags found in either
-              {card.twinTagCounts && (
-                <>
-                  {" "}
-                  ({card.twinTagCounts.shared} of {card.twinTagCounts.either})
-                </>
-              )}
-              .
+              of taste tags shared{card.twinTagCounts && ` (${card.twinTagCounts.shared} of ${card.twinTagCounts.either})`}
+              {card.twinRank !== null && `, #${card.twinRank} in ${card.twinCity}`}
             </>
           ) : (
             <>
-              Qloo ranks {card.twinLocality} {card.twinRank !== null && <B>#{card.twinRank} </B>}in {card.twinCity} for people with those tastes
-              {card.twinSimilarity !== null && (
-                <>
-                  {" "}
-                  (affinity <B>{card.twinSimilarity.toFixed(2)}</B>)
-                </>
-              )}
-              .
+              {card.twinLocality} in {card.twinCity} for these tastes
+              {card.twinSimilarity !== null && <span className="text-muted"> (affinity {card.twinSimilarity.toFixed(2)})</span>}
             </>
           )}
         </Row>
-        <Row n={3} refs={r.twinSupply} onChip={onChip}>
-          Qloo lists <B>{count(card.twinCount, card.capped.twin)}</B> places tagged “{card.category.toLowerCase()}” in {card.twinLocality}.
-        </Row>
-        <Row n={4} refs={r.homeSupply} onChip={onChip}>
-          <B>{count(card.homeCount, card.capped.home)}</B> in {card.homeLocality}.
-        </Row>
-        <li className="py-3 pl-9">
+        <Row big={<span className="text-accent">{missingBig}</span>} refs={[...new Set([...r.twinSupply, ...r.homeSupply])].sort((a, b) => a - b)} onChip={onChip}>
+          <p className="mb-2">
+            {card.capped.home && "up to "}
+            {card.category.toLowerCase()} places missing in {card.homeLocality}
+          </p>
           <SupplyLedger card={card} />
-        </li>
-        <Row n={5} refs={r.citySupply} onChip={onChip}>
-          {card.cityCount !== null ? (
-            <>
-              <B>{count(card.cityCount, card.capped.city)}</B> across all of {card.homeCity}.
-            </>
-          ) : (
-            <span className="text-muted">Not checked: the agent did not look at the rest of {card.homeCity}.</span>
-          )}
+        </Row>
+        <Row big={card.cityCount !== null ? count(card.cityCount, card.capped.city) : "—"} muted={card.cityCount === null} refs={r.citySupply} onChip={onChip}>
+          {card.cityCount !== null ? `across all of ${card.homeCity}` : `rest of ${card.homeCity} not checked`}
         </Row>
         {(card.google || card.googleSkipped) && (
-          <li className="py-3 pl-9">
+          <li className="py-3 pl-[5.25rem]">
             <GoogleMapsCheck card={card} />
           </li>
         )}
-        <Row n={6} refs={r.audience} onChip={onChip}>
+        <Row big={audience?.value != null ? `${pct(audience.value)}%` : "—"} muted={audience?.value == null} refs={r.audience} onChip={onChip}>
           {audience?.value != null ? (
-            <>
-              Age profiles match <B>{pct(audience.value)}%</B>: the category’s fans{card.audienceProxy ? ` (${card.audienceProxy} fans standing in)` : ""} on Qloo vs {card.audienceBasis ?? `people in ${card.homeLocality}`}.
-            </>
+            <div title={`The category’s fans${card.audienceProxy ? ` (${card.audienceProxy} fans standing in)` : ""} on Qloo vs ${card.audienceBasis ?? `people in ${card.homeLocality}`}`}>
+              {residents ? "age match, fans vs residents" : "age match, category fans vs fans of local tastes"}
+              <div className="mt-1.5 h-1.5 w-full max-w-[200px] overflow-hidden rounded-full bg-line" aria-hidden="true">
+                <div className="h-full rounded-full bg-twin" style={{ width: `${pct(audience.value)}%` }} />
+              </div>
+              <p className="mt-1 text-[12px] text-muted">
+                {card.audienceProxy ? `${card.audienceProxy} fans standing in; ` : ""}
+                {card.audienceBasis ?? `people in ${card.homeLocality}`}
+              </p>
+            </div>
+          ) : noFanData ? (
+            "no Qloo fan data for this category"
           ) : (
-            <span className="text-muted">Audience overlap: not fetched.</span>
+            "audience overlap not fetched"
           )}
         </Row>
-        <Row n={7} refs={r.trend} onChip={onChip}>
-          {durability?.value != null ? <>Interest over the period: {durability.note}.</> : <span className="text-muted">Trend: {durability?.note ?? "not fetched"}.</span>}
+        <Row big={trend ? trend[1] : "—"} muted={!trend} refs={notMeasurable ? undefined : r.trend} onChip={onChip}>
+          {trend ? (
+            `interest, ${trend[2]}`
+          ) : notMeasurable ? (
+            <>
+              trend not measurable for places
+              <span className="mt-0.5 block text-[12px] text-muted">{durability!.note.replace(/^Not measurable:\s*/, "")}</span>
+            </>
+          ) : durability?.value != null ? (
+            `interest: ${durability.note}`
+          ) : (
+            (durability?.note ?? "trend not fetched")
+          )}
         </Row>
-        <Row n={8}>
-          <LlmBadge />{" "}
-          {fit?.value != null ? <>Product fit, Claude: “{fit.note}”</> : <span className="text-muted">Not judged: product fit needs Claude (LLM mode).</span>}
+        <Row big={fit?.value != null ? pct(fit.value) : "—"} muted={fit?.value == null}>
+          <LlmBadge /> {fit?.value != null ? <>product fit: “{fit.note}”</> : <span className="text-muted">not judged without Claude</span>}
         </Row>
       </ol>
-      <p className="mt-3 text-[12px] text-muted">
-        Every number above comes from the Qloo response named on its right{card.google || card.audienceBasis ? ", except where another source is named" : ""}.{onChip ? " Click a Q-number to see the exact request in the agent log." : ""}
+      <p className="mt-2 text-[12px] text-muted">
+        Numbers link to their source on the right{card.google || card.audienceBasis ? "; other sources are named" : ""}.
       </p>
     </section>
   );
@@ -288,18 +357,23 @@ function SupplyLedger({ card }: { card: OpportunityCard }) {
         </span>
         <Dots filled={card.homeCount} hollow={missing} />
         <span className="num ml-auto whitespace-nowrap text-[12px]">
-          {count(card.homeCount, card.capped.home)} <span className="text-accent">({missing} missing)</span>
+          {count(card.homeCount, card.capped.home)} <span className="text-accent">({missingText(card)} missing)</span>
         </span>
       </div>
       {card.cityCount !== null && (
         <div className={`${row} text-[12px] text-muted`}>
           <span className={label}>All of {card.homeCity}</span>
-          <span className="num">{count(card.cityCount, card.capped.city)} places</span>
+          <span className="num">
+            {count(card.cityCount, card.capped.city)} {card.cityCount === 1 && !card.capped.city ? "place" : "places"}
+          </span>
         </div>
       )}
-      <p className="pt-1 text-[12px] text-muted">
-        Each dot is one place Qloo returned with this tag. Hollow dots are the empty storefronts: places {card.twinLocality} has that {card.homeLocality} doesn’t.
-      </p>
+      <details className="pt-1 text-[12px] text-muted">
+        <summary className="cursor-pointer hover:text-ink">What the dots mean</summary>
+        <p className="mt-1">
+          Each dot is one place Qloo returned with this tag. Hollow dots are the empty storefronts: places {card.twinLocality} has that {card.homeLocality} doesn’t.
+        </p>
+      </details>
     </div>
   );
 }
@@ -311,9 +385,14 @@ const FIXED: Record<string, { sentence: string; refs: EvidenceRef[] }> = {
     refs: ["twin"],
   },
   audience: { sentence: "Age overlap only; gender is not used yet.", refs: ["audience"] },
-  gap: { sentence: "Reduced when the whole city already has more than 20.", refs: ["homeSupply", "twinSupply", "citySupply"] },
+  gap: { sentence: `Reduced when the whole city already has more than ${CITY_CROWDED}.`, refs: ["homeSupply", "twinSupply", "citySupply"] },
   fit: { sentence: "Claude’s judgment: photogenic, customisable, health image, solo-friendly, cheap to open. Not Qloo data.", refs: [] },
   durability: { sentence: "Bubble tea in Japan is the warning case: a real gap that faded.", refs: ["trend"] },
+};
+
+const LIVE_BRIDGE = {
+  sentence: "Measured as the shared-taste score: the share of Qloo taste tags both neighbourhoods have, ÷ 0.5, max 1. Cross-interest bridges (like K-pop → malatang) are not measured yet.",
+  refs: ["twin"] as EvidenceRef[],
 };
 
 function LlmBadge() {
@@ -326,52 +405,67 @@ function SourceBadge({ s }: { s: ScoreItem }) {
   return <span className="rounded-full border border-twin/40 px-1.5 text-[11px] font-medium text-twin">Qloo</span>;
 }
 
+// The six scores as short bars; what each one means opens on request.
 function ScoreList({ card, onChip }: { card: OpportunityCard; onChip?: (n: number) => void }) {
   return (
-    <section>
-      <h3 className="text-[12px] font-semibold uppercase tracking-[0.06em] text-muted">Six scores</h3>
-      <ol className="mt-2 space-y-4">
-        {card.scores.map((s, i) => {
-          const fixed = FIXED[s.key];
-          const refs = [...new Set((fixed?.refs ?? []).flatMap((k) => card.refs[k]))].sort((a, b) => a - b);
+    <section className="border-t border-line pt-4">
+      <h3 className="text-[13px] font-semibold text-muted">Six scores</h3>
+      <ul className="mt-2 space-y-2">
+        {card.scores.map((s) => {
           const pending = s.value === null;
           return (
-            <li key={s.key}>
-              <div className="flex items-center gap-2">
-                <span className="num text-[12px] text-muted">{i + 1}</span>
-                <span className="text-[14px] font-semibold">{s.label}</span>
-                <SourceBadge s={s} />
-                <span className="num ml-auto text-[14px] font-semibold">{pending ? "—" : Math.round(s.value! * 100)}</span>
-              </div>
-              <div className={`mt-1 h-1.5 overflow-hidden rounded-full ${pending ? "track-pending" : "bg-line"}`}>
-                {!pending && <div className={`h-full rounded-full ${s.source === "LLM" ? "bar-llm" : "bg-twin"}`} style={{ width: `${Math.round(s.value! * 100)}%` }} />}
-              </div>
-              <div className="mt-1 flex items-start gap-2">
-                <p className="flex-1 text-[12px] text-muted">
-                  {s.note}
-                  {s.note && !/[.!?]$/.test(s.note) ? "." : ""} {fixed?.sentence}
-                  {s.source === "LLM" && " Included in confidence."}
-                  {pending && " Not counted in confidence."}
-                </p>
-                {fixed && fixed.refs.length > 0 && <QChips calls={refs} onChip={onChip} />}
-              </div>
+            <li key={s.key} className="grid grid-cols-[9.5rem_minmax(0,1fr)_2rem] items-center gap-3 text-[13px]">
+              <span className="truncate font-medium">{s.label}</span>
+              <span className={`h-1.5 overflow-hidden rounded-full ${pending ? "track-pending" : "bg-line"}`}>
+                {!pending && <span className={`block h-full rounded-full ${s.source === "LLM" ? "bar-llm" : "bg-twin"}`} style={{ width: `${Math.round(s.value! * 100)}%` }} />}
+              </span>
+              <span className="num text-right font-semibold">{pending ? "—" : Math.round(s.value! * 100)}</span>
             </li>
           );
         })}
-      </ol>
+      </ul>
+      <details className="mt-3">
+        <summary className="cursor-pointer text-[12px] text-muted hover:text-ink">What each score means</summary>
+        <ol className="mt-2 space-y-3">
+          {card.scores.map((s) => {
+            // Live, the bridge is the shared-taste score (share of tags in common), not a Qloo affinity.
+            const fixed = s.key === "bridge" && card.twinSharedShare !== undefined ? LIVE_BRIDGE : FIXED[s.key];
+            const refs = [...new Set((fixed?.refs ?? []).flatMap((k) => card.refs[k]))].sort((a, b) => a - b);
+            const pending = s.value === null;
+            return (
+              <li key={s.key} className="flex items-start gap-2 text-[12px]">
+                <div className="flex-1">
+                  <p className="flex items-center gap-1.5 font-semibold">
+                    {s.label} <SourceBadge s={s} />
+                  </p>
+                  <p className="text-muted">
+                    {s.note}
+                    {s.note && !/[.!?]$/.test(s.note) ? "." : ""} {fixed?.sentence}
+                    {s.source === "LLM" && " Included in confidence."}
+                    {pending && " Not counted in confidence."}
+                  </p>
+                </div>
+                {fixed && fixed.refs.length > 0 && <QChips calls={refs} onChip={onChip} />}
+              </li>
+            );
+          })}
+        </ol>
+      </details>
     </section>
   );
 }
 
-// Confidence after each check, in the order the checks ran.
+// Confidence as each check's evidence came in: "Gap found" first, then the other checks by
+// their last Qloo call. A check answered from evidence fetched earlier cites that older call,
+// so the Q numbers need not rise from row to row.
 function ScoreTrail({ card, onChip }: { card: OpportunityCard; onChip?: (n: number) => void }) {
   const trail = card.trail ?? [];
   // The final step only adds something when product fit or the agent's own doubts moved the score.
   const steps = trail.filter((t, i) => !(i > 0 && i === trail.length - 1 && t.label === "Final score" && pct(t.confidence) === pct(trail[i - 1].confidence)));
   if (steps.length < 2) return null;
   return (
-    <div className="mt-3">
-      <h4 className="text-[12px] font-semibold uppercase tracking-[0.06em] text-muted">How the score moved</h4>
+    <details className="mt-3">
+      <summary className="cursor-pointer text-[13px] font-semibold text-muted hover:text-ink">How the score moved, check by check</summary>
       <ol className="mt-1 divide-y divide-line">
         {steps.map((t, i) => {
           const by = i ? pct(t.confidence) - pct(steps[i - 1].confidence) : 0;
@@ -387,45 +481,106 @@ function ScoreTrail({ card, onChip }: { card: OpportunityCard; onChip?: (n: numb
           );
         })}
       </ol>
-    </div>
+    </details>
   );
 }
 
+type Mark = "ok" | "warn" | "info" | "unknown";
+type Check = { q: string; label: string; answer: string; mark: Mark };
+
+const MARK: Record<Mark, { sign: string; cls: string; word: string }> = {
+  ok: { sign: "✓", cls: "bg-accent/15 text-accent", word: "passes" },
+  warn: { sign: "!", cls: "bg-doubt/15 text-doubt", word: "warning" },
+  info: { sign: "i", cls: "bg-line text-ink", word: "for information" },
+  unknown: { sign: "?", cls: "border border-dashed border-pending text-muted", word: "not checked" },
+};
+
+// A box that shows the question it answers when tapped or clicked, so it is not hover-only.
+function CheckBox({ check: c }: { check: Check }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <li>
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen(!open)}
+        title={c.q}
+        className="flex h-full w-full items-start gap-2 rounded-xl bg-surface p-2.5 text-left ring-1 ring-line hover:ring-accent/50"
+      >
+        <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[12px] font-bold ${MARK[c.mark].cls}`} aria-hidden="true">
+          {MARK[c.mark].sign}
+        </span>
+        <span className="min-w-0 text-[13px]">
+          <span className="sr-only">({MARK[c.mark].word}) </span>
+          <span className="block text-muted">{c.label}</span>
+          <span className="block font-semibold">{c.answer}</span>
+          {open && <span className="mt-1 block text-[12px] text-muted">{c.q}</span>}
+        </span>
+      </button>
+    </li>
+  );
+}
+
+// Each check as a mark and a short answer. Marks only use rules the agent already applies
+// (src/lib/agent/rules.ts: "may be local only", more than 20 city-wide, fading; fewer than 8 places).
 function SelfCheck({ card, onChip }: { card: OpportunityCard; onChip?: (n: number) => void }) {
   const audience = score(card, "audience");
   const durability = score(card, "durability");
-  const facts: [string, string][] = [
-    [`Already common elsewhere in ${card.homeCity}?`, card.cityCount !== null ? `${count(card.cityCount, card.capped.city)} across ${card.homeCity}` : "Not checked"],
-    ["Do the fans match the people here?", audience?.value != null ? `${pct(audience.value)}% age match` : "Not checked"],
-    ["Is it fading?", durability?.value != null ? `${durability.note}${isFading(card) ? ": fading" : ""}` : durability?.note.startsWith("Not measurable") ? "Not measurable on Qloo" : "Not checked"],
-    [
-      "Enough evidence?",
-      card.twinCount >= 8 ? `${card.twinCount} places in ${card.twinLocality}: enough` : `Only ${card.twinCount} places in ${card.twinLocality}: thin`,
-    ],
+  const notMeasurable = durability?.value == null && durability?.note.startsWith("Not measurable");
+  const checks: Check[] = [
+    {
+      q: `Already common elsewhere in ${card.homeCity}?`,
+      label: `Rest of ${card.homeCity}`,
+      answer: card.cityCount !== null ? `${count(card.cityCount, card.capped.city)} ${card.cityCount === 1 && !card.capped.city ? "place" : "places"}` : "Not checked",
+      // Same rule as the "may be local only" doubt; a crowded city short of that only lowers the gap score.
+      mark: card.cityCount === null ? "unknown" : cityMayBeLocal(card.cityCount, card.homeCount) ? "warn" : card.cityCount > CITY_CROWDED ? "info" : "ok",
+    },
+    {
+      q: "Do the fans match the people here?",
+      label: "Age match",
+      answer:
+        audience?.value != null
+          ? `${pct(audience.value)}%`
+          : audience?.note.startsWith("Qloo has no age data")
+            ? "No fan data"
+            : audience?.note.startsWith("No age data for people")
+              ? "No local age data"
+              : "Not checked",
+      mark: audience?.value != null ? "info" : "unknown",
+    },
+    {
+      q: "Is it fading?",
+      label: "Trend",
+      answer: durability?.value != null ? `${durability.note}${isFading(card) ? ", fading" : ""}` : notMeasurable ? "Not measurable on Qloo" : "Not checked",
+      mark: durability?.value == null ? "unknown" : isFading(card) ? "warn" : "ok",
+    },
+    { q: "Enough evidence?", label: "Evidence", answer: `${count(card.twinCount, card.capped.twin)} ${card.twinCount === 1 && !card.capped.twin ? "place" : "places"} in ${card.twinLocality}`, mark: card.twinCount >= 8 ? "ok" : "warn" },
   ];
   return (
     <section>
       <h3 className="font-serif text-[22px] leading-tight">The agent tried to prove itself wrong.</h3>
-      <ScoreTrail card={card} onChip={onChip} />
-      <dl className="mt-3 divide-y divide-line">
-        {facts.map(([q, a]) => (
-          <div key={q} className="flex justify-between gap-4 py-2 text-[13px]">
-            <dt className="text-muted">{q}</dt>
-            <dd className="text-right">{a}</dd>
-          </div>
+      <ul className="mt-3 grid grid-cols-2 gap-2">
+        {checks.map((c) => (
+          <CheckBox key={c.label} check={c} />
         ))}
-      </dl>
-      <h4 className="mt-5 text-[12px] font-semibold uppercase tracking-[0.06em] text-doubt">Doubts still standing ({card.doubts.length})</h4>
+      </ul>
+      <ScoreTrail card={card} onChip={onChip} />
+      <h4 className="mt-5 text-[13px] font-semibold text-doubt">Doubts still standing ({card.doubts.length})</h4>
       {card.doubts.length ? (
-        <ul className="mt-2 space-y-1.5">
-          {card.doubts.map((d) => (
-            <li key={d} className="flex items-start gap-2 text-[13px]">
-              <span className="num mt-px flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-doubt text-[10px] text-doubt">?</span>
-              <span className="flex-1">{d}</span>
-              <span className="num shrink-0 text-[11px] text-doubt">−5%</span>
-            </li>
-          ))}
-        </ul>
+        <>
+          <ul className="mt-2 space-y-1.5">
+            {card.doubts.map((d, i) => (
+              <li key={`${i}:${d}`} className="flex items-start gap-2 text-[13px]">
+                <span className="num mt-px flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-doubt text-[10px] text-doubt">?</span>
+                <span className="flex-1">{d}</span>
+              </li>
+            ))}
+          </ul>
+          {/* Same rule as the confidence maths: × (1 − 0.05 × doubts), at most 0.4 off. */}
+          <p className="mt-2 text-[12px] text-doubt">
+            Together they multiply the average score by <span className="num">{(card.confidenceMath?.penalty ?? 1 - Math.min(0.4, 0.05 * card.doubts.length)).toFixed(2)}</span>.
+          </p>
+        </>
       ) : (
         <p className="mt-2 text-[13px] text-muted">No doubts left standing.</p>
       )}

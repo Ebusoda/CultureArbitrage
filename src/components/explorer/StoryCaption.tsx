@@ -2,8 +2,8 @@
 
 import type { OpportunityCard } from "@/lib/agent/types";
 import { MoveTitle } from "./AgentLog";
-import { currentStep } from "./derive";
-import { BAND_TEXT, band, clip, errorText, firstSentence, focusLabel, isFading, km, PHASE_LABEL, pct } from "./format";
+import { currentStep, emptySummary, unfinished } from "./derive";
+import { BAND_TEXT, band, clip, count, errorText, firstSentence, focusLabel, isFading, km, PHASE_LABEL, pct, plural, stoppedText } from "./format";
 import { ReplayBanner } from "./ReplayBanner";
 import type { RunState } from "./useExploreRun";
 
@@ -17,8 +17,8 @@ interface Props {
   onRetry: () => void;
 }
 
-const eyebrow = "text-[12px] font-semibold uppercase tracking-[0.06em]";
-const headline = "font-serif text-[26px] leading-[1.12] tabular-nums md:text-[30px] lg:text-[36px] lg:leading-[1.1]";
+const eyebrow = "text-[13px] font-semibold";
+const headline = "font-serif text-[26px] leading-[1.12] tabular-nums md:text-[28px] lg:text-[26px] lg:leading-[1.15]";
 
 export function StoryCaption({ state, selected, ruledOut, rank, total, onRetry }: Props) {
   const { status, city, focus, meta } = state;
@@ -49,27 +49,60 @@ export function StoryCaption({ state, selected, ruledOut, rank, total, onRetry }
     top = (
       <span>
         <span className="text-accent">{selected.category}</span>
-        <span className="text-muted">
-          {" "}
-          · Opportunity {rank ?? 1} of {total} ·{" "}
-        </span>
-        <span className={BAND_TEXT[b]}>{pct(selected.confidence)}%</span>
+        <span className="text-muted">{rank !== null ? `, opportunity ${rank} of ${total}, ` : ", "}</span>
+        <span className={BAND_TEXT[b]}>{pct(selected.confidence)}% confidence</span>
       </span>
     );
+    // The count pair is the answer; the sentence stays for screen readers.
     main = (
       <>
-        Qloo lists {selected.twinCount} in {selected.twinLocality}, {selected.homeCount} in {selected.homeLocality}.
+        <span className="sr-only">
+          Qloo lists {count(selected.twinCount, selected.capped.twin)} in {selected.twinLocality}, {count(selected.homeCount, selected.capped.home)} in{" "}
+          {selected.homeLocality}.
+        </span>
+        <span aria-hidden="true" className="flex items-end gap-4">
+          <Count n={count(selected.twinCount, selected.capped.twin)} place={selected.twinLocality} />
+          <span className="pb-6 text-[15px] font-medium text-muted">vs</span>
+          <Count n={count(selected.homeCount, selected.capped.home)} place={selected.homeLocality} accent />
+        </span>
       </>
     );
-    sub = (
-      <>
-        {selected.twinSimilarity !== null && <>Same taste (Qloo affinity {selected.twinSimilarity.toFixed(2)})</>}
-        {tastes.length > 0 && <>: {tastes.join(", ")}.</>}
-        {distance && <> About {distance} km apart.</>}
-        {fading && <span className="text-doubt"> Interest is falling, like tapioca after 2019.</span>}
-      </>
+    const pill = "rounded-full px-2.5 py-0.5 text-[13px] font-medium";
+    extra = (
+      <div className="mt-3 flex flex-wrap gap-1.5">
+        {/* Live: the share of Qloo taste tags the two have in common, computed in code, not a Qloo score. */}
+        {selected.twinSharedShare !== undefined ? (
+          <span className={`${pill} bg-twin/10 text-twin`} title="Share of Qloo taste tags the two neighbourhoods have in common">
+            {pct(selected.twinSharedShare)}% same taste
+          </span>
+        ) : (
+          selected.twinSimilarity !== null && (
+            <span className={`${pill} bg-twin/10 text-twin`} title="Qloo taste similarity">
+              Same taste {selected.twinSimilarity.toFixed(2)}
+            </span>
+          )
+        )}
+        {tastes.map((t) => (
+          <span key={t} className={`${pill} bg-surface ring-1 ring-inset ring-line`}>
+            {t}
+          </span>
+        ))}
+        {distance && <span className={`${pill} text-muted ring-1 ring-inset ring-line`}>{distance} km apart</span>}
+        {fading && (
+          <span className={`${pill} text-doubt ring-1 ring-inset ring-doubt/40`} title="Interest is falling, like tapioca after 2019">
+            Fading
+          </span>
+        )}
+      </div>
     );
     if (ruledOut) {
+      extra = null;
+      main = (
+        <>
+          Qloo lists {count(selected.twinCount, selected.capped.twin)} in {selected.twinLocality}, {count(selected.homeCount, selected.capped.home)} in{" "}
+          {selected.homeLocality}.
+        </>
+      );
       const trail = selected.trail ?? [];
       const drop = trail.slice(1).reduce<{ label: string; by: number } | null>((d, t, i) => {
         const by = trail[i].confidence - t.confidence;
@@ -78,7 +111,7 @@ export function StoryCaption({ state, selected, ruledOut, rank, total, onRetry }
       top = (
         <span>
           <span className="text-doubt">{selected.category}</span>
-          <span className="text-muted"> · Ruled out by its own checks · </span>
+          <span className="text-muted">, ruled out by its own checks at </span>
           <span className="text-doubt">{pct(selected.confidence)}%</span>
         </span>
       );
@@ -90,12 +123,38 @@ export function StoryCaption({ state, selected, ruledOut, rank, total, onRetry }
         </>
       );
     }
-    if (status === "error") extra = <p className="mt-2 text-[13px] text-danger">{errorText(state.error ?? "", meta.budget)}</p>;
+    if (status === "error")
+      extra = (
+        <>
+          {extra}
+          <p className="mt-2 text-[13px] text-danger">{errorText(state.error ?? "", meta.budget)}</p>
+        </>
+      );
   } else if (status === "done") {
     // The try-another chips sit in the result panel below, not here.
-    top = <span className="text-muted">No convincing gap</span>;
-    main = `Nothing ${city} is clearly missing${focus !== "all" ? ` in ${focusLabel(focus)}` : ""}.`;
-    sub = `The agent found ${state.twins.length} taste twins, but none of them supports something ${city} lacks. That is a real answer, not an error.`;
+    const sum = emptySummary(state);
+    if (unfinished(sum)) {
+      // Stopped early, or nothing compared: not an answer, so say so and offer a retry.
+      top = <span className="text-doubt">Stopped early</span>;
+      main = `No answer yet for ${city}${focus !== "all" ? ` in ${focusLabel(focus)}` : ""}.`;
+      sub = sum.stopped
+        ? `${stoppedText(sum.stopped)} The agent compared ${plural(sum.pairs, "taste-twin pair")} before it stopped.`
+        : "The run ended before it could compare any taste-twin pair (out of Qloo calls or time).";
+      extra = <Retry onClick={onRetry} />;
+    } else {
+      top = <span className="text-muted">No convincing gap</span>;
+      main = `Nothing ${city} is clearly missing${focus !== "all" ? ` in ${focusLabel(focus)}` : ""}.`;
+      const found = sum.ruledOut + sum.notSubmitted + sum.unclear;
+      sub = found
+        ? `The agent compared ${plural(sum.pairs, "taste-twin pair")}. ${[
+            sum.ruledOut && `Its own checks ruled out ${plural(sum.ruledOut, "gap")}`,
+            sum.notSubmitted && `${plural(sum.notSubmitted, "gap")} met the rule but ${sum.notSubmitted === 1 ? "was" : "were"} not submitted`,
+            sum.unclear && `${plural(sum.unclear, "gap")} rested on a capped count`,
+          ]
+            .filter(Boolean)
+            .join("; ")}. None made it to an opportunity.`
+        : `The agent compared ${plural(sum.pairs, "taste-twin pair")}, but none of them supports something ${city} lacks. That is a real answer, not an error.`;
+    }
   } else {
     const step = currentStep(state);
     const phase = step?.phase ?? "profile";
@@ -105,22 +164,44 @@ export function StoryCaption({ state, selected, ruledOut, rank, total, onRetry }
       <>
         {step?.detail && phase !== "think" && <span className="block">{clip(step.detail, 140)}</span>}
         <span className="num mt-1 block text-[12px]">
-          Step {state.steps.length} · {state.callsUsed}/{meta.budget} Qloo calls
+          Step {state.steps.length}, {state.callsUsed} of {meta.budget} Qloo calls
         </span>
       </>
     );
   }
 
+  // Screen readers hear the outcome once, not every step of the run.
+  const outcome =
+    status === "done"
+      ? state.cards.length
+        ? `Finished: ${state.cards.length} ${state.cards.length === 1 ? "opportunity" : "opportunities"} for ${city}.`
+        : unfinished(emptySummary(state))
+          ? `Stopped early: no answer yet for ${city}.`
+          : `Finished: no convincing gap in ${city}.`
+      : status === "error"
+        ? `Run stopped: ${errorText(state.error ?? "", meta.budget)}`
+        : "";
+
   return (
     <div>
-      {state.replay && <ReplayBanner replay={state.replay} className="mb-3" />}
-      <p className={eyebrow}>{top}</p>
-      <p className={`${headline} mt-1`} aria-live="polite">
-        {main}
+      {state.replay && <ReplayBanner replay={state.replay} className="mb-3" focus={state.focus} askedFocus={state.askedFocus} />}
+      <p className="sr-only" aria-live="polite">
+        {outcome}
       </p>
-      {sub && <div className="mt-2 line-clamp-4 text-[15px] text-muted md:line-clamp-3">{sub}</div>}
+      <p className={eyebrow}>{top}</p>
+      <p className={`${headline} mt-1`}>{main}</p>
+      {sub && <div className="mt-2 line-clamp-4 text-[15px] text-muted lg:line-clamp-3 lg:text-[14px]">{sub}</div>}
       {extra}
     </div>
+  );
+}
+
+function Count({ n, place, accent = false }: { n: string; place: string; accent?: boolean }) {
+  return (
+    <span className="min-w-0">
+      <span className={`block text-[44px] font-extrabold leading-none tabular-nums ${accent ? "text-accent" : ""}`}>{n}</span>
+      <span className="mt-1 block truncate font-sans text-[13px] font-medium tracking-normal text-muted">{place}</span>
+    </span>
   );
 }
 
@@ -132,8 +213,11 @@ function Retry({ onClick }: { onClick: () => void }) {
   );
 }
 
-// "Checked the trend: -50% over the year" -> "checking the trend (-50% over the year)"
-function checking(label: string) {
+// "Checked the trend: -50% over the year" -> "checking the trend (-50% over the year)".
+// The last trail step ("Final score, with product fit 50%, 2 doubts of its own") is product fit and
+// the agent's own doubts, not a check.
+export function checking(label: string) {
+  if (label.startsWith("Final score")) return /product fit|doubt/.test(label) ? "product fit and its own doubts" : "the checks it skipped";
   const text = label.replace(/^Checked /, "checking ");
   const at = text.indexOf(": ");
   return at < 0 ? text : `${text.slice(0, at)} (${text.slice(at + 2)})`;

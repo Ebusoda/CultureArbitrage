@@ -7,7 +7,7 @@ import {
   TASTE_TAGS,
   type MockLocality,
 } from "./mock-data";
-import type { InsightsResponse, QlooClient, QlooEntity, QlooParams, TrendingResponse } from "./types";
+import { splitDisplayParams, type InsightsResponse, type QlooCallOptions, type QlooClient, type QlooEntity, type QlooParams, type TrendingResponse } from "./types";
 
 // Answers the same /v2/insights requests the live client sends, from mock-data.ts,
 // in the same response shape. Only the parameter combinations the agent uses are
@@ -18,8 +18,11 @@ export class MockQloo implements QlooClient {
 
   constructor(private readonly delayMs = 250) {}
 
-  async insights(params: QlooParams): Promise<InsightsResponse> {
+  async insights(raw: QlooParams, opts?: QlooCallOptions): Promise<InsightsResponse> {
+    // "_" params are display-only, as in the live client.
+    const params = splitDisplayParams(raw).send;
     this.attempts++;
+    opts?.onAttempt?.();
     await new Promise((r) => setTimeout(r, this.delayMs));
     const type = String(params["filter.type"] ?? "");
     const take = Number(params.take ?? 10);
@@ -73,8 +76,10 @@ export class MockQloo implements QlooClient {
   }
 
   // Trend of the category the first signal entity belongs to (mock place ids encode it).
-  async trending(params: QlooParams): Promise<TrendingResponse> {
+  async trending(raw: QlooParams, opts?: QlooCallOptions): Promise<TrendingResponse> {
+    const params = splitDisplayParams(raw).send;
     this.attempts++;
+    opts?.onAttempt?.();
     await new Promise((r) => setTimeout(r, this.delayMs));
     const entity = list(params["signal.interests.entities"])[0] ?? "";
     const cat = `urn:tag:mock:place:${entity.split(":").at(-2) ?? ""}`;

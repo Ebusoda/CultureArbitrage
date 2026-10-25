@@ -1,10 +1,12 @@
 import { CITIES } from "@/lib/cities";
 import { exploreResponse } from "@/lib/explore-stream";
 import { currentModes } from "@/lib/agent/run";
-import { FOCUSES, parseExploreBody } from "@/lib/agent/request";
+import { FOCUSES, checkExploreHeaders, parseExploreBody, readExploreBody } from "@/lib/agent/request";
 
 // A Claude run takes a few minutes; Vercel cuts functions off at this many seconds.
 // src/lib/explore-stream.ts ends a replay before this too: keep the two in step.
+// vercel.json turns on request cancellation for this route, so a viewer who leaves
+// stops the run (and its Qloo, Claude and Google calls) instead of it running on.
 export const maxDuration = 300;
 
 const bad = (status: number, error: string) => Response.json({ error }, { status });
@@ -16,12 +18,15 @@ export function GET() {
 
 // Streams the agent's progress as newline-delimited JSON, one AgentEvent per line,
 // each stamped with t = ms since the run started. When a live run can't start (too busy,
-// hourly limit) or fails before it found anything, the city's recorded run is streamed
-// instead, after a "replay" event that says so (src/lib/explore-stream.ts).
+// hourly limit, live runs switched off) or fails before it found anything, the city's
+// recorded run is streamed instead, after a "replay" event that says so (src/lib/explore-stream.ts).
 export async function POST(request: Request) {
-  const type = request.headers.get("content-type") ?? "";
-  if (type && !type.includes("application/json")) return bad(415, "Send the request as application/json.");
-  const parsed = parseExploreBody(await request.text().catch(() => ""));
+  const refused = checkExploreHeaders(request.headers);
+  if (refused) return bad(refused.status, refused.error);
+  // Over 2 KB is refused from Content-Length, before the body is read.
+  const body = await readExploreBody(request);
+  if ("error" in body) return bad(body.status, body.error);
+  const parsed = parseExploreBody(body.text);
   if ("error" in parsed) return bad(parsed.status, parsed.error);
   return exploreResponse({ city: parsed.city, focus: parsed.focus }, request);
 }

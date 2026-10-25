@@ -4,6 +4,17 @@
 
 export type QlooParams = Record<string, string | number | undefined>;
 
+// Per-call options a wrapper passes down to the client that does the HTTP work.
+export interface QlooCallOptions {
+  // Aborts this call (the viewer left). Defaults to the client's own signal; null means
+  // none at all, only the per-request timeout: used for a request several runs share.
+  signal?: AbortSignal | null;
+  // Most HTTP attempts this call may make, retries included (the run's remaining budget).
+  maxAttempts?: number;
+  // Called once per HTTP attempt this call makes, so the caller can charge exactly that.
+  onAttempt?: () => void;
+}
+
 export interface QlooTag {
   id: string;
   name: string;
@@ -67,6 +78,11 @@ export interface QlooCallLog {
   // Answered from the server's Qloo cache, no quota used.
   cached?: boolean;
   error?: string;
+  // Calls charged to the run's budget after this one, retries included.
+  used?: number;
+  // Where the call looks, for the log line, when params don't say it in words (a POINT
+  // location). Set by the caller as the display-only param "_where".
+  where?: string;
 }
 
 export interface QlooClient {
@@ -75,6 +91,19 @@ export interface QlooClient {
   readonly attempts: number;
   // Requests answered from cache (CachedQloo only).
   readonly cacheHits?: number;
-  insights(params: QlooParams): Promise<InsightsResponse>;
-  trending(params: QlooParams): Promise<TrendingResponse>;
+  insights(params: QlooParams, opts?: QlooCallOptions): Promise<InsightsResponse>;
+  trending(params: QlooParams, opts?: QlooCallOptions): Promise<TrendingResponse>;
+}
+
+// Params whose key starts with "_" are display-only (e.g. "_where"): they never reach Qloo,
+// the cache key or the mock. Returns the params to send, and the display-only ones.
+export function splitDisplayParams(params: QlooParams): { send: QlooParams; display: Record<string, string> } {
+  const send: QlooParams = {};
+  const display: Record<string, string> = {};
+  for (const [k, v] of Object.entries(params)) {
+    if (k.startsWith("_")) {
+      if (v !== undefined && v !== "") display[k] = String(v);
+    } else send[k] = v;
+  }
+  return { send, display };
 }
