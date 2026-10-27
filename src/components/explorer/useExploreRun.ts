@@ -342,6 +342,13 @@ export function reducer(s: RunState, a: Action): RunState {
   }
 }
 
+// What a refused request says: this site's own errors carry a string; others (Vercel's firewall
+// answers {"error": {"code": "429", ...}}) get the status, which the page turns into words.
+export function failMessage(body: unknown, status: number): string {
+  const error = body && typeof body === "object" ? (body as { error?: unknown }).error : undefined;
+  return typeof error === "string" && error.trim() ? error : `HTTP ${status}`;
+}
+
 export function useExploreRun(cities: string[], modes: Modes) {
   const [state, dispatch] = useReducer(reducer, undefined, () => initialState(cities[0], modes));
   const abort = useRef<AbortController | null>(null);
@@ -377,8 +384,7 @@ export function useExploreRun(cities: string[], modes: Modes) {
         signal: ac.signal,
       });
       if (!res.ok || !res.body) {
-        const body = (await res.json().catch(() => null)) as { error?: string } | null;
-        dispatch({ type: "fail", message: body?.error ?? `HTTP ${res.status}` });
+        dispatch({ type: "fail", message: failMessage(await res.json().catch(() => null), res.status) });
         return;
       }
       const reader = res.body.getReader();

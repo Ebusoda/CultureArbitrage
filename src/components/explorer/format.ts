@@ -138,12 +138,14 @@ export function requestLine(call: QlooCallLog): string {
   return `GET ${call.endpoint}?${q.toString()}`;
 }
 
-export function errorText(message: string, budget: number): string {
+export function errorText(raw: string, budget: number): string {
+  // Never throws, whatever reached it.
+  const message = typeof raw === "string" ? raw : String(raw ?? "");
   const m = message.toLowerCase().trim();
   if (m.includes("budget")) return `Used all ${budget} Qloo calls before finishing. Results so far are kept.`;
   // Only a Qloo error names Qloo; a bare HTTP 429 comes from this site's own limits.
   if (m.includes("qloo") && (m.includes("429") || m.includes("rate limit"))) return "Qloo is rate-limiting requests. Try again in a minute.";
-  if (m === "http 429") return "Too many explorations right now. Try again in a minute.";
+  if (m === "http 429") return "Too many explorations right now. Try again in a few minutes.";
   if (m.includes("declined")) return "Claude declined this request.";
   if (m === "network") return "Connection lost.";
   if (m === "bad data") return "The server sent a reply the page could not read.";

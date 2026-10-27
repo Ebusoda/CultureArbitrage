@@ -1,8 +1,8 @@
 "use client";
 
-import { CATALOG, searchCatalog } from "@/lib/agent/catalog";
+import { CATALOG, queryWords, searchCatalog } from "@/lib/agent/catalog";
 import type { AskedTarget, Focus } from "@/lib/agent/types";
-import { emptySummary, gapScan, type GapVerdict, unfinished } from "./derive";
+import { emptySummary, gapScan, type GapVerdict, unfinished, wellSupplied } from "./derive";
 import { businessName, count, FOCUS_OPTIONS, focusLabel, plural, stoppedText } from "./format";
 import { QChips } from "./OpportunityDetail";
 import type { RunState } from "./useExploreRun";
@@ -29,6 +29,8 @@ export function EmptyResult({ state, cities, onTry, onChip }: Props) {
   // The business type the run on screen checked (null for a scan, and for a recording of one).
   const target = state.runTarget;
   const checked = target ? businessName(state.matched?.target.label ?? target.label) : null;
+  // What the try-again chips ask: the visitor's own business type, also while a recording (a scan) answers it.
+  const ask = state.replay ? state.askedTarget : target;
   // The summary and the table come from the same rows (derive.ts), so they cannot disagree.
   const sum = emptySummary(state);
   const early = unfinished(sum);
@@ -63,7 +65,7 @@ export function EmptyResult({ state, cities, onTry, onChip }: Props) {
             )}
             {sum.unclear > 0 && <>{plural(sum.unclear, "possible gap")} rested on a capped count, which may be too low. </>}
             {found === 0 && <>In every pair {city} already had about as much as its twin, or the twin had too few places to count as proven. </>}
-            {checked && found === 0 && sum.supplied > 0 && sum.small === 0 && <>For someone planning to open one, {city} looks well supplied with {checked} places for its tastes. </>}
+            {checked && found === 0 && wellSupplied(sum) && <>For someone planning to open one, {city} looks well supplied with {checked} places for its tastes. </>}
             “Nothing here” is a valid answer: the agent is built to doubt itself rather than invent a gap.
           </>
         )}
@@ -72,16 +74,16 @@ export function EmptyResult({ state, cities, onTry, onChip }: Props) {
         {cities
           .filter((c) => c !== city)
           .map((c) => (
-            <button key={c} type="button" onClick={() => onTry(c, focus, target)} className="rounded-full border border-line bg-surface px-3 py-1 text-[13px] hover:border-ink">
+            <button key={c} type="button" onClick={() => onTry(c, focus, ask)} className="rounded-full border border-line bg-surface px-3 py-1 text-[13px] hover:border-ink">
               Try {c}
             </button>
           ))}
-        {target && (
+        {ask && (
           <button type="button" onClick={() => onTry(city, "all", null)} className="rounded-full border border-line bg-surface px-3 py-1 text-[13px] hover:border-ink">
             Scan everything in {city}
           </button>
         )}
-        {!target && FOCUS_OPTIONS.filter((f) => f.value !== focus).map((f) => (
+        {!ask && FOCUS_OPTIONS.filter((f) => f.value !== focus).map((f) => (
           <button
             key={f.value}
             type="button"
@@ -137,7 +139,13 @@ export function EmptyResult({ state, cities, onTry, onChip }: Props) {
 function Unmatched({ state, onTry }: { state: RunState; onTry: Props["onTry"] }) {
   const { city, focus, unmatched } = state;
   const entries = state.meta.qlooMode === "live" ? CATALOG : CATALOG.filter((e) => e.mockTag);
-  const close = unmatched ? searchCatalog(unmatched.query.split(" ")[0] ?? "", entries, 3) : [];
+  // Close names: listed types with the words that name the business (articles and "shop" left out),
+  // matched at a word start; else with its last word ("a cat cafe" -> cafe). None rather than unrelated ones.
+  const words = unmatched ? queryWords(unmatched.query) : [];
+  const near = (text: string) => (text ? searchCatalog(text, entries, 3, 20) : []);
+  // A single letter or digit ("plan b") would match every name starting with it: no fallback then.
+  const last = words.at(-1) ?? "";
+  const close = near(words.join(" ")).length ? near(words.join(" ")) : near(/^[a-z0-9]$/.test(last) ? "" : last);
   return (
     <section className="fade-in">
       <h2 className="font-serif text-[26px] leading-tight">Could not check “{unmatched?.query}” in {city}.</h2>

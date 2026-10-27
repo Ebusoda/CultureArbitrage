@@ -2,7 +2,7 @@
 
 import type { OpportunityCard } from "@/lib/agent/types";
 import { MoveTitle } from "./AgentLog";
-import { currentStep, emptySummary, unfinished } from "./derive";
+import { currentStep, emptySummary, unfinished, wellSupplied } from "./derive";
 import { BAND_TEXT, band, businessName, clip, count, errorText, firstSentence, focusLabel, isFading, km, PHASE_LABEL, pct, plural, stoppedText } from "./format";
 import { ReplayBanner } from "./ReplayBanner";
 import type { RunState } from "./useExploreRun";
@@ -161,8 +161,8 @@ export function StoryCaption({ state, selected, ruledOut, rank, total, onRetry }
             .filter(Boolean)
             .join("; ")}. None made it to an opportunity.`
         : checked
-          ? sum.supplied > 0 && sum.small === 0
-            ? `The agent compared ${plural(sum.pairs, "taste-twin pair")}: in each one, ${city} already has at least as many ${checked} places as its twin. For this type, the city looks well supplied.`
+          ? wellSupplied(sum)
+            ? `The agent compared ${plural(sum.pairs, "taste-twin pair")}: in each one, ${city} already has at least as many ${checked} places as its twin, and at least 4. For this type, the city looks well supplied.`
             : `The agent compared ${plural(sum.pairs, "taste-twin pair")}. Where the twin has more, it has too few to count as proven, so no gap is established; that is not proof the city is well supplied either.`
           : `The agent compared ${plural(sum.pairs, "taste-twin pair")}, but none of them supports something ${city} lacks. That is a real answer, not an error.`;
     }

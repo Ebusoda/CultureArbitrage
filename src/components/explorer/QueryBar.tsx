@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import type { AskedTarget, Focus } from "@/lib/agent/types";
 import { Arrow } from "./Arrow";
 import { CategoryPicker } from "./CategoryPicker";
@@ -24,12 +24,17 @@ interface Props {
 export function QueryBar({ state, cities, onCity, onFocus, onRun, hasExample = true, onTarget, qlooMode }: Props) {
   const { status, pickCity: city, pickFocus: focus, meta, callsUsed } = state;
   const target = state.pickTarget;
+  // Text typed in the business box but not picked yet: what leaving the box will pick. The button
+  // names it already, so its label (and place) does not change at the moment it is clicked.
+  const [pending, setPending] = useState<AskedTarget | null>(null);
+  const shown = target ?? pending;
+  const run = useRef<HTMLButtonElement>(null);
   const busy = status === "connecting" || status === "running";
   // Once results are on screen, a changed picker means a new question, so the button names it.
-  const changed = city !== state.city || focus !== state.focus || !sameTarget(target, state.askedTarget);
+  const changed = city !== state.city || focus !== state.focus || !sameTarget(shown, state.askedTarget);
   const label = busy ? "Exploring…" : status === "done" && !changed ? "Explore again" : status === "error" && !changed ? "Try again" : (
     <>
-      {target ? `Check ${clip(businessName(target.label), 28)} in ${city}` : `Explore ${city}`} <Arrow silent />
+      {shown ? `Check ${clip(businessName(shown.label), 28)} in ${city}` : `Explore ${city}`} <Arrow silent />
     </>
   );
   const radios = useRef<(HTMLButtonElement | null)[]>([]);
@@ -97,6 +102,7 @@ export function QueryBar({ state, cities, onCity, onFocus, onRun, hasExample = t
       </div>
 
       <button
+        ref={run}
         type="button"
         // aria-disabled, not disabled, so the button keeps keyboard focus while the run starts.
         onClick={() => !busy && onRun()}
@@ -110,7 +116,16 @@ export function QueryBar({ state, cities, onCity, onFocus, onRun, hasExample = t
       {/* Live runs off: every run plays a recorded scan, so a business check could not run. */}
       {onTarget && !meta.forceReplay && (
         <div className="w-full">
-          <CategoryPicker value={target} onChange={onTarget} city={city} cities={cities} qlooMode={qlooMode ?? meta.qlooMode} disabled={busy} />
+          <CategoryPicker
+            value={target}
+            onChange={onTarget}
+            city={city}
+            cities={cities}
+            qlooMode={qlooMode ?? meta.qlooMode}
+            disabled={busy}
+            onPending={setPending}
+            onPicked={() => run.current?.focus()}
+          />
         </div>
       )}
 

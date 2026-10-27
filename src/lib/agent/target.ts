@@ -1,6 +1,6 @@
 import { type BudgetedQloo, QlooError } from "../qloo";
 import { CITIES, qlooLocation } from "../cities";
-import { businessName, CATALOG, catalogByTag, catalogEntry, COVERAGE_CAP, COVERAGE_DATE, matchCatalog, normalizeQuery, singular, type CatalogEntry } from "./catalog";
+import { businessName, CATALOG, catalogByTag, catalogEntry, COVERAGE_CAP, COVERAGE_DATE, matchCatalog, normalizeQuery, queryWords, singular, STOP_WORDS, typedForms, type CatalogEntry } from "./catalog";
 import { catalogTag, registerCategory } from "./categories";
 import type { StepFn } from "./run";
 import type { ExploreRequest, Target } from "./types";
@@ -63,25 +63,34 @@ function fromCatalog(e: CatalogEntry, live: boolean, city: string, query?: strin
   };
 }
 
-// Words that say nothing about the kind of business ("yoga studio shop", "korean restaurant").
-const STOP = new Set(["a", "an", "the", "of", "and", "for", "shop", "store", "place", "restaurant", "spot", "joint"]);
+// The words a tag must have: queryWords in catalog.ts ("the yoga studios" -> yoga, studio).
 
-// "yoga studios" -> ["yoga", "studio"]: the words a tag must have, each in its singular form.
-function words(text: string): string[] {
-  return normalizeQuery(text)
-    .split(" ")
-    .map(singular)
-    .filter((w) => w.length > 1 && !STOP.has(w));
-}
+// A word that is not one of these: say nothing, or the possessive "s".
+const meaningful = (w: string) => !!w && w !== "s" && !STOP_WORDS.has(w);
 
 // A tag's own words (slug and name), singular, without the words that say nothing.
 function tagWords(slug: string, name: string): Set<string> {
-  return new Set([...slug.split("_"), ...normalizeQuery(name).split(" ")].map(singular).filter((w) => w && !STOP.has(w)));
+  return new Set([...slug.split("_"), ...normalizeQuery(name).split(" ")].map(singular).filter(meaningful));
 }
 
 // A slug's own words, singular, without the words that say nothing ("korean_restaurant" -> korean).
 function slugWords(slug: string): string[] {
-  return slug.split("_").map(singular).filter((w) => w && !STOP.has(w));
+  return slug.split("_").map(singular).filter(meaningful);
+}
+
+// What to try instead of a word too general to be one business.
+const NARROWER: Record<string, string> = {
+  bar: "“wine bar” or “cocktail bar” instead of “bar”",
+  cafe: "“espresso bar” or “dog cafe”",
+  coffee: "“espresso bar” or “coffee bean store”",
+  food: "“ramen shop” or “Thai restaurant”",
+  restaurant: "“ramen shop” or “Thai restaurant”",
+  shopping: "“record store” or “florist”",
+  retail: "“record store” or “florist”",
+  market: "“cheese shop” or “fish market”",
+};
+function tooGeneralError(typed: string, word: string): TargetError {
+  return new TargetError(`${quote(typed)} is too general to check as one business. Try a narrower kind, for example ${NARROWER[word] ?? example(typed)}.`);
 }
 
 // Any letter outside the Latin script ("瑜伽", "CDショップ"): Qloo's tag search reads English.
@@ -133,6 +142,11 @@ export async function resolveTarget(req: ExploreRequest, qloo: BudgetedQloo, ste
   };
   const direct = fromName(typed, quote(typed));
   if (direct) return direct;
+  // Its other readings too ("a ヨガ", "the 요가"), before any translation is needed.
+  for (const form of typedForms(typed).slice(1)) {
+    const listed = fromName(form, `${quote(typed)} (${form})`);
+    if (listed) return listed;
+  }
 
   let english = typed;
   if (NON_LATIN.test(typed)) {
@@ -147,13 +161,19 @@ export async function resolveTarget(req: ExploreRequest, qloo: BudgetedQloo, ste
     if (again) return again;
   }
 
-  const want = words(english);
-  if (!want.length) throw new TargetError(`${quote(typed)} is too general to match one business type. Try something like ${example(typed)}.`);
-  // "bar", "cafe", "shopping": one word that names no particular business. Refused before any search,
-  // whatever Qloo would return (a narrower tag must not stand in for it).
-  if (GENERIC.has(want.join("_"))) {
-    throw new TargetError(`${quote(typed)} is too general to check as one business. Try a narrower kind, for example “wine bar” or “cocktail bar” instead of “bar”.`);
+  const want = queryWords(english);
+  // Nothing, or only single letters ("b&b", "plan b" without the plan): no business type to search for.
+  if (!want.length || want.every((w) => /^[a-z0-9]$/.test(w))) throw new TargetError(`${quote(typed)} is too general to match one business type. Try something like ${example(typed)}.`);
+  // Read as the search box reads it: without a/an/the first ("a sweet shop" is a candy store), then
+  // without any filler word ("a cafe" and "cafe shop" are "cafe").
+  for (const form of typedForms(english).slice(1)) {
+    const listed = fromName(form, `${quote(typed)} (${form})`);
+    if (listed) return listed;
   }
+  const core = want.join(" ");
+  // "bar", "food", "shopping": one word that names no particular business. Refused before any search,
+  // whatever Qloo would return (a narrower tag must not stand in for it).
+  if (GENERIC.has(want.join("_"))) throw tooGeneralError(typed, core);
   inTime();
   step("profile", `Searching Qloo's tags for ${quote(english)}`, "The run will check the place category Qloo files these under.");
   const res = await qloo.tags({ "filter.query": english, "filter.parents.types": "urn:entity:place", take: 25 });
@@ -179,9 +199,7 @@ export async function resolveTarget(req: ExploreRequest, qloo: BudgetedQloo, ste
   }
   candidates.sort((a, b) => a.rank - b.rank || a.slug.length - b.slug.length || a.order - b.order);
   const best = candidates[0];
-  if (tooGeneral && (!best || best.rank >= 10)) {
-    throw new TargetError(`${quote(typed)} is too general to check as one business. Try a narrower kind, for example “wine bar” or “cocktail bar” instead of “bar”.`);
-  }
+  if (tooGeneral && (!best || best.rank >= 10)) throw tooGeneralError(typed, core);
   if (!best) {
     throw new TargetError(
       live

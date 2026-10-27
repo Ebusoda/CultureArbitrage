@@ -78,9 +78,18 @@ export const MAX_QUERY_CHARS = 60;
 export function cleanQuery(raw: string): string {
   return raw
     .normalize("NFKC")
-    .replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u2028-\u202e\u2060-\u206f\ufeff]/g, " ")
+    // Characters that join a word (soft hyphen, grapheme and word joiners, variation selectors) go.
+    .replace(/[\u00ad\u034f\u200c\u200d\u2060\p{Variation_Selector}]/gu, "")
+    // Control characters, line separators, every other default-ignorable character (zero-width spaces,
+    // bidi marks, Hangul fillers, tag characters) and the blank braille pattern become spaces.
+    .replace(/[\p{Cc}\p{Zl}\p{Zp}\p{Default_Ignorable_Code_Point}\u2800]/gu, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+// At most MAX_QUERY_CHARS characters (code points), cut at a character, not inside one.
+export function clipQuery(q: string): string {
+  return [...q].slice(0, MAX_QUERY_CHARS).join("").trim();
 }
 
 // Checks the request body. Returns the cleaned request, or an error response.
@@ -114,8 +123,12 @@ function parseTarget(category: unknown, query: unknown): { category?: string; qu
   }
   if (none(query)) return {};
   if (typeof query !== "string") return { status: 400, error: "query must be text, e.g. \"yoga studio\"." };
-  const q = cleanQuery(query);
-  if (!q) return {};
-  if ([...q].length > MAX_QUERY_CHARS) return { status: 400, error: `query must be at most ${MAX_QUERY_CHARS} characters.` };
+  // Blank means no business type: a scan, as before.
+  if (!query.trim()) return {};
+  // Counted as typed (the search box counts the same way), before NFKC can lengthen it ("…" -> "...").
+  if ([...query.trim()].length > MAX_QUERY_CHARS) return { status: 400, error: `query must be at most ${MAX_QUERY_CHARS} characters.` };
+  const q = clipQuery(cleanQuery(query));
+  // Only invisible characters: not a business type, and not a request for a scan either.
+  if (!q) return { status: 400, error: "query must name a business type, e.g. \"yoga studio\"." };
   return { query: q };
 }

@@ -138,6 +138,8 @@ export interface EmptySummary {
   unclear: number;
   // Rows where the home neighbourhood has at least as many as its twin.
   supplied: number;
+  // Of those, rows where it also has enough to count (4, the number a twin needs to prove a gap).
+  suppliedProven: number;
   // Rows with more in the twin, but too few (or too small a gap) to count as proven.
   small: number;
 }
@@ -153,8 +155,16 @@ export function emptySummary(s: RunState): EmptySummary {
     notSubmitted: n("notSubmitted"),
     unclear: n("unclear"),
     supplied: n("supplied"),
+    suppliedProven: rows.filter((r) => r.verdict === "supplied" && r.here >= 4).length,
     small: n("small"),
   };
+}
+
+// Every compared pair shows the home neighbourhood with at least as many as its twin, and enough
+// of them (4 or more) to mean something: only then is "well supplied" a fair reading. For one
+// business type each pair has one row, and a pair with none there or here (0 vs 0) shows nothing.
+export function wellSupplied(e: EmptySummary) {
+  return e.supplied > 0 && e.suppliedProven === e.supplied && e.small === 0 && e.supplied >= e.pairs;
 }
 
 // The run did not get as far as an answer: it stopped early, or compared no pair at all.
