@@ -2,6 +2,16 @@
 
 Find what your city is missing that its taste twin already loves, with the Qloo evidence behind every gap.
 
+**For judges**
+
+- **Live demo:** https://culture-arbitrage.vercel.app (no sign-in). Pick a city and press Explore: a run takes 1 to 2 minutes and makes at most 40 Qloo calls. Or type one business under the question, such as "pilates studio", to check only that type.
+- **No time to run it?** The page has a recorded example ("see an example result"), and the screenshot below is a live Tokyo run.
+- **Devpost:** https://devpost.com/software/culture-arbitrage
+- **Where Qloo is used:** in every step. Taste profiles of neighbourhoods and their taste twins in other cities (`/v2/insights` with tags and localities), place counts on both sides, the age profile of each category's fans (demographics), trends (`/v2/trending`), and matching a typed business to a place tag (`/v2/tags`). Every number on a card links to the Qloo call it came from. Claude chooses the lookups; code computes every score.
+- **How it differs from site selection:** site-selection tools start from a business you have already chosen and rank locations in one city. Culture Arbitrage starts from what the same taste audience already supports in another city, then tries to rule out each gap before it shows it.
+
+![A live Tokyo run: taste twins on the map, the top opportunity card and the agent log](docs/tokyo-live-run.png)
+
 Boba was proven in Taipei, and malatang in Seoul, years before either one took over Tokyo. Chains pay consultants to look for gaps like these. Someone opening one shop can't, so they find out last. Culture Arbitrage is an agent that pairs each neighbourhood with its taste twin in another city using Qloo, compares what each one already supports, and argues against its own ideas before it shows you anything.
 
 > Status: running on **live Qloo data** (Tokyo, New York, Seoul). Scans cover eight categories across dining, nightlife and retail; "check one business" covers 176 business types Qloo lists in these cities, plus anything else Qloo's tag search can match.
