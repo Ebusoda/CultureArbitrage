@@ -13,6 +13,29 @@ export function isGap(twinCount: number, homeCount: number) {
   return twinCount >= 4 && twinCount >= 3 * Math.max(homeCount, 1);
 }
 
+// A gap only counts between taste twins, so the pair has to be one before any score is worked
+// out: no other score can make up for it. Live, the pairs behind recorded cards share 45 to 59
+// Qloo taste tags, 29% to 45% of all tags either has. The bar is a heuristic floor, not a
+// calibrated one: at least a fifth of all tags shared (a bridge score of 40%, as half shared
+// is a full match) and at least 10 tags in common, so a high share of a handful of tags does
+// not count. A pair below it means no reliable comparison, not that the category has no demand.
+export const MIN_TWIN_SIMILARITY = 0.4;
+export const MIN_SHARED_TAGS = 10;
+
+// Why a home/twin pair is not a usable taste twin, or null when it is. sharedCount is only
+// known live; sample data has a similarity alone.
+export function twinProblem(twin: { similarity: number; sharedCount?: number } | null | undefined): string | null {
+  if (!twin) return "no twin search found this pair, so nothing shows the two neighbourhoods share tastes";
+  if (!Number.isFinite(twin.similarity)) return "the taste similarity could not be measured";
+  if (twin.sharedCount !== undefined && twin.sharedCount < MIN_SHARED_TAGS) {
+    return `only ${twin.sharedCount} Qloo taste tags in common (at least ${MIN_SHARED_TAGS} needed)`;
+  }
+  if (twin.similarity < MIN_TWIN_SIMILARITY) {
+    return `taste similarity ${Math.round(twin.similarity * 100)}% is below the ${Math.round(MIN_TWIN_SIMILARITY * 100)}% minimum`;
+  }
+  return null;
+}
+
 // Interest is falling when the trend changed by less than this over the period (-20%).
 export const FALLING_TREND = -0.2;
 

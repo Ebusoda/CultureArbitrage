@@ -85,6 +85,9 @@ export interface OpportunityCard {
   twinTagCounts?: { shared: number; either: number };
   // Google Maps was configured but the cross-check did not run for this card: why.
   googleSkipped?: string;
+  // Set when the pair is not a reliable taste twin (rules.ts twinProblem): why. Confidence is
+  // then held below the bar and the card is never shown as an opportunity.
+  twinIssue?: string;
   // Who the home side of the audience check describes, when it is not Qloo (ward statistics).
   audienceBasis?: string;
   // The broader tag whose fans stood in for the category's (e.g. "hot pot").

@@ -4,7 +4,7 @@ import { categoriesForRequest, categoryLabel } from "./categories";
 import type { Evidence } from "./evidence";
 import type { RunContext } from "./run";
 import { twinCities } from "./target";
-import { buildCard, cardId, isGap, MIN_CONFIDENCE } from "./score";
+import { buildCard, cardId, isGap, MIN_CONFIDENCE, twinProblem } from "./score";
 import type { ExploreRequest, OpportunityCard } from "./types";
 
 const HOODS_TO_PROFILE = 3;
@@ -61,7 +61,10 @@ export async function runPipeline(req: ExploreRequest, ev: Evidence, ctx: RunCon
       for (const other of otherCities) {
         try {
           const twin = (await ev.findTwins(name, req.city, other, 1))[0];
-          if (twin && (!best || twin.similarity > best.similarity)) {
+          // Not a taste twin (rules.ts): nothing to compare, and no gap can rest on it.
+          const problem = twin ? twinProblem(twin) : null;
+          if (twin && problem) step("twins", `Not comparing ${name} with ${twin.name}: not a reliable taste twin`, problem);
+          else if (twin && (!best || twin.similarity > best.similarity)) {
             best = { hood: name, twin: twin.name, twinCity: other, similarity: twin.similarity };
           }
         } catch (e) {
@@ -145,6 +148,10 @@ export async function runPipeline(req: ExploreRequest, ev: Evidence, ctx: RunCon
         `That audience supports ${card.capped.twin ? "at least " : ""}${card.twinCount} ${label.toLowerCase()} places in ${g.pair.twin}, ` +
         `but ${g.pair.hood} has ${card.capped.home ? `at least ${card.homeCount} (a capped count)` : `only ${card.homeCount}`}.`;
       card.author = "pipeline";
+      if (card.twinIssue) {
+        step("score", `Skipped ${label} in ${g.pair.hood}: not a reliable taste twin`, card.twinIssue);
+        continue;
+      }
       if (card.google?.verdict === "contradicts") {
         ctx.onRejected?.(card, "Ruled out by a cross-check against a second index (see the card)");
         continue;

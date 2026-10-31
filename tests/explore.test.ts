@@ -268,18 +268,18 @@ test("Claude agent: a weak opportunity is rejected with reasons, and resubmittin
   const ev = new Evidence(qloo, { categories: categoriesFor("all") });
   const got: OpportunityCard[] = [];
   const ctx: RunContext = { step: () => {}, onCard: (c) => got.push(c), deadline: Date.now() + 60_000, signal: new AbortController().signal };
-  const cat = categoriesFor("all").find((c) => c.endsWith("korean_fried_chicken"))!;
-  // In the mock data this pair is a gap on paper (6 vs 0) but weak on every other score.
+  const cat = categoriesFor("all").find((c) => c.endsWith("bagel_shop"))!;
+  // In the mock data this pair is taste twins (49%) and a gap on paper (6 vs 1), but weak on every other score.
   const submit = {
     name: "submit_opportunity",
-    input: { category: cat, neighbourhood: "Shimokitazawa", twin_neighbourhood: "Flushing", twin_city: "New York", why: "", product_fit_score: 0.2, product_fit_reason: "", doubts: [] },
+    input: { category: cat, neighbourhood: "Shimokitazawa", twin_neighbourhood: "East Village", twin_city: "New York", why: "", product_fit_score: 0.2, product_fit_reason: "", doubts: [] },
   };
   const results: string[] = [];
   const client = scriptedClaude(
     [
       [{ name: "list_neighbourhoods", input: { city: "Tokyo" } }],
       [{ name: "find_taste_twins", input: { neighbourhood: "Shimokitazawa", other_city: "New York" } }],
-      [{ name: "compare_supply", input: { neighbourhood: "Shimokitazawa", twin_neighbourhood: "Flushing", twin_city: "New York" } }],
+      [{ name: "compare_supply", input: { neighbourhood: "Shimokitazawa", twin_neighbourhood: "East Village", twin_city: "New York" } }],
       [submit],
       [submit],
       [{ name: "trend", input: { category: cat, city: "New York" } }],
@@ -296,6 +296,47 @@ test("Claude agent: a weak opportunity is rejected with reasons, and resubmittin
   assert.match(subs[0], /^Rejected: confidence \d+% is below 55%.*Not checked yet/);
   assert.match(subs[1], /^Already rejected/);
   assert.match(subs[2], /^Rejected:/, "new evidence earns a fresh evaluation");
+});
+
+test("taste-twin gate: a pair that is not a taste twin is rejected whatever its other scores, and never shown", async () => {
+  const ev = new Evidence(new BudgetedQloo(createQloo(), 40, () => {}), { categories: categoriesFor("all") });
+  const got: OpportunityCard[] = [];
+  const ruledOut: OpportunityCard[] = [];
+  const ctx: RunContext = { step: () => {}, onCard: (c) => got.push(c), onRejected: (c) => ruledOut.push(c), deadline: Date.now() + 60_000, signal: new AbortController().signal };
+  const cat = categoriesFor("all").find((c) => c.endsWith("korean_fried_chicken"))!;
+  // In the mock data Flushing shares none of Shimokitazawa's tastes (similarity 0), yet 6 vs 0 is a gap on paper.
+  const results: string[] = [];
+  const client = scriptedClaude(
+    [
+      [{ name: "find_taste_twins", input: { neighbourhood: "Shimokitazawa", other_city: "New York" } }],
+      [{ name: "compare_supply", input: { neighbourhood: "Shimokitazawa", twin_neighbourhood: "Flushing", twin_city: "New York" } }],
+      [{ name: "check_city_supply", input: { category: cat } }],
+      [{ name: "audience_profile", input: { category: cat, neighbourhood: "Shimokitazawa" } }],
+      [{ name: "trend", input: { category: cat, city: "New York" } }],
+      [{ name: "submit_opportunity", input: { category: cat, neighbourhood: "Shimokitazawa", twin_neighbourhood: "Flushing", twin_city: "New York", why: "", product_fit_score: 1, product_fit_reason: "", doubts: [] } }],
+      [],
+    ],
+    results,
+  );
+  await runClaudeAgent({ city: "Tokyo", focus: "all" }, ev, ctx, { model: "test", client });
+  const twins = JSON.parse(results[0]) as { twins: { name: string; not_a_usable_twin?: string }[] };
+  assert.match(twins.twins.find((t) => t.name === "Flushing")?.not_a_usable_twin ?? "", /below the 40% minimum/, "the model is told before it compares");
+  assert.ok(!twins.twins.find((t) => t.name === "Williamsburg")?.not_a_usable_twin, "a real twin carries no note");
+  assert.match(results.at(-1) ?? "", /^Not a usable taste twin: taste similarity 0% is below the 40% minimum/);
+  assert.equal(got.length, 0, "not shown as an opportunity");
+  assert.equal(ruledOut.length, 0, "not shown as a ruled-out idea either: there was no reliable comparison");
+});
+
+test("taste-twin gate: the fixed pipeline skips a twin below the minimum and never scores a gap on it", async () => {
+  const events = await run("New York");
+  const steps = events.flatMap((e) => (e.type === "step" ? [e.title] : []));
+  // East Village's best twin in Seoul (Hongdae, 36%) is below the bar; its Tokyo twin is kept.
+  assert.ok(steps.includes("Not comparing East Village with Hongdae: not a reliable taste twin"), steps.join(" / "));
+  const { cards } = checkInvariants(events);
+  const rejected = events.flatMap((e) => (e.type === "rejected" ? [e.card] : []));
+  for (const c of [...cards, ...rejected]) assert.ok((c.twinSimilarity ?? 0) >= 0.4 && !c.twinIssue, `${c.id} rests on a taste twin`);
+  const sim = new Map(events.flatMap((e) => (e.type === "twin" ? [[`${e.home}|${e.twin}|${e.twinCity}`, e.similarity] as const] : [])));
+  for (const r of events) if (r.type === "rescore") assert.ok((sim.get(`${r.hood}|${r.twin}|${r.twinCity}`) ?? 0) >= 0.4, `${r.id} re-scored on a taste twin`);
 });
 
 test("the agent's own checks: gaps are re-scored as checks come in, weak ones are ruled out with a score trail", async () => {

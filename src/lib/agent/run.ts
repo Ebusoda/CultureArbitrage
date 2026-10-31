@@ -7,7 +7,7 @@ import { categoriesForRequest, categoryLabel } from "./categories";
 import { DEFAULT_MODEL, runClaudeAgent, TurnCutOffError } from "./claude-agent";
 import { Evidence, type Supply } from "./evidence";
 import { runPipeline } from "./pipeline";
-import { cardId, isGap, provisional } from "./score";
+import { cardId, isGap, provisional, twinProblem } from "./score";
 import { isTargetFailure, resolveTarget, TargetError, type Translation } from "./target";
 import type { AgentEvent, AskedTarget, ExploreRequest, Modes, OpportunityCard, Phase, Target } from "./types";
 
@@ -122,6 +122,8 @@ export async function explore(req: ExploreRequest, emit: (e: AgentEvent) => void
   const shown = new Map<string, number>();
   const rescore = () => {
     for (const [key, twin] of ev.twins) {
+      // Not a taste twin (rules.ts): never shown as a gap in progress.
+      if (twinProblem(twin)) continue;
       const hood = key.split("|")[0];
       const here = ev.peek<Supply>(`supply:${hood}, ${req.city}`);
       const there = ev.peek<Supply>(`supply:${twin.name}, ${twin.city}`);

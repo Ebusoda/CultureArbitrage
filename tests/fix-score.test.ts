@@ -16,7 +16,7 @@ process.env.MOCK_DELAY_MS = "0";
 // --- helpers -------------------------------------------------------------------------------
 
 // An Evidence whose cache is filled directly, as a recording or the review's repro does.
-function seeded(mode: "mock" | "live", entries: Record<string, unknown>, twin?: { key: string; similarity: number; sharedShare?: number }) {
+function seeded(mode: "mock" | "live", entries: Record<string, unknown>, twin?: { key: string; similarity: number; sharedShare?: number; sharedCount?: number }) {
   const ev = new Evidence({ mode, lastCall: 0, remaining: 100 } as unknown as BudgetedQloo, {});
   const cache = (ev as unknown as { cache: Map<string, unknown> }).cache;
   const prov = (ev as unknown as { prov: Map<string, number[]> }).prov;
@@ -27,7 +27,7 @@ function seeded(mode: "mock" | "live", entries: Record<string, unknown>, twin?: 
   }
   if (twin) {
     const [, name, city] = twin.key.split("|");
-    ev.twins.set(twin.key, { name, city, similarity: twin.similarity, rank: 1, sharedShare: twin.sharedShare });
+    ev.twins.set(twin.key, { name, city, similarity: twin.similarity, rank: 1, sharedShare: twin.sharedShare, sharedCount: twin.sharedCount });
   }
   return ev;
 }
@@ -166,6 +166,59 @@ test("F46/F32: an audience lookup that found no age data is an open doubt, not a
   assert.equal(c2.confidenceMath.doubts, c2.doubts.length);
 });
 
+// --- Taste-twin gate (2026-10-31): the pair has to be taste twins before any score counts ---
+
+// Every other score near its best: 15 places in the twin, none at home or elsewhere in the city,
+// product fit 1. Before the gate, a similarity of 0 still cleared the bar (the review's repro: 80%).
+function bestCaseBut(twin?: { similarity: number; sharedCount?: number }) {
+  const ev = seeded(
+    "live",
+    {
+      "supply:Shibuya-ku, Tokyo": { counts: { [BAGEL]: 0 }, capped: false },
+      "supply:Manhattan, New York": { counts: { [BAGEL]: 15 }, capped: false },
+      [`citysupply:Tokyo:${BAGEL}`]: { count: 0, capped: false },
+      [`audience:${BAGEL}`]: share(0.1),
+      "hoodaudience:Shibuya-ku, Tokyo": share(0.1),
+    },
+    twin && { key: "Shibuya-ku|Manhattan|New York", ...twin },
+  );
+  return buildCard(ev, { category: BAGEL, hood: "Shibuya-ku", city: "Tokyo", twin: "Manhattan", twinCity: "New York", why: "", doubts: [], productFit: { score: 1, reason: "r" } });
+}
+
+test("taste-twin gate: a weak or missing twin keeps every confidence below the bar, whatever the other scores", () => {
+  const cases: [string, { similarity: number; sharedCount?: number } | undefined, RegExp][] = [
+    ["similarity 0", { similarity: 0, sharedCount: 0 }, /only 0 Qloo taste tags in common/],
+    ["similarity 0 (sample data)", { similarity: 0 }, /taste similarity 0% is below the 40% minimum/],
+    ["similarity 0.2", { similarity: 0.2, sharedCount: 30 }, /taste similarity 20% is below the 40% minimum/],
+    ["a high share of a handful of tags", { similarity: 1, sharedCount: 3 }, /only 3 Qloo taste tags in common \(at least 10 needed\)/],
+    ["no twin search for the pair", undefined, /no twin search found this pair/],
+    ["a similarity that is not a number", { similarity: Number.NaN, sharedCount: 40 }, /could not be measured/],
+  ];
+  for (const [what, twin, why] of cases) {
+    const c = bestCaseBut(twin);
+    assert.match(c.twinIssue ?? "", why, what);
+    assert.ok(c.confidence < MIN_CONFIDENCE, `${what}: ${c.confidence}`);
+    for (const t of c.trail ?? []) assert.ok(t.confidence < MIN_CONFIDENCE, `${what}: trail step "${t.label}" at ${t.confidence}`);
+    assert.match(c.trail!.at(-1)!.label, /held below 55%: not a reliable taste twin/, what);
+  }
+  // Without the gate the other scores would carry it over the bar: only the gate holds it back.
+  const zero = bestCaseBut({ similarity: 0, sharedCount: 0 }).confidenceMath;
+  assert.ok(zero.mean * zero.penalty >= MIN_CONFIDENCE, `mean ${zero.mean} x ${zero.penalty}`);
+  // A real twin with the same evidence passes, and carries no issue.
+  const ok = bestCaseBut({ similarity: 0.7, sharedCount: 50 });
+  assert.equal(ok.twinIssue, undefined);
+  assert.ok(ok.confidence >= MIN_CONFIDENCE, `${ok.confidence}`);
+});
+
+test("taste-twin gate: the bar itself (rules.ts)", () => {
+  assert.equal(rules.twinProblem({ similarity: rules.MIN_TWIN_SIMILARITY, sharedCount: rules.MIN_SHARED_TAGS }), null, "at the bar passes");
+  assert.match(rules.twinProblem({ similarity: rules.MIN_TWIN_SIMILARITY - 0.01 }) ?? "", /below the 40% minimum/);
+  assert.match(rules.twinProblem({ similarity: 0.9, sharedCount: rules.MIN_SHARED_TAGS - 1 }) ?? "", /only 9 Qloo taste tags/);
+  assert.match(rules.twinProblem(null) ?? "", /no twin search/);
+  // Every live pair behind a recorded card clears it (45 to 59 tags in common, similarity 0.58 to 0.91).
+  assert.equal(rules.twinProblem({ similarity: 0.5756097560975609, sharedCount: 45 }), null);
+});
+
 // --- F41: the bar uses the unrounded value ---------------------------------------------------
 
 test("F41: a confidence just under 55% is never stored or shown as 55%", () => {
@@ -181,9 +234,9 @@ test("F41: a confidence just under 55% is never stored or shown as 55%", () => {
           [`audience:${BAGEL}`]: share(0.1),
           "hoodaudience:Shibuya-ku, Tokyo": share(0.1),
         },
-        { key: "Shibuya-ku|Manhattan|New York", similarity: 0.3 },
+        { key: "Shibuya-ku|Manhattan|New York", similarity: 0.45 },
       ),
-      { category: BAGEL, hood: "Shibuya-ku", city: "Tokyo", twin: "Manhattan", twinCity: "New York", why: "", doubts: ["a", "b"], productFit: { score: fit, reason: "r" } },
+      { category: BAGEL, hood: "Shibuya-ku", city: "Tokyo", twin: "Manhattan", twinCity: "New York", why: "", doubts: ["a", "b", "c"], productFit: { score: fit, reason: "r" } },
     );
     const vals = c.scores.filter((s) => s.value !== null).map((s) => s.value!);
     const raw = (vals.reduce((a, v) => a + v, 0) / vals.length) * (1 - 0.05 * c.doubts.length);

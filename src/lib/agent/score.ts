@@ -1,10 +1,10 @@
 import { categoryLabel } from "./categories";
 import type { CitySupply, Demographics, Evidence, GoogleGap, Supply, Trend } from "./evidence";
-import { CITY_CROWDED_FACTOR, cityCrowded, cityMayBeLocal, isFalling, MIN_CONFIDENCE } from "./rules";
+import { CITY_CROWDED_FACTOR, cityCrowded, cityMayBeLocal, isFalling, MIN_CONFIDENCE, twinProblem } from "./rules";
 import type { OpportunityCard, ScoreItem, TrailStep } from "./types";
 
 // The thresholds live in rules.ts so the UI can apply the same ones; re-exported for callers.
-export { CITY_CROWDED, CITY_CROWDED_FACTOR, cityCrowded, cityMayBeLocal, FALLING_TREND, isFading, isFalling, isGap, MIN_CONFIDENCE } from "./rules";
+export { CITY_CROWDED, CITY_CROWDED_FACTOR, cityCrowded, cityMayBeLocal, FALLING_TREND, isFading, isFalling, isGap, MIN_CONFIDENCE, MIN_SHARED_TAGS, MIN_TWIN_SIMILARITY, twinProblem } from "./rules";
 
 export interface CardInput {
   category: string;
@@ -70,6 +70,10 @@ export function buildCard(ev: Evidence, input: CardInput): OpportunityCard {
   const twinCapped = twinSupply.capped;
   const twinInfo = ev.twins.get(`${hood}|${twin}|${twinCity}`) ?? null;
   const similarity = twinInfo?.similarity ?? null;
+  // Not a taste twin (rules.ts): every confidence on the card, the trail included, stays below
+  // the bar, whatever the other scores are. Callers reject it with this reason.
+  const twinIssue = twinProblem(twinInfo);
+  const held = (c: number) => (twinIssue ? (Number.isFinite(c) ? Math.min(c, round2(MIN_CONFIDENCE - 0.01)) : 0) : c);
   const city_ = ev.peek<CitySupply>(k.citySupply) ?? null;
   // undefined = never fetched; null = fetched, but Qloo (or the ward table) has no age data.
   const catAudienceRaw = ev.peek<Demographics | null>(k.catAudience);
@@ -173,7 +177,7 @@ export function buildCard(ev: Evidence, input: CardInput): OpportunityCard {
   const penalty = doubtPenalty(uniqueDoubts.length);
   const raw = mean * penalty;
   // The 55% bar applies to the unrounded value; a card below it is never stored or shown as 55%.
-  const confidence = raw < MIN_CONFIDENCE ? Math.min(round2(raw), round2(MIN_CONFIDENCE - 0.01)) : round2(raw);
+  const confidence = held(raw < MIN_CONFIDENCE ? Math.min(round2(raw), round2(MIN_CONFIDENCE - 0.01)) : round2(raw));
 
   // How confidence moved as each check came in: "Gap found" first, then the other checks in
   // evidence order, i.e. by the last Qloo call behind each. A check answered from this run's
@@ -191,7 +195,7 @@ export function buildCard(ev: Evidence, input: CardInput): OpportunityCard {
   const trail: TrailStep[] = [
     {
       label: `Gap found: ${twinN} in ${twin}, ${homeN} in ${hood}`,
-      confidence: round2(average(Object.values(sofar)) * doubtPenalty(open)),
+      confidence: held(round2(average(Object.values(sofar)) * doubtPenalty(open))),
       calls: [...homeCalls, ...ev.calls(k.twinSupply)],
     },
   ];
@@ -200,12 +204,13 @@ export function buildCard(ev: Evidence, input: CardInput): OpportunityCard {
   for (const c of checks.filter((c) => c.v !== null).sort((a, b) => done(a.calls) - done(b.calls))) {
     sofar[c.key] = c.v!;
     open += auto.filter((d) => d.at === c.at).length;
-    trail.push({ label: c.label, confidence: round2(average(Object.values(sofar)) * doubtPenalty(open)), calls: c.calls });
+    trail.push({ label: c.label, confidence: held(round2(average(Object.values(sofar)) * doubtPenalty(open))), calls: c.calls });
   }
   const extras = [
     input.productFit && `product fit ${share(clamp(input.productFit.score))}`,
     input.doubts.length && `${input.doubts.length} ${input.doubts.length === 1 ? "doubt" : "doubts"} of its own`,
     skipped && `${skipped} ${skipped === 1 ? "check" : "checks"} skipped`,
+    twinIssue && `held below ${Math.round(MIN_CONFIDENCE * 100)}%: not a reliable taste twin`,
   ].filter(Boolean);
   trail.push({ label: extras.length ? `Final score, with ${extras.join(", ")}` : "Final score", confidence, calls: [] });
 
@@ -233,6 +238,7 @@ export function buildCard(ev: Evidence, input: CardInput): OpportunityCard {
     trail,
     ...(google ? { google: { home: google.home.count, twin: google.twin.count, homeSaturated: google.home.saturated, twinSaturated: google.twin.saturated, halfKm: google.halfKm, verdict: google.verdict } } : {}),
     ...(googleSkipped ? { googleSkipped } : {}),
+    ...(twinIssue ? { twinIssue } : {}),
     ...(twinInfo?.sharedCount !== undefined && twinInfo.unionCount !== undefined ? { twinTagCounts: { shared: twinInfo.sharedCount, either: twinInfo.unionCount } } : {}),
     ...(twinInfo?.sharedShare !== undefined ? { twinSharedShare: twinInfo.sharedShare } : {}),
     ...(hoodAudience?.basis ? { audienceBasis: hoodAudience.basis } : {}),

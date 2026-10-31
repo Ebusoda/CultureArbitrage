@@ -4,7 +4,7 @@ import { canonicalCity, CITIES } from "../cities";
 import { categoriesForRequest, categoryLabel } from "./categories";
 import type { Evidence } from "./evidence";
 import type { RunContext } from "./run";
-import { buildCard, cardId, isGap, MIN_CONFIDENCE } from "./score";
+import { buildCard, cardId, isGap, MIN_CONFIDENCE, MIN_SHARED_TAGS, MIN_TWIN_SIMILARITY, twinProblem } from "./score";
 import { twinCities } from "./target";
 import type { ExploreRequest, OpportunityCard, Phase } from "./types";
 
@@ -30,7 +30,7 @@ const SYSTEM = `You are Culture Arbitrage, an analyst agent that finds cultural 
 
 Method ("taste twins"):
 1. Profile neighbourhoods of the home city by their audience's tastes.
-2. For promising neighbourhoods, find taste-twin neighbourhoods in other cities.
+2. For promising neighbourhoods, find taste-twin neighbourhoods in other cities. A pair is only a taste twin with a similarity of at least ${MIN_TWIN_SIMILARITY} and, on live data, at least ${MIN_SHARED_TAGS} Qloo taste tags in common. find_taste_twins marks weaker pairs with not_a_usable_twin; gaps between them, or between a pair no twin search returned, are rejected, so do not compare their supply.
 3. Compare what the twin already supports with what the home neighbourhood has. A gap is a category where the twin has at least 4 places and at least 3 times as many as the home neighbourhood. Smaller differences are not gaps and will be rejected.
 4. Doubt every gap before you submit it: does the rest of the home city already cover it? Is the evidence thin? Is the category fading (check the trend; bubble tea in Japan was a real gap that faded fast)? Does the category's core audience match the people in the home neighbourhood?
 5. Submit the best gaps with submit_opportunity, most convincing first.
@@ -386,6 +386,7 @@ async function execute(name: string, i: Input, req: ExploreRequest, ev: Evidence
           similarity: Math.round(t.similarity * 100) / 100,
           ...(t.sharedCount !== undefined ? { qloo_taste_tags_in_common: t.sharedCount, qloo_taste_tags_in_either: t.unionCount } : {}),
           ...(t.shared ? { some_shared_tastes: t.shared.map((x) => x.name) } : {}),
+          ...(twinProblem(t) ? { not_a_usable_twin: twinProblem(t) } : {}),
         })),
       };
     }
@@ -467,6 +468,13 @@ async function execute(name: string, i: Input, req: ExploreRequest, ev: Evidence
       if (!isGap(card.twinCount, card.homeCount)) {
         throw new Error(
           `Not a gap: ${card.twinCount} in ${card.twinLocality} vs ${card.homeCount} in ${card.homeLocality}. The twin needs at least 4 and at least 3 times as many.`,
+        );
+      }
+      // Not a taste twin: no other score can make up for it. The pair gives no reliable
+      // comparison, which says nothing either way about demand. Checked before Google Maps.
+      if (card.twinIssue) {
+        throw new Error(
+          `Not a usable taste twin: ${card.twinIssue}. With no reliable comparison this says nothing either way about demand. Pick a pair find_taste_twins returned without a not_a_usable_twin note.`,
         );
       }
       if (cards.some((c) => c.id === card.id)) throw new Error("Already submitted this opportunity.");
