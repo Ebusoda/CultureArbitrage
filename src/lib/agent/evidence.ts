@@ -4,6 +4,7 @@ import { boxAround, GOOGLE_PAGES, GooglePlacesError, type GoogleCount, type Goog
 import type { QlooEntity, QlooParams } from "../qloo";
 import { audienceProxy, categoryLabel, googleQuery } from "./categories";
 import { wardAudience } from "./census";
+import { twinProblem } from "./rules";
 import type { SupplyEvent, TwinEvent } from "./types";
 
 export interface Demographics {
@@ -354,6 +355,9 @@ export class Evidence {
         this.remember(t.name, other);
         const k = `${hood}|${t.name}|${other}`;
         if (!this.twins.has(k)) this.twins.set(k, t);
+        // Not a taste twin (rules.ts): kept for the checks, but never drawn or counted as one on
+        // the page, so no "well supplied" or gap verdict there can rest on it.
+        if (twinProblem(t)) continue;
         this.hooks.onTwin?.({
           type: "twin",
           home: hood,

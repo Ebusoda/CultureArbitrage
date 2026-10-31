@@ -299,7 +299,8 @@ test("Claude agent: a weak opportunity is rejected with reasons, and resubmittin
 });
 
 test("taste-twin gate: a pair that is not a taste twin is rejected whatever its other scores, and never shown", async () => {
-  const ev = new Evidence(new BudgetedQloo(createQloo(), 40, () => {}), { categories: categoriesFor("all") });
+  const twinEvents: string[] = [];
+  const ev = new Evidence(new BudgetedQloo(createQloo(), 40, () => {}), { categories: categoriesFor("all"), onTwin: (e) => twinEvents.push(e.twin) });
   const got: OpportunityCard[] = [];
   const ruledOut: OpportunityCard[] = [];
   const ctx: RunContext = { step: () => {}, onCard: (c) => got.push(c), onRejected: (c) => ruledOut.push(c), deadline: Date.now() + 60_000, signal: new AbortController().signal };
@@ -322,6 +323,8 @@ test("taste-twin gate: a pair that is not a taste twin is rejected whatever its 
   const twins = JSON.parse(results[0]) as { twins: { name: string; not_a_usable_twin?: string }[] };
   assert.match(twins.twins.find((t) => t.name === "Flushing")?.not_a_usable_twin ?? "", /below the 40% minimum/, "the model is told before it compares");
   assert.ok(!twins.twins.find((t) => t.name === "Williamsburg")?.not_a_usable_twin, "a real twin carries no note");
+  assert.deepEqual(twinEvents.sort(), ["East Village", "Williamsburg"], "the page is never sent the non-twin, so no map arc or verdict rests on it");
+  assert.match((JSON.parse(results[1]) as { not_a_usable_twin?: string }).not_a_usable_twin ?? "", /No gap between these two can be submitted/);
   assert.match(results.at(-1) ?? "", /^Not a usable taste twin: taste similarity 0% is below the 40% minimum/);
   assert.equal(got.length, 0, "not shown as an opportunity");
   assert.equal(ruledOut.length, 0, "not shown as a ruled-out idea either: there was no reliable comparison");

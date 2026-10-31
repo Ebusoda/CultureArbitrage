@@ -418,13 +418,16 @@ async function execute(name: string, i: Input, req: ExploreRequest, ev: Evidence
         const t = other.counts[c] ?? 0;
         return { category: c, label: categoryLabel(c), home: h, twin: t, is_gap: isGap(t, h) };
       });
-      for (const row of perCategory) if (row.is_gap) state.gaps.add(cardId(hood, twin, twinCity, row.category));
+      // Not a taste twin: its gaps cannot be submitted, so they are not gaps left unchecked either.
+      const weak = twinProblem(ev.twins.get(`${hood}|${twin}|${twinCity}`));
+      if (!weak) for (const row of perCategory) if (row.is_gap) state.gaps.add(cardId(hood, twin, twinCity, row.category));
       return {
         neighbourhood: hood,
         twin_neighbourhood: twin,
         twin_city: twinCity,
         counts_are_a_sample: home.capped || other.capped,
         per_category: perCategory,
+        ...(weak ? { not_a_usable_twin: `${weak}. No gap between these two can be submitted.` } : {}),
         ...(budgetOut ? { budget_used_up: "The Qloo budget ran out before every capped home count was recounted; those home numbers are a sample. Submit what you have or stop." } : {}),
       };
     }
