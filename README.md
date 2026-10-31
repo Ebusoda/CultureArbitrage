@@ -5,6 +5,7 @@ Find what your city is missing that its taste twin already loves, with the Qloo 
 **For judges**
 
 - **Live demo:** https://culture-arbitrage.vercel.app (no sign-in). Pick a city and press Explore: a run takes 1 to 2 minutes and makes at most 40 Qloo calls. Or type one business under the question, such as "pilates studio", to check only that type.
+- **Video (2:22):** https://youtu.be/eVFIeY62Vq8
 - **No time to run it?** The page has a recorded example ("see an example result"), and the screenshot below is a live Tokyo run.
 - **Devpost:** https://devpost.com/software/culture-arbitrage
 - **Where Qloo is used:** in every step. Taste profiles of neighbourhoods and their taste twins in other cities (`/v2/insights` with tags and localities), place counts on both sides, the age profile of each category's fans (demographics), trends (`/v2/trending`), and matching a typed business to a place tag (`/v2/tags`). Every number on a card links to the Qloo call it came from. Claude chooses the lookups; code computes every score.
